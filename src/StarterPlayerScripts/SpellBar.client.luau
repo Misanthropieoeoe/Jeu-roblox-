@@ -42,12 +42,48 @@ local cooldownEnds = {} -- [actionName] = os.clock() de fin de recharge
 local barrageActive = false
 
 -- Interface ------------------------------------------------------------------
+-- Anti-doublon : si une ancienne copie de ce script traîne dans le jeu, on
+-- l'arrête et on supprime sa barre (sinon deux barres se superposent et
+-- chaque clic lance l'attaque deux fois). Les copies à jour ont l'attribut
+-- SpellBarVersion ; on garde la plus récente.
+local SPELLBAR_VERSION = 2
+local playerGui = player:WaitForChild("PlayerGui")
+
+local function isOutdated(other)
+	return (other:GetAttribute("SpellBarVersion") or 0) < SPELLBAR_VERSION
+end
+
+for _, other in ipairs(script.Parent:GetChildren()) do
+	if other ~= script and other.Name == script.Name and other:IsA("LocalScript") then
+		if isOutdated(other) then
+			other:Destroy() -- arrête l'ancienne copie
+		else
+			script:Destroy() -- une copie aussi récente tourne déjà
+			return
+		end
+	end
+end
+script:SetAttribute("SpellBarVersion", SPELLBAR_VERSION)
+
+local function removeOldBar(child)
+	if child:IsA("ScreenGui") and child.Name == "SpellBar" and isOutdated(child) then
+		child:Destroy()
+	end
+end
+for _, child in ipairs(playerGui:GetChildren()) do
+	removeOldBar(child)
+end
+playerGui.ChildAdded:Connect(function(child)
+	task.defer(removeOldBar, child)
+end)
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "SpellBar"
+gui:SetAttribute("SpellBarVersion", SPELLBAR_VERSION)
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 3
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = playerGui
 
 local column = Instance.new("Frame")
 column.Name = "Column"

@@ -4,9 +4,12 @@
 --
 -- 1. Doublons : dans ReplicatedStorage, ReplicatedStorage.Animations,
 --    StarterPlayerScripts et ServerScriptService, si deux scripts ont le même
---    nom ET le même code, la copie en trop est supprimée. Deux scripts du
---    même nom mais avec un code DIFFÉRENT sont gardés (avertissement en
---    orange dans la Sortie) : il faut alors regarder à la main.
+--    nom, on garde :
+--      - la version à jour pour les scripts listés dans RECENT (reconnue à
+--        un bout de code que seule la dernière version contient) ;
+--      - sinon une seule copie si elles sont identiques.
+--    Deux copies DIFFÉRENTES d'un autre script sont gardées (avertissement
+--    en orange dans la Sortie) : il faut alors regarder à la main.
 -- 2. Restes "Hello world" du modèle par défaut de Rojo : Client, Server et
 --    le dossier Shared (qui ne contient que Hello).
 --
@@ -17,23 +20,48 @@ ChangeHistory:SetWaypoint("Avant nettoyage")
 
 local removed = 0
 
+-- Bout de code présent seulement dans la dernière version
+local RECENT = {
+	SpellBar = "SpellBarVersion",
+	StandSpells = "HomingRange",
+	StandStrikes = "local BLOCK = hold",
+}
+
+local function remove(child, why)
+	print(why, child:GetFullName())
+	child:Destroy()
+	removed += 1
+end
+
 local function dedupe(parent)
 	if not parent then return end
-	local seen = {}
+	local groups = {}
 	for _, child in ipairs(parent:GetChildren()) do
 		if child:IsA("LuaSourceContainer") then
 			local key = child.ClassName .. ":" .. child.Name
-			local first = seen[key]
-			if first then
-				if first.Source == child.Source then
-					print("Supprimé doublon :", child:GetFullName())
-					child:Destroy()
-					removed += 1
-				else
-					warn("Doublon DIFFÉRENT gardé :", child:GetFullName())
+			groups[key] = groups[key] or {}
+			table.insert(groups[key], child)
+		end
+	end
+	for _, copies in pairs(groups) do
+		if #copies > 1 then
+			local marker = RECENT[copies[1].Name]
+			local keep = nil
+			if marker then
+				for _, c in ipairs(copies) do
+					if c.Source:find(marker, 1, true) then keep = c break end
 				end
-			else
-				seen[key] = child
+			end
+			for _, c in ipairs(copies) do
+				if c ~= (keep or copies[1]) then
+					if keep then
+						remove(c, "Supprimé ancienne version :")
+					elseif c.Source == copies[1].Source then
+						remove(c, "Supprimé doublon :")
+					else
+						warn("Doublon DIFFÉRENT gardé :", c:GetFullName())
+					end
+				end
 			end
 		end
 	end
