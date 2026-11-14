@@ -14,7 +14,7 @@ local AnimationController = require(ReplicatedStorage:WaitForChild("AnimationCon
 -- Réglages -------------------------------------------------------------------
 local ANIMATION = "DoubleJump"
 local AIR_JUMPS = 1 -- nombre de sauts en l'air (1 = double saut, 2 = triple…)
-local POWER = 1.0 -- force du double saut par rapport au saut normal
+local POWER = 1.25 -- force du double saut par rapport au saut normal
 local MIN_AIR_TIME = 0.12 -- délai minimum après avoir quitté le sol
 -- Deux demandes de saut plus proches que ça = la même touche maintenue
 -- (Roblox répète la demande tant qu'on garde Espace enfoncé).
