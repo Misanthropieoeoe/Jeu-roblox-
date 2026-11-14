@@ -1688,22 +1688,63 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ===================== M1 LIGHT PUNCH =====================
--- Left click jabs. A client gate spaces clicks just under the server's
--- cooldown (read from the stand data) so spam never reaches the remote.
+-- Clic gauche = coup léger. Pour un combo fluide :
+--   - maintenir le clic enchaîne les coups au rythme du serveur ;
+--   - un clic un peu trop tôt est gardé en mémoire (M1_BUFFER) et envoyé dès
+--     que le coup suivant est possible, au lieu d'être perdu.
+-- Le rythme suit le Cooldown du serveur (StandData), donc le serveur ne
+-- reçoit jamais de spam.
+local M1_BUFFER = 0.3
 local lastM1 = 0
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-	if not localPlayer.Character then return end
-	if localPlayer:GetAttribute("Standless") then return end
+local m1Held = false
+local m1BufferedAt = nil
+
+local function m1Gate()
 	local standId = localPlayer:GetAttribute("StandId")
 	local standDef = (standId and StandData.GetStand(standId)) or StandData.GetStand(StandData.DefaultStand)
 	local move = standDef and standDef.Moves and standDef.Moves.LightPunchR
-	local gate = math.max((move and move.Cooldown or 0.6) - 0.05, 0.1)
-	local now = os.clock()
-	if now - lastM1 < gate then return end
-	lastM1 = now
+	-- un peu sous le cooldown serveur pour absorber la latence
+	return math.max((move and move.Cooldown or 0.6) - 0.03, 0.1)
+end
+
+local function canM1()
+	return localPlayer.Character ~= nil and not localPlayer:GetAttribute("Standless")
+		and not localPlayer:GetAttribute("Blocking")
+end
+
+local function fireM1()
+	lastM1 = os.clock()
+	m1BufferedAt = nil
 	standAction:FireServer("LightPunch")
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+	if not canM1() then return end
+	m1Held = true
+	if os.clock() - lastM1 >= m1Gate() then
+		fireM1()
+	else
+		m1BufferedAt = os.clock()
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		m1Held = false
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	local buffered = m1BufferedAt and os.clock() - m1BufferedAt <= M1_BUFFER
+	if not m1Held and not buffered then
+		m1BufferedAt = nil
+		return
+	end
+	if os.clock() - lastM1 >= m1Gate() and canM1() then
+		fireM1()
+	end
 end)
 
 -- ===================== TIME STOP VOICE =====================

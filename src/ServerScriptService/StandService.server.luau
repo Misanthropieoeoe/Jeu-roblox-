@@ -419,6 +419,9 @@ local activeBarrages = {}
 -- Après une pause plus longue que M1_COMBO_RESET (en secondes), le combo
 -- repart de zéro.
 local M1_COMBO_RESET = 1.0
+-- Temps pendant lequel le Stand reste en garde après la fin d'un coup avant
+-- de repasser en pose d'attente (pour enchaîner le combo sans à-coup).
+local M1_HOLD_AFTER = 0.2
 local m1Combo = {} -- [UserId] = nombre de coups déjà donnés dans le combo
 local m1BlockedUntil = {} -- [UserId] = os.clock() avant lequel M1 est bloqué
 
@@ -2280,8 +2283,9 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		end
 
 		local hand = (m1Combo[uid] % 2 == 1) and "R" or "L"
+		local punchStarted = workspace:GetServerTimeNow()
 		stand:SetAttribute("State", "LightPunch" .. hand)
-		stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+		stand:SetAttribute("StateStarted", punchStarted)
 		-- Stand cry on every M1 jab: a short one-shot of the stand's barrage
 		-- voice (stopped early so the full barrage loop never runs over jabs).
 		-- Stands without a barrage voice (no clip in the pack) stay silent.
@@ -2319,8 +2323,11 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 				if sfx then sfx:Play() end
 			end
 		end)
-		task.delay(0.42, function()
-			if stand.Parent and (stand:GetAttribute("State") == "LightPunchR" or stand:GetAttribute("State") == "LightPunchL") then
+		-- Le Stand reste en garde (fin de l'animation du coup) jusqu'au coup
+		-- suivant au lieu de repasser en pose d'attente entre deux M1 ; on ne
+		-- revient au repos que si aucun autre coup n'a commencé entre-temps.
+		task.delay(move.Cooldown + M1_HOLD_AFTER, function()
+			if stand.Parent and stand:GetAttribute("StateStarted") == punchStarted then
 				stand:SetAttribute("State", "Idle")
 				stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
 			end
