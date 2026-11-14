@@ -1,0 +1,7 @@
+# Fichiers de place Roblox (binaires / lourds) : on ne versionne que le code
+*.rbxl
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxm
+sourcemap.json
+.DS_Store
