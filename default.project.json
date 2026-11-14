@@ -60,6 +60,9 @@
         "StandController": {
           "$path": "src/StarterPlayerScripts/StandController.client.luau"
         },
+        "StandMenu": {
+          "$path": "src/StarterPlayerScripts/StandMenu.client.luau"
+        },
         "StandPickupToast": {
           "$path": "src/StarterPlayerScripts/StandPickupToast.client.luau"
         },

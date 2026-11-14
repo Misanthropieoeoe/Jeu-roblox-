@@ -1374,8 +1374,53 @@ end
 -- client (it owns the character's physics); the server owns the rate limit.
 local STAND_JUMP_COOLDOWN = 3
 
+-- ==================== MENU DES STANDS (admins) ====================
+-- Les admins peuvent prendre n'importe quel Stand via le menu (StandMenu).
+-- Le serveur vérifie lui-même qui est admin : un joueur normal ne peut pas
+-- changer de Stand, même en trichant.
+-- Le mieux est de mettre les UserId (ils ne changent jamais, contrairement
+-- aux pseudos). UserId : roblox.com/users/<UserId>/profile
+local STAND_ADMIN_IDS = {
+	-- [123456789] = true,
+}
+local STAND_ADMIN_NAMES = {
+	["mamamzeze"] = true, -- en minuscules
+}
+-- Le créateur du jeu est admin automatiquement.
+local CREATOR_IS_ADMIN = true
+local CHOOSE_STAND_COOLDOWN = 1
+
+local function isStandAdmin(player)
+	if STAND_ADMIN_IDS[player.UserId] then return true end
+	if STAND_ADMIN_NAMES[string.lower(player.Name)] then return true end
+	if CREATOR_IS_ADMIN and game.CreatorType == Enum.CreatorType.User
+		and player.UserId == game.CreatorId then
+		return true
+	end
+	return false
+end
+
+local function markStandAdmin(player)
+	player:SetAttribute("StandAdmin", isStandAdmin(player) or nil)
+end
+Players.PlayerAdded:Connect(markStandAdmin)
+for _, player in Players:GetPlayers() do
+	markStandAdmin(player)
+end
+local chooseStandAt = {}
+Players.PlayerRemoving:Connect(function(player)
+	chooseStandAt[player.UserId] = nil
+end)
+
 standAction.OnServerEvent:Connect(function(player, actionName, ...)
 	if actionName == "ChooseStand" then
+		if not isStandAdmin(player) then
+			warn("[StandService] ChooseStand refusé (pas admin) :", player.Name)
+			return
+		end
+		local nowChoose = os.clock()
+		if (chooseStandAt[player.UserId] or 0) + CHOOSE_STAND_COOLDOWN > nowChoose then return end
+		chooseStandAt[player.UserId] = nowChoose
 		local args = { ... }
 		local standId = tostring(args[1])
 		print("[StandService] ChooseStand received:", standId)
