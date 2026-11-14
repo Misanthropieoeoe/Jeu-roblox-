@@ -12,6 +12,9 @@
       "StandData": {
         "$path": "src/ReplicatedStorage/StandData.luau"
       },
+      "StandStrikes": {
+        "$path": "src/ReplicatedStorage/StandStrikes.luau"
+      },
       "Animations": {
         "$path": "src/ReplicatedStorage/Animations",
         "$ignoreUnknownInstances": true

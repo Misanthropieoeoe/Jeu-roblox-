@@ -6,6 +6,7 @@ local SoundService = game:GetService("SoundService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
+local StandStrikes = require(ReplicatedStorage:WaitForChild("StandStrikes"))
 local standAction = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("StandAction")
 
 local localPlayer = Players.LocalPlayer
@@ -78,9 +79,7 @@ local function collectJoints(model)
 	return joints
 end
 
-local compiledClips = {}
-for key, entry in pairs(STAND_CLIPS) do
-	local clip = entry.clip
+local function compileClip(clip)
 	local timestamps, driven = {}, {}
 	for when, frame in pairs(clip.Timestamps) do
 		table.insert(timestamps, when)
@@ -89,12 +88,48 @@ for key, entry in pairs(STAND_CLIPS) do
 		end
 	end
 	table.sort(timestamps)
-	compiledClips[key] = {
+	return {
 		clip = clip,
 		timestamps = timestamps,
 		lastTime = timestamps[#timestamps] or 0,
 		driven = driven,
 	}
+end
+
+local compiledClips = {}
+for key, entry in pairs(STAND_CLIPS) do
+	compiledClips[key] = compileClip(entry.clip)
+end
+
+-- M1 propres à chaque Stand (ReplicatedStorage.StandStrikes), compilés pour
+-- le squelette réel du Stand (R6 ou R15). Star Platinum garde ses clips
+-- d'origine. Pour les Stands R15, le Heavy Punch (et donc le coup final du
+-- combo) utilise aussi leur coup final : les clips d'origine sont en R6 et
+-- ne bougeaient rien sur un squelette R15.
+local KEEP_ORIGINAL_STRIKES = { StarPlatinum = true }
+
+local function getStrikeClip(stand, rig, state)
+	local standId = stand:GetAttribute("StandId")
+	if not standId or KEEP_ORIGINAL_STRIKES[standId] then return nil end
+	local kind
+	if state == "LightPunchR" then
+		kind = "LightR"
+	elseif state == "LightPunchL" then
+		kind = "LightL"
+	elseif state == "HeavyPunch" and rig.joints.UpperTorso then
+		kind = "Finisher"
+	else
+		return nil
+	end
+	rig.strikeClips = rig.strikeClips or {}
+	local cached = rig.strikeClips[kind]
+	if cached == nil then
+		local clip = StandStrikes.Compile(standId, kind, rig.joints)
+		cached = clip and compileClip(clip) or false
+		if cached then cached.key = "Strike:" .. standId .. ":" .. kind end
+		rig.strikeClips[kind] = cached
+	end
+	return cached or nil
 end
 
 local function clearClip(rig)
@@ -104,7 +139,7 @@ local function clearClip(rig)
 		rig.clipConn = nil
 	end
 	if rig.clipKey then
-		local previous = compiledClips[rig.clipKey]
+		local previous = rig.clipInfo or compiledClips[rig.clipKey]
 		if previous then
 			for partName in pairs(previous.driven) do
 				local joint = rig.joints[partName]
@@ -113,17 +148,19 @@ local function clearClip(rig)
 		end
 	end
 	rig.clipKey = nil
+	rig.clipInfo = nil
 	rig.clipStart = nil
 	rig.clipInitial = nil
 	rig.releasing = nil
 end
 
-local function playClipFrame(rig, key, actionElapsed)
-	local info = compiledClips[key]
+local function playClipFrame(rig, key, actionElapsed, info)
+	info = info or compiledClips[key]
 	if not info or info.lastTime <= 0 then return false end
 	if rig.clipKey ~= key then
 		clearClip(rig)
 		rig.clipKey = key
+		rig.clipInfo = info
 		rig.clipStart = actionElapsed
 		rig.clipInitial = {}
 		for partName in pairs(info.driven) do
@@ -891,12 +928,20 @@ local function animateStand(stand, state, t, now)
         end
         rig.lastVisualState = state
     end
-    local desired = compiledClips[state]
+    local strike = getStrikeClip(stand, rig, state)
+    local desired = strike or compiledClips[state]
 	if desired then
-		playClipFrame(rig, state, t)
+		playClipFrame(rig, strike and strike.key or state, t, desired)
 		local rightElbow = rig.motors.rightElbow
 		local leftElbow = rig.motors.leftElbow
-		if state == "LightPunchR" or state == "LightPunchL" then
+		if strike then
+			-- Coudes ajoutés sur un Stand R6 : ils suivent la frappe du Stand.
+			if rightElbow or leftElbow then
+				local r, l = StandStrikes.ElbowsAt(strike.clip, math.max(0, t))
+				if r and rightElbow then rightElbow.Transform = CFrame.Angles(r, 0, 0) end
+				if l and leftElbow then leftElbow.Transform = CFrame.Angles(l, 0, 0) end
+			end
+		elseif state == "LightPunchR" or state == "LightPunchL" then
 			-- Coup léger : le bras qui frappe s'arme puis se tend, l'autre garde.
 			local punching = jabElbow(math.max(0, t))
 			local guard = JAB_GUARD_ELBOW
