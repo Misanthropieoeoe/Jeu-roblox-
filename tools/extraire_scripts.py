@@ -28,3 +28,18 @@ def walk(node, path):
 walk(root, [])
 for w in written: print(*w, sep="  |  ")
 print(len(written), "fichiers")
+
+# Attributs Studio des scripts (identifiants Lemonade…) pour generer_projet.py
+import json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from attributs import script_attributes
+attr_path = os.path.join(out, "tools", "attributs_studio.json")
+saved = {}
+if os.path.exists(attr_path):
+    with open(attr_path, encoding="utf-8") as f:
+        saved = json.load(f)
+saved.update(script_attributes(root))
+with open(attr_path, "w", encoding="utf-8") as f:
+    json.dump(saved, f, indent=2, ensure_ascii=False, sort_keys=True)
+    f.write("\n")
+print(len(saved), "scripts avec attributs enregistrés dans tools/attributs_studio.json")

@@ -18,3 +18,14 @@ modification :
 6. Supprimer le `.rbxlx` du dépôt (il reste sur le PC)
 
 Ensuite seulement : Pull dans GitHub Desktop puis Rojo → Connect.
+
+## Identifiants Lemonade
+
+L'ami utilise Lemonade (IA dans Studio), qui marque chaque script avec un
+attribut caché `_lemonadeUniqueId`. Rojo effacerait ces attributs à la
+synchronisation : ils sont donc enregistrés dans `tools/attributs_studio.json`
+(mis à jour par `extraire_scripts.py`) et `generer_projet.py` les remet dans
+`default.project.json` (`$attributes`), pour que Rojo les conserve.
+
+**Ne pas modifier `default.project.json` à la main** : lancer
+`python3 -I tools/generer_projet.py` après avoir ajouté / supprimé un script.
