@@ -32,6 +32,7 @@ local STAND_CLIPS = {
 	-- M1 coup léger : le serveur alterne main droite / main gauche (0.42 s).
 	LightPunchR = { clip = require(animationsFolder:WaitForChild("Stand Right Punch")).Rigs.R6 },
 	LightPunchL = { clip = require(animationsFolder:WaitForChild("Stand Left Punch")).Rigs.R6 },
+	Deploying = { clip = require(animationsFolder:WaitForChild("StandSummon")).Rigs.R6 },
 }
 
 -- Coude pendant le coup léger (en radians, + = plié), en fonction du temps
@@ -317,6 +318,9 @@ local summonImpacted = setmetatable({}, { __mode = "k" })
 local summonFinished = setmetatable({}, { __mode = "k" })
 local summonWasVisible = setmetatable({}, { __mode = "k" })
 local summonPoseStruck = setmetatable({}, { __mode = "k" })
+-- One cry per summon: remembers the last reveal roar per owner+stand so a
+-- racing/replacement Deploying model cannot double-play the voice line.
+local lastRoarAt = {}
 local playerPoseConnection = nil
 
 local function smooth01(x)
@@ -330,65 +334,6 @@ end
 local function summonRise(p)
 	-- The stand is an ominous low silhouette at first, then bursts upward.
 	return easeOutQuint((p - 0.16)/0.67)
-end
-
--- Four distinct beats: protective crouch -> energy compression -> explosive
--- open-arm reveal -> a controlled return to the normal guard.
-local function playDeploy(motors, t, duration)
-	local p = math.clamp(t/duration, 0, 1)
-	local charge = smooth01(p/0.26)
-	local burst = smooth01((p-0.26)/0.32)
-	local settle = smooth01((p-0.64)/0.36)
-	local function blend(a,b,c,d)
-		return a:Lerp(b,charge):Lerp(c,burst):Lerp(d,settle)
-	end
-	if motors.rightShoulder then
-		motors.rightShoulder.Transform = blend(
-			CFrame.Angles(0.25,-0.2,-0.22),
-			CFrame.new(-0.10,0.06,-0.20)*CFrame.Angles(-0.6,0.15,-1.48),
-			CFrame.Angles(-1.05,0.38,-1.56),
-			referenceIdleTarget(0, motors).rightShoulder)
-	end
-	if motors.leftShoulder then
-		motors.leftShoulder.Transform = blend(
-			CFrame.Angles(0.25,0.2,0.22),
-			CFrame.new(0.10,0.06,-0.20)*CFrame.Angles(-0.6,-0.15,1.48),
-			CFrame.Angles(-1.05,-0.38,1.56),
-			referenceIdleTarget(0, motors).leftShoulder)
-	end
-	-- Animated elbows: open on energy release, fold into the reference idle at the end.
-	if motors.rightElbow then
-		motors.rightElbow.Transform = blend(CFrame.Angles(0.48,0,0),
-			CFrame.Angles(0.20,0,0), CFrame.Angles(0.03,0,0),
-			referenceIdleTarget(0, motors).rightElbow)
-	end
-	if motors.leftElbow then
-		motors.leftElbow.Transform = blend(CFrame.Angles(0.44,0,0),
-			CFrame.Angles(0.18,0,0), CFrame.Angles(0.03,0,0),
-			referenceIdleTarget(0, motors).leftElbow)
-	end
-	if motors.root then
-		motors.root.Transform = blend(
-			CFrame.new(0,-0.77,0.24)*CFrame.Angles(0.35,-0.15,0.07),
-			CFrame.new(0,-0.49,0.18)*CFrame.Angles(0.24,0.20,-0.09),
-			CFrame.new(0,0.26,-0.10)*CFrame.Angles(-0.23,-0.21,0.04),
-			referenceIdleTarget(0, motors).root)
-	end
-	if motors.neck then
-		motors.neck.Transform = blend(
-			CFrame.Angles(0.45,0,0),
-			CFrame.Angles(0.20,-0.15,0),
-			CFrame.Angles(-0.46,0.10,0),
-			referenceIdleTarget(0, motors).neck)
-	end
-	if motors.leftHip then
-		motors.leftHip.Transform = blend(CFrame.Angles(-0.33,0,0.06),
-			CFrame.Angles(-0.13,0,0.06),CFrame.Angles(0.13,0,0.05),referenceIdleTarget(0, motors).leftHip)
-	end
-	if motors.rightHip then
-		motors.rightHip.Transform = blend(CFrame.Angles(-0.33,0,-0.06),
-			CFrame.Angles(-0.13,0,-0.06),CFrame.Angles(0.13,0,-0.05),referenceIdleTarget(0, motors).rightHip)
-	end
 end
 
 local function fadeSummoningStand(stand,p,complete)
@@ -409,15 +354,23 @@ local function fadeSummoningStand(stand,p,complete)
 	end
 end
 
-local function play3DSound(parent,name,id,volume,pitch)
+local function play3DSound(parent,name,id,volume,pitch,rollOffMin,rollOffMax)
 	if not id or id == "" then return end
 	local sound=Instance.new("Sound")
 	sound.Name=name
 	sound.SoundId=id
 	sound.Volume=volume
 	sound.PlaybackSpeed=pitch or 1
-	sound.RollOffMaxDistance=105
-	sound.RollOffMinDistance=9
+	if rollOffMin then
+		-- Spatialized clips (summon voice): inverse-tapered curve fades the
+		-- line out naturally between the min/max distance pair.
+		sound.RollOffMode=Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance=rollOffMin
+		sound.RollOffMaxDistance=rollOffMax or 105
+	else
+		sound.RollOffMinDistance=9
+		sound.RollOffMaxDistance=105
+	end
 	sound.Parent=parent
 	sound:Play()
 	Debris:AddItem(sound,5)
@@ -723,6 +676,15 @@ end
 local function summonReveal(stand,standDef)
 	if summonImpacted[stand] or not stand.PrimaryPart then return end
 	summonImpacted[stand]=true
+	-- The summon voice line plays exactly one time per summon: a replacement
+	-- model of the same player's stand (server race echo) is skipped.
+	local standId = stand:GetAttribute("StandId")
+	local roarKey = tostring(stand:GetAttribute("Owner")) .. ":" .. tostring(standId)
+	local nowClock = os.clock()
+	if lastRoarAt[roarKey] and nowClock - lastRoarAt[roarKey] < 1.25 then
+		return
+	end
+	lastRoarAt[roarKey] = nowClock
 	local pos=stand.PrimaryPart.Position+Vector3.new(0,.8,0)
 	local camera=workspace.CurrentCamera
 	if camera and (camera.CFrame.Position-pos).Magnitude>160 then return end
@@ -737,14 +699,12 @@ local function summonReveal(stand,standDef)
 	light.Range=24
 	light.Parent=anchor
 	TweenService:Create(light,TweenInfo.new(.40),{Brightness=0}):Play()
-	play3DSound(anchor,"SPV2_RevealImpact","rbxasset://sounds/electronicpingshort.wav",.58,.70)
 	-- Summon shout rework: the verified Summon roar fires on the reveal impact,
 	-- then the "ORA!" quote lands just after it for a layered shout.
-	local standId = stand:GetAttribute("StandId")
-	play3DSound(anchor,"SPV2_SummonRoar",resolveVoiceId(standId,"Summon") or standDef.SummonShoutId,1.25,1)
+	play3DSound(anchor,"SPV2_SummonRoar",resolveVoiceId(standId,"Summon") or standDef.SummonShoutId,1.25,1,14,65)
 	task.delay(.35,function()
 		if anchor.Parent then
-			play3DSound(anchor,"SPV2_StandQuote",resolveVoiceId(standId,"Quote") or standDef.SummonQuoteId,1.1,1)
+			play3DSound(anchor,"SPV2_StandQuote",resolveVoiceId(standId,"Quote") or standDef.SummonQuoteId,1.1,1,14,65)
 		end
 	end)
 	if stand:GetAttribute("Owner")==localPlayer.UserId then
@@ -944,7 +904,7 @@ local function animateStand(stand, state, t, now)
 			local left = state == "LightPunchL" and punching or guard
 			if rightElbow then rightElbow.Transform = CFrame.Angles(right, 0, 0) end
 			if leftElbow then leftElbow.Transform = CFrame.Angles(left, 0, 0) end
-		else
+		elseif state == "Barrage" or state == "HeavyPunch" then
 			-- Strong straight punch silhouette during Barrage / HeavyPunch.
 			if rightElbow then rightElbow.Transform = CFrame.Angles(0.10, 0, 0) end
 			if leftElbow then leftElbow.Transform = CFrame.Angles(0.11, 0, 0) end
@@ -954,9 +914,7 @@ local function animateStand(stand, state, t, now)
 			clearClip(rig)
 		end
 		local motors = rig.motors
-		if state == "Deploying" then
-			playDeploy(motors, t, rig.summonDuration or 1.25)
-		elseif state == "Pose" then
+		if state == "Pose" then
 			playStarPose(motors, t, now, rig)
 		elseif state == "TimeStop" then
 			playTimeStop(motors, t)
@@ -1522,7 +1480,6 @@ local function updateStand(stand, standDef, character, now)
 				pulse(pos, 5.5, 0.5, SUMMON_GOLD, 0.6)
 				pulse(pos, 3.4, 0.4, SUMMON_PURPLE, 0.7)
 				burst(anchor, "SPV2_PoseFlare", SUMMON_GOLD, SUMMON_PINK, 36, 8, 0.6, 0.28)
-				play3DSound(anchor, "SPV2_PoseSting", "rbxasset://sounds/electronicpingshort.wav", 0.35, 1.3)
 			end
 		end
 	elseif summonWasVisible[stand] then

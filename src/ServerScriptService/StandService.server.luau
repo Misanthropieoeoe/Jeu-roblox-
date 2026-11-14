@@ -810,6 +810,17 @@ local function giveStand(player)
 	local character = player.Character or player.CharacterAdded:Wait()
 	character:WaitForChild("HumanoidRootPart")
 
+	-- One cry per summon: if a deployment of this same stand is still running,
+	-- a racing giveStand call (join race, respawn overlapping a toggle) must
+	-- not deploy a second model and double-play the summon voice line.
+	local pendingDeploy = workspace:FindFirstChild(player.Name .. "Stand")
+	if pendingDeploy
+		and pendingDeploy:GetAttribute("State") == "Deploying"
+		and pendingDeploy:GetAttribute("StandId") == standId then
+		print("[StandService] Summon already running for", player.Name)
+		return
+	end
+
 	removeStand(player)
 
 	local clone = template:Clone()
