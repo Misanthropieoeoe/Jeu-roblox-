@@ -1421,6 +1421,14 @@ local function updateHeavyPunchVisuals(stand, state, t, character)
 end
 
 
+-- M1 : le Stand passe devant le joueur pendant le coup léger et y reste un
+-- moment après le dernier coup, pour ne pas faire d'allers-retours entre
+-- deux clics du combo.
+local JAB_HOLD_FRONT = 0.8 -- secondes devant après le dernier coup
+local JAB_LUNGE = 0.9 -- élan vers l'avant à l'impact (en studs)
+local DEFAULT_LIGHT_OFFSET = Vector3.new(0, 1.2, -3.2)
+local lastJabAt = setmetatable({}, { __mode = "k" })
+
 local function updateStand(stand, standDef, character, now)
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not hrp or not stand.PrimaryPart then return end
@@ -1464,6 +1472,19 @@ local function updateStand(stand, standDef, character, now)
 		local reach = 3 + strike * 1.7
 		targetPos = hrp.Position + flat * reach + Vector3.new(0, moveDef.HeavyOffset.Y, 0)
 		smooth = moveDef.HeavySmoothness
+	elseif state == "LightPunchR" or state == "LightPunchL"
+		or (state == "Idle" and lastJabAt[stand] and now - lastJabAt[stand] < JAB_HOLD_FRONT) then
+		local jab = standDef.Moves and standDef.Moves.LightPunchR
+		local offset = (jab and jab.LightOffset) or DEFAULT_LIGHT_OFFSET
+		local lunge = 0
+		if state ~= "Idle" then
+			lastJabAt[stand] = now
+			-- élan qui culmine à l'impact (~0.17 s) puis revient
+			lunge = math.sin(math.pi * math.clamp((t - 0.04) / 0.3, 0, 1)) * JAB_LUNGE
+		end
+		targetPos = hrp.Position + flat * (-offset.Z + lunge)
+			+ Vector3.new(0, offset.Y + math.sin(now * 1.55) * 0.06, 0)
+		smooth = (jab and jab.LightSmoothness) or 0.45
 	elseif state == "TimeStop" and moveDef and moveDef.TimeStopOffset then
 		targetPos = hrp.Position + flat * (-moveDef.TimeStopOffset.Z)
 			+ Vector3.new(0, moveDef.TimeStopOffset.Y + math.sin(now * 1.4) * 0.12, 0)
