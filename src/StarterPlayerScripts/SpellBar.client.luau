@@ -1,4 +1,4 @@
--- SpellBar. Barre des attaques à gauche de l'écran : une case par attaque
+-- SpellBar. Barre des attaques à droite de l'écran : une case par attaque
 -- du Stand équipé (touche, nom, temps de recharge restant). Les cases sont
 -- aussi cliquables / tapables (pratique sur mobile).
 --
@@ -55,8 +55,8 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 local column = Instance.new("Frame")
 column.Name = "Column"
-column.AnchorPoint = Vector2.new(0, 0.5)
-column.Position = UDim2.new(0, 12, 0.45, 0)
+column.AnchorPoint = Vector2.new(1, 0.5)
+column.Position = UDim2.new(1, -12, 0.45, 0)
 column.Size = UDim2.fromOffset(SLOT_W, 0)
 column.AutomaticSize = Enum.AutomaticSize.Y
 column.BackgroundTransparency = 1

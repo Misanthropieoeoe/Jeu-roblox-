@@ -76,8 +76,7 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Enabled = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Bouton d'ouverture, en haut à gauche sous les boutons Roblox (le milieu
--- gauche est pris par la barre des attaques, SpellBar)
+-- Bouton d'ouverture, en haut à gauche sous les boutons Roblox
 local openButton = Instance.new("TextButton")
 openButton.Name = "OpenButton"
 openButton.AnchorPoint = Vector2.new(0, 0)
