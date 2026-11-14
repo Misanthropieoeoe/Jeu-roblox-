@@ -1778,13 +1778,13 @@ local function runSpell(player, stand, standDef, move, aim)
 end
 
 -- ==================== PARADE (garde / parade parfaite) ====================
--- Maintenir X : garde. Les coups reçus DE FACE font 20 % des dégâts, sans
+-- Maintenir X : garde. Les coups reçus DE FACE ne font aucun dégât, sans
 -- recul ni étourdissement, et vident la jauge de garde. Jauge vide = garde
 -- brisée (étourdi). Lever la garde juste avant le coup (PARRY_WINDOW) =
 -- parade parfaite : aucun dégât, l'attaquant est étourdi et son barrage
 -- coupé. La jauge (attribut "Guard" du joueur) se recharge hors de la garde.
 local PARRY_WINDOW = 0.3 -- s après avoir levé la garde
-local BLOCK_DAMAGE_TAKEN = 0.2 -- part des dégâts encaissée en garde
+local BLOCK_DAMAGE_TAKEN = 0 -- part des dégâts encaissée en garde (0 = aucun dégât, seule la jauge baisse)
 local GUARD_MAX = 60
 local GUARD_REGEN = 15 -- points / s hors de la garde
 local GUARD_REGEN_DELAY = 1 -- s avant que la jauge se recharge
@@ -1798,6 +1798,7 @@ local blockState = {} -- [Player] = { started, savedSpeed }
 local blockReadyAt = {}
 local guardValue = {} -- [Player] = jauge
 local guardUsedAt = {}
+local blockFxAt = {}
 
 local function guardOf(player)
 	return guardValue[player] or GUARD_MAX
@@ -1938,6 +1939,12 @@ guardHook = function(target, caster, amount, kind)
 	-- GARDE
 	target.guarded = "block"
 	guardUsedAt[defender] = os.clock()
+	-- Petit éclat sur la garde (limité pour ne pas en mettre partout pendant
+	-- un barrage)
+	if os.clock() - (blockFxAt[defender] or 0) > 0.15 then
+		blockFxAt[defender] = os.clock()
+		impactFX(root.Position + toAttacker.Unit * 1.5, Color3.fromRGB(210, 215, 235), 4, 1.8)
+	end
 	setGuard(defender, guardOf(defender) - amount)
 	if guardOf(defender) <= 0 then
 		-- GARDE BRISÉE
@@ -1987,6 +1994,7 @@ Players.PlayerRemoving:Connect(function(player)
 	blockReadyAt[player] = nil
 	guardValue[player] = nil
 	guardUsedAt[player] = nil
+	blockFxAt[player] = nil
 end)
 
 local toggleAt = {}
