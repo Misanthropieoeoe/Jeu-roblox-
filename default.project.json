@@ -149,6 +149,14 @@
             }
           }
         },
+        "StandSummon Feral": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummon Feral.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "TbdUQfMOTbdU"
+            }
+          }
+        },
         "StandSummon Grace": {
           "$path": "src/ReplicatedStorage/Animations/StandSummon Grace.luau",
           "$attributes": {

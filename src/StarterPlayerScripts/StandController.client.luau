@@ -1716,6 +1716,29 @@ local function playTimeStopVoice()
 		end
 	end
 
+	local standId = localPlayer:GetAttribute("StandId") or "StarPlatinum"
+	local standDef = StandData.GetStand(standId)
+
+	-- recorded cry (TimeStopVoicePath mirrored as StandVoices/<StandId>/TimeStop)
+	-- replaces the synthesized voice for stands that ship one (The World...)
+	local recordedId = resolveVoiceId(standId, "TimeStop")
+	if recordedId then
+		local clip = Instance.new("Sound")
+		clip.Name = "TimeStopVoice_Recorded"
+		clip:SetAttribute("TimeStopVoice", true)
+		clip.SoundId = recordedId
+		clip.Volume = 1.2
+		clip.Parent = SoundService
+		clip:Play()
+		clip.Ended:Once(function()
+			clip:Destroy()
+		end)
+		task.delay(15, function()
+			if clip.Parent then clip:Destroy() end
+		end)
+		return
+	end
+
 	-- dramatic impact sting under the cry
 	local sting = Instance.new("Sound")
 	sting.Name = "TimeStopSting"
@@ -1733,8 +1756,6 @@ local function playTimeStopVoice()
 	local voice = Instance.new("AudioTextToSpeech")
 	voice.Name = "TimeStopVoice_Gen"
 	voice:SetAttribute("TimeStopVoice", true)
-	local standId = localPlayer:GetAttribute("StandId") or "StarPlatinum"
-	local standDef = StandData.GetStand(standId)
 	voice.Text = (standDef and standDef.TimeStopCry) or "Time Stop!"
 	local okVoice = pcall(function()
 		voice.VoiceId = 3

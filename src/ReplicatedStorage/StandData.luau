@@ -19,6 +19,7 @@ StandData.Stands = {
 		-- ServerStorage/JoJo SoundPack until now.
 		BarrageVoicePath = { "StarPlatinum", "Attacks/Barrage" },
 		HeavyVoicePath = { "StarPlatinum", "Attacks/Heavy" },
+		TimeStopVoicePath = { "StarPlatinum", "SPTimeStop" },
 		Smoothness = 0.22, -- V10: smoother tracking toward the idle position
 		AutoSummon = true,
 		ShoutText = "ORA!",
@@ -73,6 +74,7 @@ StandData.Stands = {
 		-- into ReplicatedStorage/StandVoices so every client can play them.
 		SummonVoicePath = { "ZaWarudo", "ZW/Summon" },
 		BarrageVoicePath = { "ZaWarudo", "Muda" },
+		TimeStopVoicePath = { "ZaWarudo", "DioTimeStop" },
 		Smoothness = 0.22,
 		AutoSummon = true,
 		ShoutText = "MUDA!",
@@ -140,7 +142,7 @@ StandData.Stands = {
 		-- recorded ZA WARUDO time-stop cry.
 		SummonVoicePath = { "TheWorldAU", "Summon" },
 		BarrageVoicePath = { "TheWorldAU", "Barrage" },
-		TimeStopVoicePath = { "TheWorldAU", "TimeStop" },
+		TimeStopVoicePath = { "TheWorldAU", "DiegoTimeStop" },
 		Smoothness = 0.22,
 		AutoSummon = true,
 		ShoutText = "MUDA!",
