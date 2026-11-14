@@ -1,6 +1,6 @@
 -- DoubleJump. Appuyer une deuxième fois sur Saut (Espace / bouton A / bouton
 -- saut mobile) en l'air relance le joueur vers le haut et joue l'animation
--- "DoubleJump" (le joueur regarde en l'air).
+-- "DoubleJump" (le joueur regarde en l'air) avec un petit son.
 --
 -- Le double saut est bloqué quand la puissance de saut est à 0 (étourdi,
 -- arrêt du temps…), quand le perso est ancré, assis ou mort.
@@ -19,6 +19,13 @@ local MIN_AIR_TIME = 0.12 -- délai minimum après avoir quitté le sol
 -- Deux demandes de saut plus proches que ça = la même touche maintenue
 -- (Roblox répète la demande tant qu'on garde Espace enfoncé).
 local HOLD_GAP = 0.12
+
+-- Son du double saut. Par défaut : le son de saut intégré à Roblox, joué plus
+-- aigu. Pour un autre son, mettre un ID de la boutique, par exemple
+-- "rbxassetid://123456789" (il doit être public ou t'appartenir).
+local SOUND_ID = "rbxasset://sounds/action_jump.mp3"
+local SOUND_VOLUME = 0.6
+local SOUND_PITCH = 1.35 -- 1 = normal, plus haut = plus aigu
 -------------------------------------------------------------------------------
 
 local AIR_STATES = {
@@ -35,6 +42,7 @@ local RESET_STATES = {
 
 local humanoid: Humanoid? = nil
 local rootPart: BasePart? = nil
+local jumpSound: Sound? = nil
 local jumpsUsed = 0
 local airborneSince = 0
 local lastRequest = 0
@@ -62,6 +70,9 @@ local function tryDoubleJump()
 	local v = root.AssemblyLinearVelocity
 	root.AssemblyLinearVelocity = Vector3.new(v.X, velocity, v.Z)
 	AnimationController.Play(ANIMATION)
+	if jumpSound then
+		jumpSound:Play()
+	end
 end
 
 UserInputService.JumpRequest:Connect(function()
@@ -77,6 +88,14 @@ local function hookCharacter(character: Model)
 	humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	rootPart = character:WaitForChild("HumanoidRootPart") :: BasePart
 	jumpsUsed = 0
+
+	local sound = Instance.new("Sound")
+	sound.Name = "DoubleJumpSound"
+	sound.SoundId = SOUND_ID
+	sound.Volume = SOUND_VOLUME
+	sound.PlaybackSpeed = SOUND_PITCH
+	sound.Parent = rootPart
+	jumpSound = sound
 
 	local h = humanoid :: Humanoid
 	h.StateChanged:Connect(function(oldState, newState)
