@@ -60,6 +60,9 @@
         "RequiemArrowStabAnimationHook": {
           "$path": "src/StarterPlayerScripts/RequiemArrowStabAnimationHook.client.luau"
         },
+        "SpellBar": {
+          "$path": "src/StarterPlayerScripts/SpellBar.client.luau"
+        },
         "StandController": {
           "$path": "src/StarterPlayerScripts/StandController.client.luau"
         },

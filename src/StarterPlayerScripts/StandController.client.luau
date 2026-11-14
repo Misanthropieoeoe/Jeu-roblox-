@@ -1576,6 +1576,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		fired = "HeavyPunch"
 	elseif input.KeyCode == Enum.KeyCode.F then
 		fired = "TimeStop"
+	elseif input.KeyCode == Enum.KeyCode.T then
+		fired = "Heal" -- Life Channel (GER) : aucune touche ne l'envoyait
 	end
 
 	if fired then
