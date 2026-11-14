@@ -183,7 +183,13 @@ local function makeSlot(order, action, keyText, name)
 		cooldown = 0, -- durée totale de la dernière recharge
 	}
 	button.Activated:Connect(function()
-		standAction:FireServer(action)
+		-- StandController ajoute le point visé pour les projectiles
+		local fire = _G.StandFireAction
+		if fire then
+			fire(action)
+		else
+			standAction:FireServer(action)
+		end
 	end)
 	slots[action] = slot
 	return slot
@@ -233,6 +239,8 @@ local function rebuild()
 			end
 		end
 	end
+	-- Parade (touche X, Guard.client.luau) : la case montre la jauge de garde
+	makeSlot(nextOrder(), "Block", "X", "Parade")
 end
 
 -- Recharges -------------------------------------------------------------------
@@ -292,9 +300,32 @@ for _, child in workspace:GetChildren() do
 end
 
 -- Rafraîchissement de l'affichage
+local GUARD_MAX = 60 -- même valeur que GUARD_MAX dans StandService
+
+local function renderGuard(slot)
+	local guard = player:GetAttribute("Guard") or GUARD_MAX
+	local missing = math.clamp(1 - guard / GUARD_MAX, 0, 1)
+	slot.veil.Size = UDim2.fromScale(missing, 1)
+	slot.timer.Text = string.format("%d%%", math.floor(guard / GUARD_MAX * 100 + 0.5))
+	if player:GetAttribute("Blocking") then
+		slot.status.Text = "EN GARDE"
+		slot.status.TextColor3 = GOLD
+	elseif guard < GUARD_MAX * 0.15 then
+		slot.status.Text = "BRISÉE"
+		slot.status.TextColor3 = RED
+	else
+		slot.status.Text = "MAINTENIR X"
+		slot.status.TextColor3 = READY
+	end
+end
+
 RunService.RenderStepped:Connect(function()
 	local now = os.clock()
 	for action, slot in pairs(slots) do
+		if action == "Block" then
+			renderGuard(slot)
+			continue
+		end
 		local ends = cooldownEnds[action]
 		local remaining = ends and (ends - now) or 0
 		if action == "Barrage" and barrageActive then

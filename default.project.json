@@ -44,6 +44,9 @@
             }
           }
         },
+        "Block": {
+          "$path": "src/ReplicatedStorage/Animations/Block.luau"
+        },
         "Cool Run Sprint": {
           "$path": "src/ReplicatedStorage/Animations/Cool Run Sprint.luau",
           "$attributes": {
@@ -254,6 +257,9 @@
         "DoubleJump": {
           "$path": "src/StarterPlayerScripts/DoubleJump.client.luau"
         },
+        "Guard": {
+          "$path": "src/StarterPlayerScripts/Guard.client.luau"
+        },
         "JoJoLoadingScreen": {
           "$path": "src/StarterPlayerScripts/JoJoLoadingScreen.client.luau",
           "$attributes": {
@@ -269,6 +275,9 @@
               "String": "szt37SuMszt3"
             }
           }
+        },
+        "ProjectileFX": {
+          "$path": "src/StarterPlayerScripts/ProjectileFX.client.luau"
         },
         "RequiemArrowStabAnimationHook": {
           "$path": "src/StarterPlayerScripts/RequiemArrowStabAnimationHook.client.luau",

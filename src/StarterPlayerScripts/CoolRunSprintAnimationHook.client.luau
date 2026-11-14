@@ -50,6 +50,11 @@ local function hookCharacter(character)
 	end)
 
 	RunService.Heartbeat:Connect(function()
+		-- En garde (Guard.client.luau) : on ne remplace pas l'animation Block
+		if AnimationController.CurrentAnimation() == "Block" then
+			stoppedSince = nil
+			return
+		end
 		if humanoid:GetState() ~= Enum.HumanoidStateType.Running then
 			stoppedSince = nil
 			return

@@ -9,6 +9,7 @@
 --          "TimeStop"            touche F (King Crimson, Made in Heaven)
 --          "Heal"                touche T (Gold Experience Requiem)
 --          "Idle"                pose d'attente (Stands R15, qui n'en avaient pas)
+--          "Block"               garde du joueur (touche X) : bras croisés devant
 --          "Anim:<Nom>"          attaques T / F / G (StandSpells, champ Anim) :
 --                                StandStrikes.SpellAnims[Nom], ou la version
 --                                propre au Stand si Stands[id][Nom] existe
@@ -581,6 +582,24 @@ function StandStrikes.Get(standId, kind)
 		return def.Heal
 	end
 	return nil
+end
+
+-- Garde (touche X) : avant-bras croisés devant le visage, pour tous les
+-- Stands (y compris Star Platinum). Un Stand peut avoir sa version (Block).
+local BLOCK = hold({
+	R = { pitch = 95, abduct = 0, swing = 45, elbow = 110 },
+	L = { pitch = 95, abduct = 0, swing = 45, elbow = 110 },
+	lean = 6, headPitch = -5,
+	legR = { hip = 10, knee = 15 }, legL = { hip = 10, knee = 15 },
+}, 0.15)
+
+local getBase = StandStrikes.Get
+function StandStrikes.Get(standId, kind)
+	if kind == "Block" then
+		local def = StandStrikes.Stands[standId]
+		return (def and def.Block) or BLOCK
+	end
+	return getBase(standId, kind)
 end
 
 -- ─── Conversion pose → articulations ────────────────────────────────────────

@@ -918,14 +918,28 @@ end
 
 -- V27: every landed hit is broadcast so clients can render damage numbers,
 -- spark bursts, camera shake and the combo counter (see CombatFX).
+-- Parade : défini plus bas (section PARADE). Il peut réduire ou annuler les
+-- dégâts ; il marque alors la cible (target.guarded = "block" | "parry") pour
+-- que le recul et les étourdissements ne s'appliquent pas.
+local guardHook = nil
+
 local function dealDamage(targets, amount, caster, knockback, kind)
 	for _, target in targets do
-		target.humanoid:TakeDamage(amount)
-		if knockback and target.root and not target.root.Anchored then
+		target.guarded = nil
+		local final = amount
+		if guardHook then
+			final = guardHook(target, caster, amount, kind)
+		end
+		if final > 0 then
+			target.humanoid:TakeDamage(final)
+		end
+		if knockback and not target.guarded and target.root and not target.root.Anchored then
 			target.root.AssemblyLinearVelocity = caster.HumanoidRootPart.CFrame.LookVector * knockback + Vector3.new(0, 20, 0)
 		end
-		standFX:FireAllClients("Hit", kind or "barrage",
-			target.root and target.root.Position or caster.HumanoidRootPart.Position, amount)
+		if final > 0 then
+			standFX:FireAllClients("Hit", kind or "barrage",
+				target.root and target.root.Position or caster.HumanoidRootPart.Position, final)
+		end
 	end
 end
 
@@ -996,6 +1010,7 @@ local function releaseVictim(session)
 end
 
 local function stunVictim(session, target)
+	if target.guarded then return end -- cible en garde : pas d'étourdissement
 	local victim = session.victim
 	if victim and victim.model ~= target.model then
 		releaseVictim(session)
@@ -1364,7 +1379,7 @@ local function stunTargets(targets, seconds)
 	local untilT = os.clock() + seconds
 	for _, target in targets do
 		local h = target.humanoid
-		if h and h.Parent then
+		if h and h.Parent and not target.guarded then
 			local entry = spellStuns[h]
 			if not entry then
 				entry = { WalkSpeed = h.WalkSpeed, JumpPower = h.JumpPower, JumpHeight = h.JumpHeight }
@@ -1395,7 +1410,7 @@ end)
 local function pushFrom(targets, center, force, launch)
 	for _, target in targets do
 		local root = target.root
-		if root and not root.Anchored then
+		if root and not root.Anchored and not target.guarded then
 			local away = root.Position - center
 			away = Vector3.new(away.X, 0, away.Z)
 			away = away.Magnitude > 0.1 and away.Unit or Vector3.zero
@@ -1442,9 +1457,40 @@ local function spellStrike(player, standDef, move, origin)
 	end
 end
 
-local function spawnProjectile(player, standDef, move, origin, direction)
-	local color = spellColor(standDef, move)
-	local size = move.Size or 0.6
+-- ─── Projectiles ────────────────────────────────────────────────────────────
+-- Le serveur calcule la trajectoire (balayage Spherecast : pas de cible
+-- "traversée" entre deux images, arrêt contre les murs) SANS rien afficher ;
+-- chaque client affiche le projectile en local (ProjectileFX), ce qui le
+-- rend fluide. Les projectiles à tête chercheuse (Homing) sont affichés par
+-- le serveur, car les clients ne peuvent pas deviner leur trajet.
+local MAX_PROJECTILE_PITCH = math.rad(60) -- visée max vers le haut / le bas
+local projectileCounter = 0
+
+local function projectileParams(player)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character, workspace:FindFirstChild(player.Name .. "Stand"), spellFolder }
+	params.IgnoreWater = true
+	return params
+end
+
+-- Modèle touché (joueur / mannequin valide) ou nil si c'est le décor
+local function targetFromPart(player, part)
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			if humanoid.Health > 0 and not isStandOrCaster(model, player.Character) then
+				return { model = model, humanoid = humanoid, root = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") }
+			end
+			return false -- Stand, lanceur ou mort : on traverse
+		end
+		model = model.Parent and model.Parent:FindFirstAncestorOfClass("Model")
+	end
+	return nil
+end
+
+local function makeProjectilePart(move, color, size)
 	local part = Instance.new("Part")
 	part.Name = "SpellProjectile"
 	part.Anchored = true
@@ -1460,73 +1506,153 @@ local function spawnProjectile(player, standDef, move, origin, direction)
 		part.Shape = Enum.PartType.Ball
 		part.Size = Vector3.new(size, size, size)
 	end
-	part.CFrame = CFrame.lookAt(origin, origin + direction)
 	local light = Instance.new("PointLight")
 	light.Color = color
 	light.Range = 8
 	light.Brightness = 2
 	light.Parent = part
-	part.Parent = spellFolder
+	return part
+end
 
-	local character = player.Character
-	local traveled, maxRange = 0, move.Range or 60
+local function spawnProjectile(player, standDef, move, origin, direction)
+	local color = spellColor(standDef, move)
+	local size = move.Size or 0.6
+	local radius = math.max(size / 2, 0.3) + 0.5 -- un peu de marge pour toucher
 	local speed = move.Speed or 100
+	local maxRange = move.Range or 60
+	local character = player.Character
+	local params = projectileParams(player)
+
+	projectileCounter += 1
+	local id = projectileCounter
+	local serverPart
+	if move.Homing then
+		serverPart = makeProjectilePart(move, color, size)
+		serverPart.CFrame = CFrame.lookAt(origin, origin + direction)
+		serverPart.Parent = spellFolder
+	else
+		standFX:FireAllClients("Projectile", id, origin, direction, speed, maxRange,
+			{ Size = size, Shape = move.Shape or "Ball", Color = color })
+	end
+
+	local pos, dir, traveled = origin, direction, 0
 	local hitModels = {}
 	local connection
-	local function finish(explodeAt)
+	local function finish(endPos, explode)
 		if connection then connection:Disconnect() end
-		if explodeAt and move.Explode then
-			spellBurstAt(player, explodeAt, move.Explode.Radius or 8, move.Explode.Damage or 15, 40, 15, nil, color)
+		if serverPart then serverPart:Destroy() end
+		standFX:FireAllClients("ProjectileEnd", id, endPos)
+		if explode and move.Explode then
+			spellBurstAt(player, endPos, move.Explode.Radius or 8, move.Explode.Damage or 15, 40, 15, nil, color)
 		end
-		part:Destroy()
 	end
+
 	connection = RunService.Heartbeat:Connect(function(dt)
-		if not part.Parent or not character or not character.Parent then
-			finish(nil)
+		if not character or not character.Parent then
+			finish(pos, false)
 			return
 		end
-		local step = speed * dt
-		local pos = part.Position + direction * step
-		traveled += step
-		part.CFrame = CFrame.lookAt(pos, pos + direction)
-		local hits = getTargetsInRadius(player, pos, size + 1.2)
-		local fresh = {}
-		for _, target in hits do
-			if not hitModels[target.model] then
-				hitModels[target.model] = true
-				table.insert(fresh, target)
+		-- Tête chercheuse : tourne doucement vers la cible la plus proche devant
+		if move.Homing then
+			local best, bestDist
+			for _, target in getTargetsInRadius(player, pos, move.HomingRange or 30) do
+				if target.root and not hitModels[target.model] then
+					local to = target.root.Position - pos
+					if to.Magnitude > 0.1 and to.Unit:Dot(dir) > 0.2 and (not bestDist or to.Magnitude < bestDist) then
+						best, bestDist = target, to.Magnitude
+					end
+				end
+			end
+			if best then
+				local want = (best.root.Position - pos).Unit
+				local turn = math.min(1, (move.Homing or 3) * dt)
+				dir = dir:Lerp(want, turn).Unit
 			end
 		end
-		if #fresh > 0 then
-			dealDamage(fresh, move.Damage or 5, character, move.Knockback, "light")
-			stunTargets(fresh, move.Stun)
-			impactFX(pos, color, 5, 1.4)
-			if not move.Pierce then
-				finish(pos)
+
+		local step = math.min(speed * dt, maxRange - traveled)
+		-- Balayage du segment parcouru pendant cette image
+		local remaining = step
+		local from = pos
+		for _ = 1, 6 do
+			if remaining <= 0 then break end
+			local result = workspace:Spherecast(from, radius, dir * remaining, params)
+			if not result then
+				from += dir * remaining
+				remaining = 0
+				break
+			end
+			local target = targetFromPart(player, result.Instance)
+			local hitPos = from + dir * result.Distance
+			if target then
+				if not hitModels[target.model] then
+					hitModels[target.model] = true
+					dealDamage({ target }, move.Damage or 5, character, move.Knockback, "light")
+					stunTargets({ target }, move.Stun)
+					impactFX(hitPos, color, 5, 1.4)
+				end
+				if not move.Pierce then
+					finish(hitPos, true)
+					return
+				end
+			elseif target == nil and result.Instance.CanCollide then
+				-- Mur / sol : le projectile s'arrête (et explose s'il le peut)
+				impactFX(hitPos, color, 3, 1.6)
+				finish(hitPos, true)
 				return
 			end
+			-- Pièce à ignorer (Stand, déco sans collision…) : on continue derrière
+			local ignore = params.FilterDescendantsInstances
+			table.insert(ignore, target == false and result.Instance:FindFirstAncestorOfClass("Model") or result.Instance)
+			params.FilterDescendantsInstances = ignore
+			local advance = result.Distance + 0.05
+			from += dir * advance
+			remaining -= advance
 		end
-		if traveled >= maxRange then
-			finish(move.Explode and pos or nil)
+		pos = from
+		traveled += step
+		if serverPart then
+			serverPart.CFrame = CFrame.lookAt(pos, pos + dir)
+		end
+		if traveled >= maxRange - 0.01 then
+			finish(pos, move.Explode ~= nil)
 		end
 	end)
 end
 
-local function spellProjectiles(player, stand, standDef, move)
+-- Direction de tir : vers le point visé par le joueur (souris / centre de
+-- l'écran sur mobile), sinon droit devant. Inclinaison limitée.
+local function aimDirection(origin, flat, aim)
+	if typeof(aim) ~= "Vector3" or aim ~= aim or aim.Magnitude > 1e6 then
+		return flat
+	end
+	local to = aim - origin
+	if to.Magnitude < 1 then return flat end
+	local dir = to.Unit
+	local horizontal = Vector3.new(dir.X, 0, dir.Z)
+	if horizontal.Magnitude < 0.05 then return flat end
+	local pitch = math.clamp(math.atan2(dir.Y, horizontal.Magnitude), -MAX_PROJECTILE_PITCH, MAX_PROJECTILE_PITCH)
+	horizontal = horizontal.Unit
+	return (horizontal * math.cos(pitch) + Vector3.new(0, math.sin(pitch), 0)).Unit
+end
+
+local function spellProjectiles(player, stand, standDef, move, aim)
 	local character = player.Character
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 	local look = hrp.CFrame.LookVector
 	local flat = Vector3.new(look.X, 0, look.Z)
 	flat = flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
-	local torso = stand:FindFirstChild("Torso") or stand:FindFirstChild("UpperTorso")
-	local origin = (torso and torso.Position or hrp.Position + Vector3.new(0, 1.5, 0)) + flat * 2
+	-- Départ : là où le Stand se trouve à l'écran pendant un sort (devant le
+	-- joueur, cf. StandController). Le Stand côté serveur, lui, ne bouge pas.
+	local origin = hrp.Position + flat * 3.4 + Vector3.new(0, 1.3, 0)
+	local center = aimDirection(origin, flat, aim)
 	local count = move.Count or 1
 	local spread = math.rad(move.Spread or 0)
 	for i = 1, count do
 		local angle = count > 1 and (-spread / 2 + spread * (i - 1) / (count - 1)) or 0
-		local dir = (CFrame.Angles(0, angle, 0) * CFrame.lookAt(Vector3.zero, flat)).LookVector
-		spawnProjectile(player, standDef, move, origin, dir)
+		local dir = CFrame.fromAxisAngle(Vector3.yAxis, angle):VectorToWorldSpace(center)
+		spawnProjectile(player, standDef, move, origin, dir.Unit)
 	end
 end
 
@@ -1617,7 +1743,7 @@ local function spellTeleport(player, standDef, move)
 	end)
 end
 
-local function runSpell(player, stand, standDef, move)
+local function runSpell(player, stand, standDef, move, aim)
 	local kind = move.Type
 	if kind == "Dash" then
 		spellDash(player, standDef, move)
@@ -1631,7 +1757,7 @@ local function runSpell(player, stand, standDef, move)
 		if kind == "Strike" then
 			spellStrike(player, standDef, move)
 		elseif kind == "Projectile" then
-			spellProjectiles(player, stand, standDef, move)
+			spellProjectiles(player, stand, standDef, move, aim)
 		elseif kind == "Burst" then
 			local character = player.Character
 			local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -1647,6 +1773,218 @@ local function runSpell(player, stand, standDef, move)
 		end
 	end)
 end
+
+-- ==================== PARADE (garde / parade parfaite) ====================
+-- Maintenir X : garde. Les coups reçus DE FACE font 20 % des dégâts, sans
+-- recul ni étourdissement, et vident la jauge de garde. Jauge vide = garde
+-- brisée (étourdi). Lever la garde juste avant le coup (PARRY_WINDOW) =
+-- parade parfaite : aucun dégât, l'attaquant est étourdi et son barrage
+-- coupé. La jauge (attribut "Guard" du joueur) se recharge hors de la garde.
+local PARRY_WINDOW = 0.3 -- s après avoir levé la garde
+local BLOCK_DAMAGE_TAKEN = 0.2 -- part des dégâts encaissée en garde
+local GUARD_MAX = 60
+local GUARD_REGEN = 15 -- points / s hors de la garde
+local GUARD_REGEN_DELAY = 1 -- s avant que la jauge se recharge
+local GUARD_BREAK_STUN = 1.5
+local PARRY_ATTACKER_STUN = 1.2
+local BLOCK_COOLDOWN = 0.5 -- s entre deux gardes
+local BLOCK_WALKSPEED = 7
+local BLOCK_FRONT_DOT = 0.1 -- 1 = pile en face, 0 = sur le côté
+
+local blockState = {} -- [Player] = { started, savedSpeed }
+local blockReadyAt = {}
+local guardValue = {} -- [Player] = jauge
+local guardUsedAt = {}
+
+local function guardOf(player)
+	return guardValue[player] or GUARD_MAX
+end
+
+local function setGuard(player, value)
+	value = math.clamp(value, 0, GUARD_MAX)
+	guardValue[player] = value
+	local shown = math.floor(value + 0.5)
+	if player:GetAttribute("Guard") ~= shown then
+		player:SetAttribute("Guard", shown)
+	end
+end
+
+local function floatingText(position, text, color)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+	anchor.CFrame = CFrame.new(position + Vector3.new(0, 3, 0))
+	anchor.Parent = spellFolder
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(220, 60)
+	gui.AlwaysOnTop = true
+	gui.MaxDistance = 120
+	gui.Parent = anchor
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.FredokaOne
+	label.Text = text
+	label.TextScaled = true
+	label.TextColor3 = color
+	label.TextStrokeTransparency = 0
+	label.Parent = gui
+	TweenService:Create(anchor, TweenInfo.new(0.8), { CFrame = anchor.CFrame + Vector3.new(0, 2.5, 0) }):Play()
+	TweenService:Create(label, TweenInfo.new(0.8), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	game:GetService("Debris"):AddItem(anchor, 0.9)
+end
+
+local function guardSound(position, soundId, pitch)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+	anchor.CFrame = CFrame.new(position)
+	anchor.Parent = spellFolder
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.PlaybackSpeed = pitch or 1
+	sound.Volume = 0.9
+	sound.RollOffMaxDistance = 120
+	sound.Parent = anchor
+	sound:Play()
+	game:GetService("Debris"):AddItem(anchor, 2)
+end
+
+local function stopBlock(player)
+	local state = blockState[player]
+	if not state then return end
+	blockState[player] = nil
+	blockReadyAt[player] = os.clock() + BLOCK_COOLDOWN
+	player:SetAttribute("Blocking", nil)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	-- Restaure la vitesse seulement si personne d'autre ne l'a changée
+	if humanoid and math.abs(humanoid.WalkSpeed - BLOCK_WALKSPEED) < 0.01 then
+		humanoid.WalkSpeed = state.savedSpeed
+	end
+	local stand = workspace:FindFirstChild(player.Name .. "Stand")
+	if stand and stand:GetAttribute("State") == "Block" then
+		stand:SetAttribute("State", "Idle")
+		stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+	end
+end
+
+local function startBlock(player)
+	if blockState[player] then return end
+	if (blockReadyAt[player] or 0) > os.clock() then return end
+	if guardOf(player) < GUARD_MAX * 0.15 then return end
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
+	if spellStuns[humanoid] or humanoid.WalkSpeed == 0 then return end -- étourdi
+	if activeBarrages[player.UserId] then return end
+	local stand = workspace:FindFirstChild(player.Name .. "Stand")
+	if stand and stand:GetAttribute("State") ~= "Idle" then return end -- en pleine attaque
+	blockState[player] = { started = os.clock(), savedSpeed = humanoid.WalkSpeed }
+	player:SetAttribute("Blocking", true)
+	humanoid.WalkSpeed = BLOCK_WALKSPEED
+	if stand then
+		stand:SetAttribute("State", "Block")
+		stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+	end
+end
+
+-- Appelé par dealDamage pour chaque cible : renvoie les dégâts réellement subis.
+guardHook = function(target, caster, amount, kind)
+	local defender = Players:GetPlayerFromCharacter(target.model)
+	local state = defender and blockState[defender]
+	if not state then return amount end
+	local root = target.root
+	local attackerRoot = caster and caster:FindFirstChild("HumanoidRootPart")
+	if not root or not attackerRoot then return amount end
+	local toAttacker = attackerRoot.Position - root.Position
+	toAttacker = Vector3.new(toAttacker.X, 0, toAttacker.Z)
+	local look = root.CFrame.LookVector
+	look = Vector3.new(look.X, 0, look.Z)
+	if toAttacker.Magnitude < 0.1 or look.Magnitude < 0.1 then return amount end
+	if look.Unit:Dot(toAttacker.Unit) < BLOCK_FRONT_DOT then
+		return amount -- frappé de dos ou de côté : la garde ne sert à rien
+	end
+
+	if os.clock() - state.started <= PARRY_WINDOW then
+		-- PARADE PARFAITE
+		target.guarded = "parry"
+		local attacker = Players:GetPlayerFromCharacter(caster)
+		local attackerHumanoid = caster:FindFirstChildOfClass("Humanoid")
+		if attackerHumanoid then
+			stunTargets({ { model = caster, humanoid = attackerHumanoid, root = attackerRoot } }, PARRY_ATTACKER_STUN)
+		end
+		if attacker and activeBarrages[attacker.UserId] then
+			finishBarrage(attacker, activeBarrages[attacker.UserId], true)
+		end
+		state.started = -math.huge -- une seule parade parfaite par garde
+		impactFX(root.Position, GOLD, 12, 1.5)
+		guardSound(root.Position, "rbxasset://sounds/electronicpingshort.wav", 1.4)
+		floatingText(root.Position, "PARRY!", GOLD)
+		return 0
+	end
+
+	-- GARDE
+	target.guarded = "block"
+	guardUsedAt[defender] = os.clock()
+	setGuard(defender, guardOf(defender) - amount)
+	if guardOf(defender) <= 0 then
+		-- GARDE BRISÉE
+		stopBlock(defender)
+		target.guarded = nil
+		stunTargets({ target }, GUARD_BREAK_STUN)
+		target.guarded = "block" -- pas de recul en plus
+		impactFX(root.Position, Color3.fromRGB(255, 70, 60), 10, 0.6)
+		guardSound(root.Position, "rbxasset://sounds/glassbreak.wav", 1)
+		floatingText(root.Position, "GUARD BREAK!", Color3.fromRGB(255, 80, 70))
+	end
+	return amount * BLOCK_DAMAGE_TAKEN
+end
+
+-- Recharge de la jauge hors de la garde
+RunService.Heartbeat:Connect(function(dt)
+	local now = os.clock()
+	for _, player in Players:GetPlayers() do
+		if not blockState[player] and now - (guardUsedAt[player] or 0) >= GUARD_REGEN_DELAY then
+			local value = guardOf(player)
+			if value < GUARD_MAX then
+				setGuard(player, value + GUARD_REGEN * dt)
+			end
+		end
+	end
+end)
+
+local function onGuardPlayer(player)
+	setGuard(player, GUARD_MAX)
+	player.CharacterAdded:Connect(function(character)
+		stopBlock(player)
+		setGuard(player, GUARD_MAX)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if humanoid then
+			humanoid.Died:Connect(function()
+				stopBlock(player)
+			end)
+		end
+	end)
+end
+Players.PlayerAdded:Connect(onGuardPlayer)
+for _, player in Players:GetPlayers() do
+	onGuardPlayer(player)
+end
+Players.PlayerRemoving:Connect(function(player)
+	blockState[player] = nil
+	blockReadyAt[player] = nil
+	guardValue[player] = nil
+	guardUsedAt[player] = nil
+end)
 
 local toggleAt = {}
 
@@ -1797,6 +2135,19 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		print("[StandService]", player.Name, "chose", def.DisplayName)
 		return
 	end
+
+	if actionName == "Block" then
+		-- true = lever la garde, false = baisser, rien = basculer (mobile)
+		local wanted = (...)
+		if wanted == nil then wanted = not blockState[player] end
+		if wanted == true then
+			startBlock(player)
+		else
+			stopBlock(player)
+		end
+		return
+	end
+	if blockState[player] then return end -- pas d'attaque pendant la garde
 
 	if actionName == "Toggle" then
 		local now = os.clock()
@@ -2037,8 +2388,8 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 			end
 		end)
 	elseif move.Type then
-		-- Attaques T / F / G (StandSpells)
-		runSpell(player, stand, standDef, move)
+		-- Attaques T / F / G (StandSpells) ; 1er argument = point visé
+		runSpell(player, stand, standDef, move, (...))
 		task.delay(move.Duration or 0.6, function()
 			if stand.Parent and stand:GetAttribute("State") == actionName then
 				stand:SetAttribute("State", "Idle")

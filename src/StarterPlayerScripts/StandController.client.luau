@@ -116,7 +116,11 @@ local STATE_TO_STRIKE = {
 	Barrage = "Barrage",
 	TimeStop = "TimeStop",
 	Heal = "Heal",
+	Block = "Block",
 }
+-- Animations que Star Platinum garde d'origine (les autres, comme la garde
+-- ou les attaques T / F / G, viennent de StandStrikes pour tout le monde).
+local ORIGINAL_KINDS = { LightR = true, LightL = true, Heavy = true, Barrage = true, TimeStop = true, Heal = true, Idle = true }
 
 local function getStrikeClip(stand, rig, state)
 	local standId = stand:GetAttribute("StandId")
@@ -125,7 +129,7 @@ local function getStrikeClip(stand, rig, state)
 	if not kind and (state == "Idle" or state == "Pose") and rig.joints.UpperTorso then
 		kind = "Idle" -- les Stands R15 n'ont pas de pose d'attente codée
 	end
-	if kind and KEEP_ORIGINAL_STRIKES[standId] then return nil end
+	if kind and KEEP_ORIGINAL_STRIKES[standId] and ORIGINAL_KINDS[kind] then return nil end
 	if not kind then
 		-- Attaques T / F / G (StandSpells) : animation nommée par move.Anim
 		local def = StandData.GetStand(standId)
@@ -1505,6 +1509,10 @@ local function updateStand(stand, standDef, character, now)
 		targetPos = hrp.Position + flat * (-offset.Z + lunge)
 			+ Vector3.new(0, offset.Y + math.sin(now * 1.55) * 0.06, 0)
 		smooth = (jab and jab.LightSmoothness) or 0.45
+	elseif state == "Block" then
+		-- Garde : le Stand se met juste devant le joueur
+		targetPos = hrp.Position + flat * 2.6 + Vector3.new(0, 1.2, 0)
+		smooth = 0.45
 	elseif moveDef and moveDef.Type then
 		-- Attaques T / F / G : le Stand passe devant le joueur
 		local forward = moveDef.StandForward or 3.4
@@ -1599,6 +1607,39 @@ local function actionForKey(keyName)
 	return nil
 end
 
+-- Point visé pour les attaques à projectiles : sous la souris (PC), au
+-- centre de l'écran (mobile / manette / shift-lock). Le serveur limite
+-- l'angle de tir.
+local function getAimPoint()
+	local camera = workspace.CurrentCamera
+	if not camera then return nil end
+	local x, y
+	if UserInputService.MouseEnabled and UserInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+		local mouse = UserInputService:GetMouseLocation()
+		x, y = mouse.X, mouse.Y
+	else
+		x, y = camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2
+	end
+	local ray = camera:ViewportPointToRay(x, y)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { localPlayer.Character }
+	local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+	return result and result.Position or (ray.Origin + ray.Direction * 1000)
+end
+
+local function fireAction(name)
+	local standId = localPlayer:GetAttribute("StandId")
+	local def = (standId and StandData.GetStand(standId)) or StandData.GetStand(StandData.DefaultStand)
+	local move = def and def.Moves and def.Moves[name]
+	if move and move.Type == "Projectile" then
+		standAction:FireServer(name, getAimPoint())
+	else
+		standAction:FireServer(name)
+	end
+end
+_G.StandFireAction = fireAction -- utilisé par SpellBar (cases cliquables)
+
 -- Ruée (attaques "Dash") : le serveur demande, le client pousse son
 -- personnage puisqu'il possède sa physique.
 ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("StandFX").OnClientEvent:Connect(function(kind, speed, duration)
@@ -1635,7 +1676,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	local keyName = SPELL_KEYS[input.KeyCode]
 	local fired = keyName and actionForKey(keyName)
 	if fired then
-		standAction:FireServer(fired)
+		fireAction(fired)
 	end
 end)
 

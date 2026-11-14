@@ -19,7 +19,10 @@
 --              Stun, BoxSize (zone touchée pendant la ruée)
 -- "Projectile" Count (nombre), Spread (éventail en degrés), Speed, Range,
 --              Damage, Knockback, Stun, Size, Shape ("Ball" | "Blade"),
---              Pierce (traverse les cibles), Explode = { Radius, Damage }
+--              Pierce (traverse les cibles), Explode = { Radius, Damage },
+--              Homing (vitesse de virage, tête chercheuse), HomingRange
+--              Le projectile part vers la souris (centre de l'écran sur
+--              mobile) et s'arrête contre les murs.
 -- "Burst"      zone : Radius, Offset (distance devant, 0 = autour de soi),
 --              Damage, Knockback, Launch (projection vers le haut), Stun
 -- "Buff"       sur soi : Heal (PV), SpeedBoost (multiplicateur), BuffTime (s)
@@ -118,6 +121,7 @@ return {
 			Duration = 0.55, HitDelay = 0.25, Anim = "Throw", Color = FIRE,
 			Count = 1, Speed = 45, Range = 70, Damage = 10, Size = 1.4,
 			Explode = { Radius = 9, Damage = 22 },
+			Homing = 3, HomingRange = 30, -- poursuit la cible la plus proche devant lui
 		},
 		ContactBomb = {
 			Label = "Contact Bomb", Key = "F", Cooldown = 12, Type = "Strike",
