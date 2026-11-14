@@ -45,6 +45,9 @@
         "CoolRunSprintAnimationHook": {
           "$path": "src/StarterPlayerScripts/CoolRunSprintAnimationHook.client.luau"
         },
+        "DoubleJump": {
+          "$path": "src/StarterPlayerScripts/DoubleJump.client.luau"
+        },
         "JoJoLoadingScreen": {
           "$path": "src/StarterPlayerScripts/JoJoLoadingScreen.client.luau"
         },
