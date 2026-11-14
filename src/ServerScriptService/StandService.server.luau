@@ -416,6 +416,10 @@ local lastUse = {}
 local activeBarrages = {}
 -- Tracks which fist threw the last M1 jab so the next one alternates.
 local lastHand = {}
+-- Combo M1 : le 1er coup est toujours de la main droite, le 2e de la gauche,
+-- etc. Après une pause plus longue que ça (en secondes), le combo repart
+-- de la main droite.
+local M1_COMBO_RESET = 1.0
 
 -- Voice clips live in ServerStorage (server-only). Mirror the ones referenced
 -- by stand definitions into ReplicatedStorage so clients can resolve their
@@ -1451,10 +1455,15 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		if state ~= "Idle" and state ~= "LightPunchR" and state ~= "LightPunchL" then return end
 		lastUse[player.UserId] = lastUse[player.UserId] or {}
 		local now = os.clock()
-		if (lastUse[player.UserId].LightPunch or 0) + move.Cooldown > now then return end
+		local previousPunch = lastUse[player.UserId].LightPunch or 0
+		if previousPunch + move.Cooldown > now then return end
 		lastUse[player.UserId].LightPunch = now
 		-- Alternate hands on every press; the server owns the rhythm so all
-		-- clients see the same fist fly.
+		-- clients see the same fist fly. A pause restarts the combo on the
+		-- right hand.
+		if now - previousPunch > M1_COMBO_RESET then
+			lastHand[player.UserId] = nil
+		end
 		lastHand[player.UserId] = (lastHand[player.UserId] == "R") and "L" or "R"
 		local hand = lastHand[player.UserId]
 		stand:SetAttribute("State", "LightPunch" .. hand)
