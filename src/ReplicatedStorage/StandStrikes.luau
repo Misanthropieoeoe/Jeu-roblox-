@@ -3,7 +3,12 @@
 -- automatiquement pour le squelette du Stand (R6 ou R15).
 --
 -- Utilisé par StandController : StandStrikes.Compile(standId, kind, joints)
---   kind = "LightR" | "LightL" | "Finisher"
+--   kind = "LightR" | "LightL"   M1 main droite / gauche
+--          "Heavy"               touche R (et 4e coup du combo M1)
+--          "Barrage"             touche E (en boucle)
+--          "TimeStop"            touche F (King Crimson, Made in Heaven)
+--          "Heal"                touche T (Gold Experience Requiem)
+--          "Idle"                pose d'attente (Stands R15, qui n'en avaient pas)
 --   joints = { [nom de la pièce] = Motor6D } (les vraies articulations du Stand)
 --
 -- ─── Comment écrire une pose ──────────────────────────────────────────────
@@ -21,7 +26,7 @@
 --   headPitch    tête qui regarde vers le haut / headYaw tête qui tourne
 --   legR / legL  jambes : { hip = cuisse vers l'avant, knee = genou plié }
 --
--- Une frappe = { duration = durée, keys = { { temps, pose }, ... } }.
+-- Une frappe = { duration = durée, loop = true/false, keys = { { temps, pose }, ... } }.
 -- "LightL" est automatiquement le miroir de "LightR", sauf si le Stand
 -- définit son propre LightL. Le M1 dure 0.42 s (le serveur touche à 0.16 s),
 -- le coup final 0.45 s (le serveur touche à 0.25 s).
@@ -72,12 +77,79 @@ local DEFAULT_FINISHER = finisher(
 	{ R = { pitch = 90, abduct = 8, swing = 20, elbow = 10 }, L = { pitch = 20, abduct = 20, elbow = 90 }, twist = 40, lean = 14, lunge = 0.8 }
 )
 
+-- Coup lourd "direct" (variante pour les Stands qui frappent droit).
+local STRAIGHT_HEAVY = finisher(
+	{ R = { pitch = 40, abduct = 30, swing = -15, elbow = 130 }, L = GUARD_ARM, twist = -40, lean = 0, drop = 0.1 },
+	{ R = { pitch = 93, abduct = 4, swing = 10, elbow = 0 }, L = { pitch = 20, abduct = 20, elbow = 95 }, twist = 40, lean = 16, lunge = 1.0 },
+	{ R = { pitch = 90, abduct = 4, swing = 10, elbow = 8 }, L = { pitch = 20, abduct = 20, elbow = 95 }, twist = 36, lean = 13, lunge = 0.85 }
+)
+
+-- Barrage en boucle : les deux bras alternent entre `ext` (frappe) et `ret`
+-- (bras ramené). `cycle` = durée d'un aller-retour des deux bras.
+local function barrage(ext, ret, opts)
+	opts = opts or {}
+	local cycle = opts.cycle or 0.16
+	local twist, lean, lunge = opts.twist or 15, opts.lean or 10, opts.lunge or 0.2
+	local a = { R = ext, L = ret, twist = twist, lean = lean, lunge = lunge }
+	local b = { R = ret, L = ext, twist = -twist, lean = lean, lunge = lunge }
+	return {
+		duration = cycle,
+		loop = true,
+		keys = {
+			{ 0, a },
+			{ cycle / 2, b },
+			{ cycle, a },
+		},
+	}
+end
+
+-- Pose tenue : on passe de la garde à `pose` en `rise` secondes et on y reste
+-- jusqu'à la fin de l'attaque.
+local function hold(pose, rise)
+	rise = rise or 0.35
+	return {
+		duration = rise,
+		keys = {
+			{ 0, GUARD },
+			{ rise * 0.6, pose },
+			{ rise, pose },
+		},
+	}
+end
+
+local DEFAULT_BARRAGE = barrage(
+	{ pitch = 90, abduct = 5, swing = 10, elbow = 5 },
+	{ pitch = 50, abduct = 15, swing = 5, elbow = 110 }
+)
+
+-- Respiration en garde, pour les Stands R15 qui restaient raides.
+local IDLE_BREATH = {
+	R = { pitch = 58, abduct = 14, swing = 10, elbow = 110 },
+	L = { pitch = 58, abduct = 14, swing = 10, elbow = 110 },
+	lean = 4,
+	drop = -0.06,
+}
+local DEFAULT_IDLE = {
+	duration = 2.4,
+	loop = true,
+	keys = {
+		{ 0, { R = GUARD.R, L = GUARD.L, lean = 2 } },
+		{ 1.2, IDLE_BREATH },
+		{ 2.4, { R = GUARD.R, L = GUARD.L, lean = 2 } },
+	},
+}
+
 -- ─── Les Stands ─────────────────────────────────────────────────────────────
 StandStrikes.Stands = {
 	-- Star Platinum garde ses animations d'origine (Stand Right / Left Punch).
 
 	-- The World : crochets larges et arrogants (MUDA).
 	TheWorld = {
+		Barrage = barrage(
+			{ pitch = 88, abduct = 25, swing = 30, elbow = 20 },
+			{ pitch = 55, abduct = 35, swing = -10, elbow = 105 },
+			{ twist = 20 }
+		),
 		LightR = light(
 			{ R = { pitch = 70, abduct = 60, swing = -25, elbow = 95 }, L = GUARD_ARM, twist = -20, lean = 5 },
 			{ R = { pitch = 82, abduct = 70, swing = 70, elbow = 70 }, L = GUARD_ARM, twist = 30, lean = 10, lunge = 0.4 },
@@ -87,6 +159,11 @@ StandStrikes.Stands = {
 
 	-- The World AU : uppercuts brutaux.
 	TheWorldAU = {
+		Barrage = barrage(
+			{ pitch = 115, abduct = 10, swing = 12, elbow = 30 },
+			{ pitch = 30, abduct = 15, elbow = 115 },
+			{ twist = 18, lean = 6 }
+		),
 		LightR = light(
 			{ R = { pitch = -10, abduct = 12, elbow = 115 }, L = GUARD_ARM, twist = -15, lean = 14, drop = 0.3 },
 			{ R = { pitch = 150, abduct = 10, swing = 15, elbow = 35 }, L = GUARD_ARM, twist = 25, lean = -12, drop = -0.15, headPitch = 10 },
@@ -101,6 +178,11 @@ StandStrikes.Stands = {
 
 	-- Crazy Diamond : directs puissants avec pas en avant (DORA).
 	CrazyDiamond = {
+		Barrage = barrage(
+			{ pitch = 92, abduct = 4, swing = 12, elbow = 0 },
+			{ pitch = 45, abduct = 18, swing = 5, elbow = 120 },
+			{ twist = 22, lean = 12, lunge = 0.35 }
+		),
 		LightR = light(
 			{ R = { pitch = 40, abduct = 20, swing = -10, elbow = 125 }, L = GUARD_ARM, twist = -25, lean = 5, drop = 0.1,
 				legR = { hip = -15, knee = 20 }, legL = { hip = 20, knee = 25 } },
@@ -122,6 +204,19 @@ StandStrikes.Stands = {
 	-- Silver Chariot : escrimeur. Droite = estoc à la rapière, gauche = taillade
 	-- (toujours avec le bras droit, qui tient la rapière).
 	SilverChariot = {
+		-- Rapid Stabs : seul le bras droit (la rapière) pique, très vite, en
+		-- visant un peu à gauche puis un peu à droite.
+		Barrage = {
+			duration = 0.24,
+			loop = true,
+			keys = {
+				{ 0.00, { R = { pitch = 90, swing = -8, elbow = 0 }, L = { pitch = -25, abduct = 45, elbow = 50 }, twist = 18, lean = 8, lunge = 0.5 } },
+				{ 0.06, { R = { pitch = 70, swing = 0, elbow = 85 }, L = { pitch = -25, abduct = 45, elbow = 50 }, twist = 5, lean = 6, lunge = 0.3 } },
+				{ 0.12, { R = { pitch = 92, swing = 12, elbow = 0 }, L = { pitch = -25, abduct = 45, elbow = 50 }, twist = 22, lean = 8, lunge = 0.5 } },
+				{ 0.18, { R = { pitch = 70, swing = 0, elbow = 85 }, L = { pitch = -25, abduct = 45, elbow = 50 }, twist = 5, lean = 6, lunge = 0.3 } },
+				{ 0.24, { R = { pitch = 90, swing = -8, elbow = 0 }, L = { pitch = -25, abduct = 45, elbow = 50 }, twist = 18, lean = 8, lunge = 0.5 } },
+			},
+		},
 		LightR = light(
 			{ R = { pitch = 60, abduct = 5, swing = -5, elbow = 110, wrist = -10 }, L = { pitch = -15, abduct = 40, elbow = 60 }, twist = -30, lunge = -0.2,
 				legR = { hip = 10, knee = 15 }, legL = { hip = -10, knee = 10 } },
@@ -148,6 +243,17 @@ StandStrikes.Stands = {
 	-- Killer Queen : précis et élégant. Droite = direct net,
 	-- gauche = paume qui "touche" (pour poser une bombe).
 	KillerQueen = {
+		Barrage = barrage(
+			{ pitch = 90, abduct = 5, swing = 10, elbow = 3 },
+			{ pitch = 50, abduct = 15, elbow = 115 },
+			{ twist = 14, lean = 9 }
+		),
+		-- Bomb Punch : grosse frappe, la main gauche reste ouverte (détonateur).
+		Heavy = finisher(
+			{ R = { pitch = 35, abduct = 30, swing = -15, elbow = 135 }, L = { pitch = 60, abduct = 20, elbow = 90, wrist = 40 }, twist = -40, drop = 0.1 },
+			{ R = { pitch = 93, abduct = 4, swing = 10, elbow = 0 }, L = { pitch = 60, abduct = 20, elbow = 90, wrist = 40 }, twist = 40, lean = 16, lunge = 1.0 },
+			{ R = { pitch = 90, abduct = 4, swing = 10, elbow = 8 }, L = { pitch = 60, abduct = 20, elbow = 90, wrist = 40 }, twist = 36, lean = 13, lunge = 0.85 }
+		),
 		LightR = light(
 			{ R = { pitch = 50, abduct = 15, elbow = 115 }, L = GUARD_ARM, twist = -15, lean = 3 },
 			{ R = { pitch = 92, abduct = 4, swing = 8, elbow = 0 }, L = GUARD_ARM, twist = 22, lean = 8, lunge = 0.4 },
@@ -162,6 +268,8 @@ StandStrikes.Stands = {
 
 	-- Gold Experience : direct du droit, coup de pied du gauche (MUDA).
 	GoldExperience = {
+		Barrage = DEFAULT_BARRAGE,
+		Heavy = STRAIGHT_HEAVY, -- Life Punch
 		LightR = light(
 			{ R = { pitch = 45, abduct = 15, elbow = 120 }, L = GUARD_ARM, twist = -18, lean = 4 },
 			{ R = { pitch = 90, abduct = 5, swing = 10, elbow = 5 }, L = GUARD_ARM, twist = 28, lean = 10, lunge = 0.5 },
@@ -176,6 +284,31 @@ StandStrikes.Stands = {
 
 	-- Gold Experience Requiem : paume tendue et coup de pied haut.
 	GoldExperienceRequiem = {
+		Barrage = barrage(
+			{ pitch = 92, abduct = 5, swing = 8, elbow = 0, wrist = 60 },
+			{ pitch = 45, abduct = 18, elbow = 115, wrist = 20 },
+			{ twist = 14, lean = 8 }
+		),
+		-- Requiem Punch : paume ouverte projetée.
+		Heavy = finisher(
+			{ R = { pitch = 35, abduct = 25, elbow = 130, wrist = 25 }, L = GUARD_ARM, twist = -35 },
+			{ R = { pitch = 93, abduct = 4, swing = 8, elbow = 0, wrist = 70 }, L = { pitch = 20, abduct = 25, elbow = 90 }, twist = 35, lean = 14, lunge = 1.0 },
+			{ R = { pitch = 90, abduct = 4, swing = 8, elbow = 5, wrist = 65 }, L = { pitch = 20, abduct = 25, elbow = 90 }, twist = 32, lean = 12, lunge = 0.9 }
+		),
+		-- Life Channel : le bras droit se lève devant la poitrine, avant-bras
+		-- replié, paume ouverte, et "pulse" pendant la canalisation.
+		Heal = {
+			duration = 1.3,
+			keys = {
+				{ 0.00, GUARD },
+				{ 0.14, { R = { pitch = 42, abduct = -10, swing = 10, elbow = 50, wrist = 10 }, L = GUARD_ARM, headPitch = 5, headYaw = -8 } },
+				{ 0.34, { R = { pitch = 58, abduct = -15, swing = 15, elbow = 104, wrist = 20 }, L = GUARD_ARM, headPitch = 8, headYaw = -12 } },
+				{ 0.62, { R = { pitch = 54, abduct = -12, swing = 12, elbow = 92, wrist = 15 }, L = GUARD_ARM, headPitch = 6, headYaw = -10 } },
+				{ 0.88, { R = { pitch = 58, abduct = -15, swing = 15, elbow = 106, wrist = 20 }, L = GUARD_ARM, headPitch = 8, headYaw = -12 } },
+				{ 1.08, { R = { pitch = 26, abduct = -5, swing = 5, elbow = 34, wrist = 5 }, L = GUARD_ARM, headPitch = 3, headYaw = -5 } },
+				{ 1.30, GUARD },
+			},
+		},
 		LightR = light(
 			{ R = { pitch = 40, abduct = 20, elbow = 120, wrist = 20 }, L = GUARD_ARM, twist = -20, lean = 2 },
 			{ R = { pitch = 92, abduct = 5, swing = 8, elbow = 0, wrist = 65 }, L = GUARD_ARM, twist = 25, lean = 8, lunge = 0.5 },
@@ -190,6 +323,18 @@ StandStrikes.Stands = {
 
 	-- King Crimson : main-lance qui transperce, et tranchant de la main.
 	KingCrimson = {
+		-- CRIMSON Barrage : directs main-lance.
+		Barrage = barrage(
+			{ pitch = 92, abduct = 3, swing = 8, elbow = 0 },
+			{ pitch = 40, abduct = 15, elbow = 125 },
+			{ twist = 18, lean = 12, lunge = 0.3 }
+		),
+		-- Time Erase : un bras levé vers le ciel, l'autre en garde, tête haute.
+		TimeStop = hold({
+			R = { pitch = 160, abduct = 10, elbow = 30, wrist = 10 },
+			L = { pitch = 40, abduct = 30, elbow = 90 },
+			lean = -10, headPitch = 15,
+		}, 0.45),
 		LightR = light(
 			{ R = { pitch = 35, abduct = 15, elbow = 130, wrist = 0 }, L = GUARD_ARM, twist = -25, lean = 4, lunge = -0.1 },
 			{ R = { pitch = 92, abduct = 3, swing = 6, elbow = 0, wrist = 0 }, L = { pitch = 30, abduct = 20, elbow = 100 }, twist = 30, lean = 15, lunge = 0.8 },
@@ -209,6 +354,12 @@ StandStrikes.Stands = {
 
 	-- Hierophant Green : gestes de lancer (Emerald Splash), pas de corps-à-corps.
 	HierophantGreen = {
+		-- Emerald Barrage : lancers alternés des deux mains.
+		Barrage = barrage(
+			{ pitch = 95, abduct = 30, swing = 35, elbow = 10, wrist = 25 },
+			{ pitch = 30, abduct = 45, swing = -30, elbow = 95, wrist = -30 },
+			{ cycle = 0.22, twist = 12, lean = 4, lunge = 0.1 }
+		),
 		LightR = light(
 			{ R = { pitch = 30, abduct = 45, swing = -30, elbow = 95, wrist = -30 }, L = GUARD_ARM, twist = -15, lean = -3 },
 			{ R = { pitch = 95, abduct = 30, swing = 35, elbow = 10, wrist = 25 }, L = GUARD_ARM, twist = 15, lean = 4, lunge = 0.2 },
@@ -223,6 +374,19 @@ StandStrikes.Stands = {
 
 	-- Magician's Red : griffes de feu en diagonale.
 	MagiciansRed = {
+		-- Flame Barrage : griffes de feu alternées.
+		Barrage = barrage(
+			{ pitch = 40, abduct = 10, swing = 60, elbow = 20 },
+			{ pitch = 140, abduct = 40, swing = -20, elbow = 30 },
+			{ cycle = 0.2, twist = 20, lean = 10 }
+		),
+		-- Crossfire Hurricane : les deux mains partent de la poitrine et
+		-- projettent les flammes devant.
+		Heavy = finisher(
+			{ R = { pitch = 20, abduct = 30, elbow = 120 }, L = { pitch = 20, abduct = 30, elbow = 120 }, lean = -8, drop = 0.1 },
+			{ R = { pitch = 90, abduct = 10, swing = 20, elbow = 10, wrist = 40 }, L = { pitch = 90, abduct = 10, swing = 20, elbow = 10, wrist = 40 }, lean = 10, lunge = 0.4 },
+			{ R = { pitch = 88, abduct = 10, swing = 20, elbow = 15, wrist = 35 }, L = { pitch = 88, abduct = 10, swing = 20, elbow = 15, wrist = 35 }, lean = 8, lunge = 0.3 }
+		),
 		LightR = light(
 			{ R = { pitch = 150, abduct = 40, swing = -20, elbow = 30 }, L = GUARD_ARM, twist = -20, lean = -5 },
 			{ R = { pitch = 40, abduct = 10, swing = 60, elbow = 20 }, L = GUARD_ARM, twist = 30, lean = 15, lunge = 0.4 },
@@ -232,6 +396,17 @@ StandStrikes.Stands = {
 
 	-- Sticky Fingers : direct du droit, crochet du gauche (ARRIVEDERCI).
 	StickyFingers = {
+		Barrage = barrage(
+			{ pitch = 92, abduct = 4, swing = 10, elbow = 0 },
+			{ pitch = 50, abduct = 15, elbow = 115 },
+			{ twist = 18, lean = 10 }
+		),
+		-- Zipper Punch : direct qui va très loin (le bras se "dézippe").
+		Heavy = finisher(
+			{ R = { pitch = 40, abduct = 25, swing = -15, elbow = 130 }, L = GUARD_ARM, twist = -40 },
+			{ R = { pitch = 92, abduct = 3, swing = 8, elbow = 0 }, L = { pitch = 20, abduct = 20, elbow = 95 }, twist = 40, lean = 18, lunge = 1.4 },
+			{ R = { pitch = 90, abduct = 3, swing = 8, elbow = 5 }, L = { pitch = 20, abduct = 20, elbow = 95 }, twist = 36, lean = 15, lunge = 1.2 }
+		),
 		LightR = light(
 			{ R = { pitch = 45, abduct = 15, elbow = 120 }, L = GUARD_ARM, twist = -20, lean = 4 },
 			{ R = { pitch = 92, abduct = 4, swing = 10, elbow = 0 }, L = GUARD_ARM, twist = 30, lean = 10, lunge = 0.5 },
@@ -246,6 +421,18 @@ StandStrikes.Stands = {
 
 	-- Made in Heaven : tranchants de la main ultra-rapides (bras seulement).
 	MadeInHeaven = {
+		-- Heaven Barrage : tranchants très rapides.
+		Barrage = barrage(
+			{ pitch = 75, abduct = 5, swing = 15, elbow = 0 },
+			{ pitch = 150, abduct = 15, elbow = 20 },
+			{ cycle = 0.12, twist = 12, lean = 10 }
+		),
+		-- Time Acceleration : bras grands ouverts, tête vers le ciel.
+		TimeStop = hold({
+			R = { pitch = 25, abduct = 80, elbow = 15 },
+			L = { pitch = 25, abduct = 80, elbow = 15 },
+			lean = -15, headPitch = 25,
+		}, 0.5),
 		LightR = light(
 			{ R = { pitch = 160, abduct = 15, elbow = 10 }, L = GUARD_ARM, twist = -10, lean = -6 },
 			{ R = { pitch = 60, abduct = 5, swing = 10, elbow = 0 }, L = GUARD_ARM, twist = 20, lean = 12, lunge = 0.5 },
@@ -283,8 +470,16 @@ function StandStrikes.Get(standId, kind)
 		return def.LightR
 	elseif kind == "LightL" then
 		return def.LightL or (def.LightR and mirrorStrike(def.LightR))
-	elseif kind == "Finisher" then
-		return def.Finisher or (def.LightR and DEFAULT_FINISHER)
+	elseif kind == "Heavy" or kind == "Finisher" then
+		return def.Heavy or def.Finisher or DEFAULT_FINISHER
+	elseif kind == "Barrage" then
+		return def.Barrage or DEFAULT_BARRAGE
+	elseif kind == "Idle" then
+		return def.Idle or DEFAULT_IDLE
+	elseif kind == "TimeStop" then
+		return def.TimeStop
+	elseif kind == "Heal" then
+		return def.Heal
 	end
 	return nil
 end
@@ -361,7 +556,7 @@ function StandStrikes.Compile(standId, kind, joints)
 		table.insert(elbows, { t, rad(r.elbow or 0), rad(l.elbow or 0) })
 	end
 	return {
-		Settings = { Loop = false },
+		Settings = { Loop = strike.loop == true },
 		Timestamps = timestamps,
 		Elbows = elbows,
 	}
@@ -371,6 +566,9 @@ end
 function StandStrikes.ElbowsAt(clip, t)
 	local e = clip.Elbows
 	if not e or #e == 0 then return nil end
+	if clip.Settings and clip.Settings.Loop and e[#e][1] > 0 then
+		t = t % e[#e][1]
+	end
 	if t <= e[1][1] then return e[1][2], e[1][3] end
 	for i = 1, #e - 1 do
 		local a, b = e[i], e[i + 1]

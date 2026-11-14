@@ -577,6 +577,36 @@ local function applyStandTheme(standModel, stand)
 	end
 end
 
+-- ==================== STANDS SANS HITBOX ====================
+-- Les Stands ne doivent bloquer personne. CanCollide = false ne suffit pas :
+-- un modèle avec un Humanoid voit Roblox réactiver les collisions de son
+-- torse / sa tête. Le groupe de collision "Stands" ne touche rien du tout.
+local PhysicsService = game:GetService("PhysicsService")
+local STAND_COLLISION_GROUP = "Stands"
+pcall(function()
+	PhysicsService:RegisterCollisionGroup(STAND_COLLISION_GROUP)
+end)
+for _, group in PhysicsService:GetRegisteredCollisionGroups() do
+	PhysicsService:CollisionGroupSetCollidable(STAND_COLLISION_GROUP, group.name, false)
+end
+
+local function makeGhostPart(part)
+	if part:IsA("BasePart") then
+		part.CollisionGroup = STAND_COLLISION_GROUP
+		part.CanCollide = false
+		part.CanTouch = false
+		part.CanQuery = false
+	end
+end
+
+local function makeStandIntangible(model)
+	for _, part in model:GetDescendants() do
+		makeGhostPart(part)
+	end
+	-- Pièces ajoutées plus tard (effets, armes…)
+	model.DescendantAdded:Connect(makeGhostPart)
+end
+
 local function setupTemplate(template)
 	local primary = template.PrimaryPart or template:FindFirstChild("HumanoidRootPart")
 	if primary then
@@ -835,6 +865,7 @@ local function giveStand(player)
 	-- Start below its normal position. StandController smoothly raises it in sync
 	-- with the fade and summoning stance (the existing 3D rig stays intact).
 	clone:PivotTo(character.HumanoidRootPart.CFrame * CFrame.new(stand.FollowOffset + Vector3.new(0, -4.3, 0)))
+	makeStandIntangible(clone)
 	clone.Parent = workspace
 	buildFace(clone)
 

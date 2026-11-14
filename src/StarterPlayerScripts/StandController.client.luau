@@ -101,26 +101,31 @@ for key, entry in pairs(STAND_CLIPS) do
 	compiledClips[key] = compileClip(entry.clip)
 end
 
--- M1 propres à chaque Stand (ReplicatedStorage.StandStrikes), compilés pour
--- le squelette réel du Stand (R6 ou R15). Star Platinum garde ses clips
--- d'origine. Pour les Stands R15, le Heavy Punch (et donc le coup final du
--- combo) utilise aussi leur coup final : les clips d'origine sont en R6 et
--- ne bougeaient rien sur un squelette R15.
+-- Attaques propres à chaque Stand (ReplicatedStorage.StandStrikes),
+-- compilées pour le squelette réel du Stand (R6 ou R15) : M1, Heavy (R et
+-- 4e coup du combo), Barrage (E), Time Stop (F, King Crimson / Made in
+-- Heaven), Heal (T, GER) et pose d'attente des Stands R15 (les clips
+-- d'origine sont en R6 et ne bougeaient rien sur un squelette R15).
+-- Star Platinum garde toutes ses animations d'origine ; les autres Time Stop
+-- gardent la pose "ZA WARUDO" codée plus bas.
 local KEEP_ORIGINAL_STRIKES = { StarPlatinum = true }
+local STATE_TO_STRIKE = {
+	LightPunchR = "LightR",
+	LightPunchL = "LightL",
+	HeavyPunch = "Heavy",
+	Barrage = "Barrage",
+	TimeStop = "TimeStop",
+	Heal = "Heal",
+}
 
 local function getStrikeClip(stand, rig, state)
 	local standId = stand:GetAttribute("StandId")
 	if not standId or KEEP_ORIGINAL_STRIKES[standId] then return nil end
-	local kind
-	if state == "LightPunchR" then
-		kind = "LightR"
-	elseif state == "LightPunchL" then
-		kind = "LightL"
-	elseif state == "HeavyPunch" and rig.joints.UpperTorso then
-		kind = "Finisher"
-	else
-		return nil
+	local kind = STATE_TO_STRIKE[state]
+	if not kind and (state == "Idle" or state == "Pose") and rig.joints.UpperTorso then
+		kind = "Idle" -- les Stands R15 n'ont pas de pose d'attente codée
 	end
+	if not kind then return nil end
 	rig.strikeClips = rig.strikeClips or {}
 	local cached = rig.strikeClips[kind]
 	if cached == nil then
@@ -158,15 +163,18 @@ local function playClipFrame(rig, key, actionElapsed, info)
 	info = info or compiledClips[key]
 	if not info or info.lastTime <= 0 then return false end
 	if rig.clipKey ~= key then
+		-- Pose de départ capturée AVANT de nettoyer l'ancien clip, pour
+		-- enchaîner sans repasser par la pose neutre.
+		local initial = {}
+		for partName in pairs(info.driven) do
+			local joint = rig.joints[partName]
+			if joint then initial[partName] = joint.Transform end
+		end
 		clearClip(rig)
 		rig.clipKey = key
 		rig.clipInfo = info
 		rig.clipStart = actionElapsed
-		rig.clipInitial = {}
-		for partName in pairs(info.driven) do
-			local joint = rig.joints[partName]
-			if joint then rig.clipInitial[partName] = joint.Transform end
-		end
+		rig.clipInitial = initial
 	end
 
 	local clip = info.clip
