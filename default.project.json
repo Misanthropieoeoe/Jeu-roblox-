@@ -2,23 +2,69 @@
   "name": "Jeu-roblox",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedStorage": {
-      "Shared": {
-        "$path": "src/shared"
+      "AnimationController": {
+        "$path": "src/ReplicatedStorage/AnimationController.luau"
+      },
+      "GripUtil": {
+        "$path": "src/ReplicatedStorage/GripUtil.luau"
+      },
+      "StandData": {
+        "$path": "src/ReplicatedStorage/StandData.luau"
+      },
+      "Animations": {
+        "$path": "src/ReplicatedStorage/Animations",
+        "$ignoreUnknownInstances": true
       }
     },
-
     "ServerScriptService": {
-      "Server": {
-        "$path": "src/server"
+      "DummyManager": {
+        "$path": "src/ServerScriptService/DummyManager.server.luau"
+      },
+      "MapBuilder": {
+        "$path": "src/ServerScriptService/MapBuilder.server.luau"
+      },
+      "MoneyService": {
+        "$path": "src/ServerScriptService/MoneyService.server.luau"
+      },
+      "StandService": {
+        "$path": "src/ServerScriptService/StandService.server.luau"
+      },
+      "TradeService": {
+        "$path": "src/ServerScriptService/TradeService.server.luau"
       }
     },
-
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "Client": {
-          "$path": "src/client"
+        "ArrowStabAnimationHook": {
+          "$path": "src/StarterPlayerScripts/ArrowStabAnimationHook.client.luau"
+        },
+        "CombatFX": {
+          "$path": "src/StarterPlayerScripts/CombatFX.client.luau"
+        },
+        "CoolRunSprintAnimationHook": {
+          "$path": "src/StarterPlayerScripts/CoolRunSprintAnimationHook.client.luau"
+        },
+        "JoJoLoadingScreen": {
+          "$path": "src/StarterPlayerScripts/JoJoLoadingScreen.client.luau"
+        },
+        "MoneyToasts": {
+          "$path": "src/StarterPlayerScripts/MoneyToasts.client.luau"
+        },
+        "RequiemArrowStabAnimationHook": {
+          "$path": "src/StarterPlayerScripts/RequiemArrowStabAnimationHook.client.luau"
+        },
+        "StandController": {
+          "$path": "src/StarterPlayerScripts/StandController.client.luau"
+        },
+        "StandPickupToast": {
+          "$path": "src/StarterPlayerScripts/StandPickupToast.client.luau"
+        },
+        "StandStatHUD": {
+          "$path": "src/StarterPlayerScripts/StandStatHUD.client.luau"
+        },
+        "TradeUI": {
+          "$path": "src/StarterPlayerScripts/TradeUI.client.luau"
         }
       }
     }
