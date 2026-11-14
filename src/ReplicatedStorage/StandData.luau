@@ -846,6 +846,17 @@ for _, def in pairs(StandData.Stands) do
 	end
 end
 
+-- Attaques spéciales supplémentaires (T / F / G) : voir StandSpells.
+local extraSpells = require(script.Parent:WaitForChild("StandSpells"))
+for standId, moves in pairs(extraSpells) do
+	local def = StandData.Stands[standId]
+	if def and def.Moves then
+		for moveName, move in pairs(moves) do
+			def.Moves[moveName] = move
+		end
+	end
+end
+
 function StandData.GetStand(standId)
 	return StandData.Stands[standId]
 end

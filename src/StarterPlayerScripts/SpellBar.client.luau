@@ -33,14 +33,10 @@ local READY = Color3.fromRGB(120, 220, 120)
 local SLOT_W, SLOT_H, GAP = 200, 46, 8
 ------------------------------------------------------------------------------
 
--- Ordre d'affichage et touches. Les attaques absentes du Stand sont cachées.
-local MOVE_ORDER = { "Barrage", "HeavyPunch", "TimeStop", "Heal" }
-local KEY_FOR = {
-	Barrage = Enum.KeyCode.E,
-	HeavyPunch = Enum.KeyCode.R,
-	TimeStop = Enum.KeyCode.F,
-	Heal = Enum.KeyCode.T,
-}
+-- Ordre d'affichage des touches. Chaque attaque du Stand équipé est placée
+-- selon son champ Key (StandData / StandSpells).
+local KEY_ORDER = { "E", "R", "T", "F", "G" }
+local KEY_FOR = {} -- [actionName] = Enum.KeyCode, rempli par rebuild()
 
 local cooldownEnds = {} -- [actionName] = os.clock() de fin de recharge
 local barrageActive = false
@@ -227,12 +223,14 @@ local function rebuild()
 	if light then
 		makeSlot(nextOrder(), "LightPunch", "M1", light.Label or "Light Punch")
 	end
-	for _, action in ipairs(MOVE_ORDER) do
-		local move = def.Moves and def.Moves[action]
-		if move then
-			local keyText = move.Key or (KEY_FOR[action] and KEY_FOR[action].Name) or "?"
-			local slot = makeSlot(nextOrder(), action, keyText, move.Label or action)
-			slot.cooldown = move.Cooldown or 0
+	table.clear(KEY_FOR)
+	for _, key in ipairs(KEY_ORDER) do
+		for action, move in pairs(def.Moves or {}) do
+			if move.Key == key and action ~= "LightPunchR" and action ~= "LightPunchL" then
+				local slot = makeSlot(nextOrder(), action, key, move.Label or action)
+				slot.cooldown = move.Cooldown or 0
+				KEY_FOR[action] = Enum.KeyCode[key]
+			end
 		end
 	end
 end

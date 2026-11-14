@@ -12,6 +12,9 @@
       "StandData": {
         "$path": "src/ReplicatedStorage/StandData.luau"
       },
+      "StandSpells": {
+        "$path": "src/ReplicatedStorage/StandSpells.luau"
+      },
       "StandStrikes": {
         "$path": "src/ReplicatedStorage/StandStrikes.luau"
       },

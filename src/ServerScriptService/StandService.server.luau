@@ -1323,6 +1323,331 @@ local function runTimeStop(player, stand, move)
 	end)
 end
 
+-- ==================== SORTS (attaques T / F / G) ====================
+-- Moteur générique des attaques définies dans ReplicatedStorage.StandSpells.
+-- Chaque attaque a un Type (Strike, Dash, Projectile, Burst, Buff,
+-- Teleport) et ses réglages ; voir l'en-tête de StandSpells.
+local SPELL_DEFAULT_COLOR = PURPLE
+
+local spellFolder = Instance.new("Folder")
+spellFolder.Name = "StandSpellFX"
+spellFolder.Parent = workspace
+
+local function spellColor(standDef, move)
+	return move.Color or (standDef and standDef.Theme and standDef.Theme.Aura1) or SPELL_DEFAULT_COLOR
+end
+
+-- Cibles dans une sphère (joueurs et mannequins, jamais le lanceur ni un Stand)
+local function getTargetsInRadius(caster, center, radius)
+	local targets, seen = {}, {}
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { caster.Character, workspace:FindFirstChild(caster.Name .. "Stand"), spellFolder }
+	for _, part in workspace:GetPartBoundsInRadius(center, radius, params) do
+		local model = part:FindFirstAncestorOfClass("Model")
+		while model do
+			local humanoid = model:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 and not isStandOrCaster(model, caster.Character) and not seen[model] then
+				seen[model] = true
+				table.insert(targets, { model = model, humanoid = humanoid, root = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") })
+			end
+			model = model.Parent and model.Parent:FindFirstAncestorOfClass("Model")
+		end
+	end
+	return targets
+end
+
+-- Étourdissement : vitesse et saut à 0 pendant `seconds`, puis restauration.
+local spellStuns = {} -- [Humanoid] = { untilT, WalkSpeed, JumpPower, JumpHeight }
+local function stunTargets(targets, seconds)
+	if not seconds or seconds <= 0 then return end
+	local untilT = os.clock() + seconds
+	for _, target in targets do
+		local h = target.humanoid
+		if h and h.Parent then
+			local entry = spellStuns[h]
+			if not entry then
+				entry = { WalkSpeed = h.WalkSpeed, JumpPower = h.JumpPower, JumpHeight = h.JumpHeight }
+				spellStuns[h] = entry
+			end
+			entry.untilT = math.max(entry.untilT or 0, untilT)
+			h.WalkSpeed = 0
+			h.JumpPower = 0
+			h.JumpHeight = 0
+		end
+	end
+end
+RunService.Heartbeat:Connect(function()
+	local now = os.clock()
+	for h, entry in spellStuns do
+		if not h.Parent then
+			spellStuns[h] = nil
+		elseif now >= entry.untilT then
+			spellStuns[h] = nil
+			h.WalkSpeed = entry.WalkSpeed
+			h.JumpPower = entry.JumpPower
+			h.JumpHeight = entry.JumpHeight
+		end
+	end
+end)
+
+-- Recul depuis un point (explosions) : vers l'extérieur + un peu vers le haut
+local function pushFrom(targets, center, force, launch)
+	for _, target in targets do
+		local root = target.root
+		if root and not root.Anchored then
+			local away = root.Position - center
+			away = Vector3.new(away.X, 0, away.Z)
+			away = away.Magnitude > 0.1 and away.Unit or Vector3.zero
+			root.AssemblyLinearVelocity = away * (force or 0) + Vector3.new(0, (launch or 0) + (force and force > 0 and 20 or 0), 0)
+		end
+	end
+end
+
+local function spellBurstAt(player, center, radius, damage, knockback, launch, stun, color)
+	local character = player.Character
+	if not character then return end
+	local targets = getTargetsInRadius(player, center, radius)
+	if damage and damage > 0 then
+		dealDamage(targets, damage, character, nil, "heavy")
+	end
+	pushFrom(targets, center, knockback, launch)
+	stunTargets(targets, stun)
+	impactFX(center, color, radius * 2, 0.7)
+	return targets
+end
+
+-- Frappe devant le joueur, avec bombe à retardement optionnelle
+local function spellStrike(player, standDef, move, origin)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local color = spellColor(standDef, move)
+	local range = move.Range or 10
+	local targets = getTargets(player, origin or hrp.CFrame, move.BoxSize or Vector3.new(7, 7, range), range)
+	dealDamage(targets, move.Damage or 0, character, move.Knockback, "heavy")
+	stunTargets(targets, move.Stun)
+	local hitPos = #targets > 0 and targets[1].root and targets[1].root.Position
+		or ((origin or hrp.CFrame) * CFrame.new(0, 0, -range / 2)).Position
+	impactFX(hitPos, color, 10, 1.1)
+	if move.BombDelay then
+		for _, target in targets do
+			local root = target.root
+			task.delay(move.BombDelay, function()
+				if root and root.Parent then
+					spellBurstAt(player, root.Position, move.BombRadius or 7, move.BombDamage or 15, 35, 10, nil, color)
+				end
+			end)
+		end
+	end
+end
+
+local function spawnProjectile(player, standDef, move, origin, direction)
+	local color = spellColor(standDef, move)
+	local size = move.Size or 0.6
+	local part = Instance.new("Part")
+	part.Name = "SpellProjectile"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	if move.Shape == "Blade" then
+		part.Size = Vector3.new(size * 0.4, size * 0.4, size * 3)
+	else
+		part.Shape = Enum.PartType.Ball
+		part.Size = Vector3.new(size, size, size)
+	end
+	part.CFrame = CFrame.lookAt(origin, origin + direction)
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 8
+	light.Brightness = 2
+	light.Parent = part
+	part.Parent = spellFolder
+
+	local character = player.Character
+	local traveled, maxRange = 0, move.Range or 60
+	local speed = move.Speed or 100
+	local hitModels = {}
+	local connection
+	local function finish(explodeAt)
+		if connection then connection:Disconnect() end
+		if explodeAt and move.Explode then
+			spellBurstAt(player, explodeAt, move.Explode.Radius or 8, move.Explode.Damage or 15, 40, 15, nil, color)
+		end
+		part:Destroy()
+	end
+	connection = RunService.Heartbeat:Connect(function(dt)
+		if not part.Parent or not character or not character.Parent then
+			finish(nil)
+			return
+		end
+		local step = speed * dt
+		local pos = part.Position + direction * step
+		traveled += step
+		part.CFrame = CFrame.lookAt(pos, pos + direction)
+		local hits = getTargetsInRadius(player, pos, size + 1.2)
+		local fresh = {}
+		for _, target in hits do
+			if not hitModels[target.model] then
+				hitModels[target.model] = true
+				table.insert(fresh, target)
+			end
+		end
+		if #fresh > 0 then
+			dealDamage(fresh, move.Damage or 5, character, move.Knockback, "light")
+			stunTargets(fresh, move.Stun)
+			impactFX(pos, color, 5, 1.4)
+			if not move.Pierce then
+				finish(pos)
+				return
+			end
+		end
+		if traveled >= maxRange then
+			finish(move.Explode and pos or nil)
+		end
+	end)
+end
+
+local function spellProjectiles(player, stand, standDef, move)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local look = hrp.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
+	local torso = stand:FindFirstChild("Torso") or stand:FindFirstChild("UpperTorso")
+	local origin = (torso and torso.Position or hrp.Position + Vector3.new(0, 1.5, 0)) + flat * 2
+	local count = move.Count or 1
+	local spread = math.rad(move.Spread or 0)
+	for i = 1, count do
+		local angle = count > 1 and (-spread / 2 + spread * (i - 1) / (count - 1)) or 0
+		local dir = (CFrame.Angles(0, angle, 0) * CFrame.lookAt(Vector3.zero, flat)).LookVector
+		spawnProjectile(player, standDef, move, origin, dir)
+	end
+end
+
+-- Bonus sur soi : soin et / ou vitesse
+local function spellBuff(player, standDef, move)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not hrp or humanoid.Health <= 0 then return end
+	local color = spellColor(standDef, move)
+	if move.Heal then
+		local before = humanoid.Health
+		humanoid.Health = math.min(humanoid.MaxHealth, before + move.Heal)
+		local healed = humanoid.Health - before
+		if healed > 0 then
+			standFX:FireAllClients("Healed", hrp.Position, healed)
+		end
+	end
+	if move.SpeedBoost then
+		local base = humanoid.WalkSpeed
+		local boosted = base * move.SpeedBoost
+		humanoid.WalkSpeed = boosted
+		task.delay(move.BuffTime or 5, function()
+			-- Ne restaure que si personne d'autre n'a changé la vitesse entre-temps
+			if humanoid.Parent and math.abs(humanoid.WalkSpeed - boosted) < 0.01 then
+				humanoid.WalkSpeed = base
+			end
+		end)
+	end
+	impactFX(hrp.Position, color, 9, 0.6)
+end
+
+-- Ruée : c'est le client qui pousse son personnage (il possède sa physique) ;
+-- le serveur vérifie les cibles traversées pendant la ruée.
+local function spellDash(player, standDef, move)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local dashTime = move.DashTime or 0.25
+	standFX:FireClient(player, "SpellDash", move.DashSpeed or 80, dashTime)
+	local hitModels = {}
+	local color = spellColor(standDef, move)
+	local checks = math.max(2, math.ceil(dashTime / 0.06))
+	for i = 1, checks do
+		task.delay(i * dashTime / checks + 0.03, function()
+			if not hrp.Parent then return end
+			local targets = getTargets(player, hrp.CFrame, move.BoxSize or Vector3.new(7, 7, 8), 6)
+			local fresh = {}
+			for _, target in targets do
+				if not hitModels[target.model] then
+					hitModels[target.model] = true
+					table.insert(fresh, target)
+				end
+			end
+			if #fresh > 0 then
+				dealDamage(fresh, move.Damage or 0, character, move.Knockback, "heavy")
+				stunTargets(fresh, move.Stun)
+				impactFX(fresh[1].root and fresh[1].root.Position or hrp.Position, color, 9, 1.2)
+			end
+		end)
+	end
+end
+
+-- Téléportation derrière l'ennemi le plus proche, puis frappe
+local function spellTeleport(player, standDef, move)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local best, bestDist = nil, nil
+	for _, target in getTargetsInRadius(player, hrp.Position, move.Range or 40) do
+		if target.root then
+			local d = (target.root.Position - hrp.Position).Magnitude
+			if not bestDist or d < bestDist then
+				best, bestDist = target, d
+			end
+		end
+	end
+	local color = spellColor(standDef, move)
+	impactFX(hrp.Position, color, 6, 1.6)
+	if best then
+		local behind = best.root.CFrame * CFrame.new(0, 0, 3.5)
+		character:PivotTo(CFrame.lookAt(behind.Position, best.root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, behind.Position.Y, 0)))
+	end
+	task.delay(math.max(0.05, (move.HitDelay or 0.3) - 0.1), function()
+		if hrp.Parent then
+			spellStrike(player, standDef, move)
+		end
+	end)
+end
+
+local function runSpell(player, stand, standDef, move)
+	local kind = move.Type
+	if kind == "Dash" then
+		spellDash(player, standDef, move)
+		return
+	elseif kind == "Teleport" then
+		spellTeleport(player, standDef, move)
+		return
+	end
+	task.delay(move.HitDelay or 0.25, function()
+		if not stand.Parent then return end
+		if kind == "Strike" then
+			spellStrike(player, standDef, move)
+		elseif kind == "Projectile" then
+			spellProjectiles(player, stand, standDef, move)
+		elseif kind == "Burst" then
+			local character = player.Character
+			local hrp = character and character:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				local look = hrp.CFrame.LookVector
+				local flat = Vector3.new(look.X, 0, look.Z)
+				flat = flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
+				local center = hrp.Position + flat * (move.Offset or 0)
+				spellBurstAt(player, center, move.Radius or 10, move.Damage, move.Knockback, move.Launch, move.Stun, spellColor(standDef, move))
+			end
+		elseif kind == "Buff" then
+			spellBuff(player, standDef, move)
+		end
+	end)
+end
+
 local toggleAt = {}
 
 -- Random stand pick for Stand Arrow pickups. Time-reality stands (The World,
@@ -1653,6 +1978,9 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 	end
 
 	if stand:GetAttribute("State") ~= "Idle" then return end
+	-- Les coups M1 passent uniquement par "LightPunch" (plus haut) : sans ça,
+	-- envoyer "LightPunchR" bloquait le Stand dans cet état pour toujours.
+	if actionName == "LightPunchR" or actionName == "LightPunchL" then return end
 	local standDef = StandData.GetStand(stand:GetAttribute("StandId"))
 	local move = standDef and standDef.Moves[actionName]
 	if not move then return end
@@ -1704,6 +2032,15 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		runTimeStop(player, stand, move)
 		task.delay(move.Duration, function()
 			if stand.Parent and stand:GetAttribute("State") == "TimeStop" then
+				stand:SetAttribute("State", "Idle")
+				stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+			end
+		end)
+	elseif move.Type then
+		-- Attaques T / F / G (StandSpells)
+		runSpell(player, stand, standDef, move)
+		task.delay(move.Duration or 0.6, function()
+			if stand.Parent and stand:GetAttribute("State") == actionName then
 				stand:SetAttribute("State", "Idle")
 				stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
 			end

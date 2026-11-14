@@ -9,6 +9,9 @@
 --          "TimeStop"            touche F (King Crimson, Made in Heaven)
 --          "Heal"                touche T (Gold Experience Requiem)
 --          "Idle"                pose d'attente (Stands R15, qui n'en avaient pas)
+--          "Anim:<Nom>"          attaques T / F / G (StandSpells, champ Anim) :
+--                                StandStrikes.SpellAnims[Nom], ou la version
+--                                propre au Stand si Stands[id][Nom] existe
 --   joints = { [nom de la pièce] = Motor6D } (les vraies articulations du Stand)
 --
 -- ─── Comment écrire une pose ──────────────────────────────────────────────
@@ -441,6 +444,97 @@ StandStrikes.Stands = {
 	},
 }
 
+-- ─── Animations des attaques T / F / G (StandSpells) ───────────────────────
+-- Communes à tous les Stands. Un Stand peut avoir sa propre version en
+-- ajoutant une entrée du même nom dans StandStrikes.Stands[id].
+-- La dernière pose est tenue jusqu'à la fin de l'attaque.
+local function spell(windup, release, follow, tWindup, tRelease, tFollow)
+	return {
+		duration = tFollow,
+		keys = {
+			{ 0, GUARD },
+			{ tWindup, windup },
+			{ tRelease, release },
+			{ tFollow, follow },
+		},
+	}
+end
+
+StandStrikes.SpellAnims = {
+	-- Bras tendu, doigt pointé (Star Finger, Red Bind, Tentacle Bind…)
+	Point = spell(
+		{ R = { pitch = 40, abduct = 20, elbow = 120 }, L = GUARD_ARM, twist = -20 },
+		{ R = { pitch = 92, abduct = 2, swing = 6, elbow = 0, wrist = 0 }, L = { pitch = 25, abduct = 25, elbow = 95 }, twist = 25, lean = 8, lunge = 0.4 },
+		{ R = { pitch = 90, abduct = 2, swing = 6, elbow = 3 }, L = { pitch = 25, abduct = 25, elbow = 95 }, twist = 22, lean = 7, lunge = 0.35 },
+		0.12, 0.25, 0.6
+	),
+	-- Pichenette depuis la poitrine (Bearing Shot, Life Shot)
+	Flick = spell(
+		{ R = { pitch = 30, abduct = 10, swing = 20, elbow = 125, wrist = -30 }, L = GUARD_ARM, twist = -10 },
+		{ R = { pitch = 95, abduct = 4, swing = 8, elbow = 10, wrist = 35 }, L = GUARD_ARM, twist = 18, lean = 6, lunge = 0.3 },
+		{ R = { pitch = 90, abduct = 4, swing = 8, elbow = 15, wrist = 30 }, L = GUARD_ARM, twist = 15, lean = 5 },
+		0.1, 0.2, 0.5
+	),
+	-- Lancer par-dessus l'épaule (couteaux, éclats, Sheer Heart Attack)
+	Throw = spell(
+		{ R = { pitch = 160, abduct = 30, swing = -10, elbow = 90 }, L = { pitch = 60, abduct = 20, elbow = 60 }, twist = -30, lean = -8 },
+		{ R = { pitch = 70, abduct = 10, swing = 25, elbow = 15, wrist = 20 }, L = { pitch = 20, abduct = 25, elbow = 80 }, twist = 32, lean = 14, lunge = 0.5 },
+		{ R = { pitch = 55, abduct = 10, swing = 30, elbow = 20 }, L = { pitch = 20, abduct = 25, elbow = 80 }, twist = 30, lean = 12, lunge = 0.4 },
+		0.12, 0.24, 0.6
+	),
+	-- Les deux bras au-dessus de la tête puis on écrase (Road Roller, Tree Growth)
+	Slam = spell(
+		{ R = { pitch = 170, abduct = 15, elbow = 30 }, L = { pitch = 170, abduct = 15, elbow = 30 }, lean = -14, drop = -0.4, headPitch = 15 },
+		{ R = { pitch = 40, abduct = 8, swing = 10, elbow = 10 }, L = { pitch = 40, abduct = 8, swing = 10, elbow = 10 }, lean = 28, drop = 0.35, lunge = 0.6 },
+		{ R = { pitch = 35, abduct = 8, swing = 10, elbow = 15 }, L = { pitch = 35, abduct = 8, swing = 10, elbow = 15 }, lean = 24, drop = 0.3, lunge = 0.5 },
+		0.3, 0.5, 0.9
+	),
+	-- Ruée : penché en avant, poing devant (Dash)
+	Dash = spell(
+		{ R = { pitch = 50, abduct = 15, elbow = 120 }, L = { pitch = -20, abduct = 20, elbow = 60 }, twist = -15, lean = 15, drop = 0.15 },
+		{ R = { pitch = 95, abduct = 4, swing = 8, elbow = 0 }, L = { pitch = -35, abduct = 25, elbow = 40 }, twist = 20, lean = 30, lunge = 1.0,
+			legR = { hip = -25, knee = 20 }, legL = { hip = -40, knee = 30 } },
+		{ R = { pitch = 92, abduct = 4, swing = 8, elbow = 5 }, L = { pitch = -30, abduct = 25, elbow = 45 }, twist = 18, lean = 26, lunge = 0.9,
+			legR = { hip = -20, knee = 20 }, legL = { hip = -35, knee = 30 } },
+		0.08, 0.18, 0.55
+	),
+	-- Bras levés, tête vers le ciel (soins, bonus, zones autour de soi)
+	Raise = spell(
+		{ R = { pitch = 60, abduct = 30, elbow = 80 }, L = { pitch = 60, abduct = 30, elbow = 80 }, lean = 6, drop = 0.15 },
+		{ R = { pitch = 140, abduct = 40, elbow = 20, wrist = 15 }, L = { pitch = 140, abduct = 40, elbow = 20, wrist = 15 }, lean = -12, headPitch = 22, drop = -0.25 },
+		{ R = { pitch = 135, abduct = 42, elbow = 25, wrist = 15 }, L = { pitch = 135, abduct = 42, elbow = 25, wrist = 15 }, lean = -10, headPitch = 20, drop = -0.2 },
+		0.15, 0.35, 0.9
+	),
+	-- Deux mains depuis la poitrine vers l'avant (Emerald Splash, flammes)
+	ChargeBlast = spell(
+		{ R = { pitch = 25, abduct = 30, swing = -10, elbow = 120, wrist = -20 }, L = { pitch = 25, abduct = 30, swing = -10, elbow = 120, wrist = -20 }, lean = -8, drop = 0.1 },
+		{ R = { pitch = 92, abduct = 12, swing = 22, elbow = 8, wrist = 40 }, L = { pitch = 92, abduct = 12, swing = 22, elbow = 8, wrist = 40 }, lean = 10, lunge = 0.5 },
+		{ R = { pitch = 90, abduct = 12, swing = 22, elbow = 12, wrist = 35 }, L = { pitch = 90, abduct = 12, swing = 22, elbow = 12, wrist = 35 }, lean = 8, lunge = 0.4 },
+		0.18, 0.3, 0.7
+	),
+	-- Paume qui touche (Contact Bomb, Zipper Trap)
+	Touch = spell(
+		{ R = { pitch = 45, abduct = 15, elbow = 110, wrist = 20 }, L = GUARD_ARM, twist = -15 },
+		{ R = { pitch = 95, abduct = 5, swing = 10, elbow = 5, wrist = 60 }, L = GUARD_ARM, twist = 20, lean = 10, lunge = 0.5 },
+		{ R = { pitch = 92, abduct = 5, swing = 10, elbow = 10, wrist = 55 }, L = GUARD_ARM, twist = 18, lean = 8, lunge = 0.45 },
+		0.1, 0.2, 0.55
+	),
+	-- Uppercut énorme (Arrivederci)
+	Uppercut = spell(
+		{ R = { pitch = -20, abduct = 15, elbow = 120 }, L = GUARD_ARM, twist = -25, lean = 20, drop = 0.45 },
+		{ R = { pitch = 170, abduct = 5, swing = 10, elbow = 10 }, L = { pitch = 10, abduct = 25, elbow = 80 }, twist = 30, lean = -18, drop = -0.4, headPitch = 20, lunge = 0.6 },
+		{ R = { pitch = 165, abduct = 5, elbow = 15 }, L = { pitch = 10, abduct = 25, elbow = 80 }, twist = 25, lean = -14, drop = -0.3, headPitch = 15 },
+		0.3, 0.45, 0.8
+	),
+	-- Tranchant de la main qui s'abat (Time Skip)
+	Strike = spell(
+		{ R = { pitch = 165, abduct = 15, elbow = 20 }, L = GUARD_ARM, twist = -20, lean = -6 },
+		{ R = { pitch = 55, abduct = 8, swing = 20, elbow = 10 }, L = GUARD_ARM, twist = 20, lean = 16, lunge = 0.6 },
+		{ R = { pitch = 40, abduct = 8, swing = 25, elbow = 15 }, L = GUARD_ARM, twist = 18, lean = 14, lunge = 0.5 },
+		0.15, 0.3, 0.7
+	),
+}
+
 -- ─── Miroir (pour fabriquer LightL à partir de LightR) ──────────────────────
 local function mirrorPose(pose)
 	local m = {}
@@ -464,6 +558,11 @@ end
 
 -- Renvoie la frappe décrite (ou nil si le Stand n'en a pas pour ce coup).
 function StandStrikes.Get(standId, kind)
+	local animName = string.match(kind, "^Anim:(.+)$")
+	if animName then
+		local own = StandStrikes.Stands[standId]
+		return (own and own[animName]) or StandStrikes.SpellAnims[animName]
+	end
 	local def = StandStrikes.Stands[standId]
 	if not def then return nil end
 	if kind == "LightR" then

@@ -120,10 +120,19 @@ local STATE_TO_STRIKE = {
 
 local function getStrikeClip(stand, rig, state)
 	local standId = stand:GetAttribute("StandId")
-	if not standId or KEEP_ORIGINAL_STRIKES[standId] then return nil end
+	if not standId then return nil end
 	local kind = STATE_TO_STRIKE[state]
 	if not kind and (state == "Idle" or state == "Pose") and rig.joints.UpperTorso then
 		kind = "Idle" -- les Stands R15 n'ont pas de pose d'attente codée
+	end
+	if kind and KEEP_ORIGINAL_STRIKES[standId] then return nil end
+	if not kind then
+		-- Attaques T / F / G (StandSpells) : animation nommée par move.Anim
+		local def = StandData.GetStand(standId)
+		local move = def and def.Moves and def.Moves[state]
+		if move and move.Type and move.Anim then
+			kind = "Anim:" .. move.Anim
+		end
 	end
 	if not kind then return nil end
 	rig.strikeClips = rig.strikeClips or {}
@@ -1496,6 +1505,12 @@ local function updateStand(stand, standDef, character, now)
 		targetPos = hrp.Position + flat * (-offset.Z + lunge)
 			+ Vector3.new(0, offset.Y + math.sin(now * 1.55) * 0.06, 0)
 		smooth = (jab and jab.LightSmoothness) or 0.45
+	elseif moveDef and moveDef.Type then
+		-- Attaques T / F / G : le Stand passe devant le joueur
+		local forward = moveDef.StandForward or 3.4
+		local lunge = math.sin(math.pi * math.clamp(t / math.max(moveDef.Duration or 0.6, 0.1), 0, 1)) * 0.8
+		targetPos = hrp.Position + flat * (forward + lunge) + Vector3.new(0, 1.3, 0)
+		smooth = 0.4
 	elseif state == "TimeStop" and moveDef and moveDef.TimeStopOffset then
 		targetPos = hrp.Position + flat * (-moveDef.TimeStopOffset.Z)
 			+ Vector3.new(0, moveDef.TimeStopOffset.Y + math.sin(now * 1.4) * 0.12, 0)
@@ -1564,22 +1579,61 @@ RunService.PreSimulation:Connect(function()
 	end
 end)
 
+local SPELL_KEYS = {
+	[Enum.KeyCode.E] = "E",
+	[Enum.KeyCode.R] = "R",
+	[Enum.KeyCode.T] = "T",
+	[Enum.KeyCode.F] = "F",
+	[Enum.KeyCode.G] = "G",
+}
+
+local function actionForKey(keyName)
+	local standId = localPlayer:GetAttribute("StandId")
+	local def = (standId and StandData.GetStand(standId)) or StandData.GetStand(StandData.DefaultStand)
+	if not def or not def.Moves then return nil end
+	for name, move in pairs(def.Moves) do
+		if move.Key == keyName and name ~= "LightPunchR" and name ~= "LightPunchL" then
+			return name
+		end
+	end
+	return nil
+end
+
+-- Ruée (attaques "Dash") : le serveur demande, le client pousse son
+-- personnage puisqu'il possède sa physique.
+ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("StandFX").OnClientEvent:Connect(function(kind, speed, duration)
+	if kind ~= "SpellDash" or typeof(speed) ~= "number" or typeof(duration) ~= "number" then return end
+	local character = localPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
+	local endsAt = os.clock() + math.clamp(duration, 0, 1)
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
+		if not root.Parent or os.clock() >= endsAt then
+			connection:Disconnect()
+			if root.Parent then
+				local v = root.AssemblyLinearVelocity
+				root.AssemblyLinearVelocity = flat * 16 + Vector3.new(0, v.Y, 0)
+			end
+			return
+		end
+		local v = root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity = flat * speed + Vector3.new(0, math.max(v.Y, 0), 0)
+	end)
+end)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	local character = localPlayer.Character
 	if not character then return end
 
-	local fired = nil
-	if input.KeyCode == Enum.KeyCode.E then
-		fired = "Barrage"
-	elseif input.KeyCode == Enum.KeyCode.R then
-		fired = "HeavyPunch"
-	elseif input.KeyCode == Enum.KeyCode.F then
-		fired = "TimeStop"
-	elseif input.KeyCode == Enum.KeyCode.T then
-		fired = "Heal" -- Life Channel (GER) : aucune touche ne l'envoyait
-	end
-
+	-- Chaque Stand a ses attaques sur E / R / T / F / G (champ Key dans
+	-- StandData et StandSpells) : on envoie celle du Stand équipé.
+	local keyName = SPELL_KEYS[input.KeyCode]
+	local fired = keyName and actionForKey(keyName)
 	if fired then
 		standAction:FireServer(fired)
 	end
