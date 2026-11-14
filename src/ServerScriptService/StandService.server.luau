@@ -414,12 +414,13 @@ local ServerStorage = game:GetService("ServerStorage")
 local DEFAULT_STAND_ID = "StarPlatinum"
 local lastUse = {}
 local activeBarrages = {}
--- Tracks which fist threw the last M1 jab so the next one alternates.
-local lastHand = {}
--- Combo M1 : le 1er coup est toujours de la main droite, le 2e de la gauche,
--- etc. Après une pause plus longue que ça (en secondes), le combo repart
--- de la main droite.
+-- Combo M1 : coup 1 = main droite, 2 = gauche, 3 = droite, et le dernier
+-- (ComboLength dans StandData, 4 par défaut) = coup puissant qui repousse.
+-- Après une pause plus longue que M1_COMBO_RESET (en secondes), le combo
+-- repart de zéro.
 local M1_COMBO_RESET = 1.0
+local m1Combo = {} -- [UserId] = nombre de coups déjà donnés dans le combo
+local m1BlockedUntil = {} -- [UserId] = os.clock() avant lequel M1 est bloqué
 
 -- Voice clips live in ServerStorage (server-only). Mirror the ones referenced
 -- by stand definitions into ReplicatedStorage so clients can resolve their
@@ -1137,6 +1138,47 @@ local function runBarrage(player, stand, move)
 	return true
 end
 
+-- Dernier coup du combo M1 : le Stand joue le Heavy Punch (animation,
+-- position, effets) et repousse les cibles touchées. N'utilise pas le
+-- cooldown de la touche R.
+local function runComboFinisher(player, stand, standDef, move)
+	stand:SetAttribute("State", "HeavyPunch")
+	stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+
+	local voice = standDef and resolveVoice(standDef.HeavyVoicePath)
+	local torso = stand:FindFirstChild("Torso") or stand:FindFirstChild("UpperTorso")
+	if voice and torso then
+		local shout = voice:Clone()
+		shout.Name = "FinisherVoice"
+		shout.Looped = false
+		shout.Parent = torso
+		shout:Play()
+		task.delay(6, function()
+			if shout.Parent then shout:Destroy() end
+		end)
+	end
+
+	task.delay(move.FinisherHitDelay or 0.25, function()
+		if not stand.Parent or stand:GetAttribute("State") ~= "HeavyPunch" then return end
+		local character = player.Character
+		local hrp = character and character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+		local targets = getTargets(player, hrp.CFrame, move.BoxSize, move.Range)
+		dealDamage(targets, move.FinisherDamage or 15, character, move.FinisherKnockback or 70, "heavy")
+		local hitPos = #targets > 0 and targets[1].root and targets[1].root.Position
+			or (hrp.CFrame * CFrame.new(0, 0, -move.Range / 2)).Position
+		impactFX(hitPos, GOLD, 14, 0.85)
+		impactFX(hitPos, PURPLE, 8, 1.3)
+	end)
+
+	task.delay(move.FinisherDuration or 0.45, function()
+		if stand.Parent and stand:GetAttribute("State") == "HeavyPunch" then
+			stand:SetAttribute("State", "Idle")
+			stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+		end
+	end)
+end
+
 local function runHeavy(player, stand, move)
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then return end
@@ -1455,17 +1497,26 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		if state ~= "Idle" and state ~= "LightPunchR" and state ~= "LightPunchL" then return end
 		lastUse[player.UserId] = lastUse[player.UserId] or {}
 		local now = os.clock()
-		local previousPunch = lastUse[player.UserId].LightPunch or 0
+		local uid = player.UserId
+		local previousPunch = lastUse[uid].LightPunch or 0
 		if previousPunch + move.Cooldown > now then return end
-		lastUse[player.UserId].LightPunch = now
-		-- Alternate hands on every press; the server owns the rhythm so all
-		-- clients see the same fist fly. A pause restarts the combo on the
-		-- right hand.
+		if (m1BlockedUntil[uid] or 0) > now then return end
+		lastUse[uid].LightPunch = now
+		-- The server owns the combo so all clients see the same fist fly.
+		-- A pause restarts the combo on the right hand.
 		if now - previousPunch > M1_COMBO_RESET then
-			lastHand[player.UserId] = nil
+			m1Combo[uid] = 0
 		end
-		lastHand[player.UserId] = (lastHand[player.UserId] == "R") and "L" or "R"
-		local hand = lastHand[player.UserId]
+		m1Combo[uid] = (m1Combo[uid] or 0) + 1
+
+		if m1Combo[uid] >= (move.ComboLength or 4) then
+			m1Combo[uid] = 0
+			m1BlockedUntil[uid] = now + (move.FinisherEndLag or 1)
+			runComboFinisher(player, stand, standDef, move)
+			return
+		end
+
+		local hand = (m1Combo[uid] % 2 == 1) and "R" or "L"
 		stand:SetAttribute("State", "LightPunch" .. hand)
 		stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
 		-- Stand cry on every M1 jab: a short one-shot of the stand's barrage
@@ -1762,6 +1813,8 @@ Players.PlayerRemoving:Connect(function(player)
 	saveStandData(player)
 	lastUse[player.UserId] = nil
 	toggleAt[player.UserId] = nil
+	m1Combo[player.UserId] = nil
+	m1BlockedUntil[player.UserId] = nil
 end)
 
 game:BindToClose(function()

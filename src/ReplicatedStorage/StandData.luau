@@ -829,6 +829,15 @@ local LIGHT_PUNCH_DEFAULTS = {
 	BoxSize = Vector3.new(7, 7, 10),
 	LightOffset = Vector3.new(0, 1.2, -3.2),
 	LightSmoothness = 0.45,
+
+	-- Combo : ComboLength coups, le dernier est un coup puissant qui repousse
+	-- (même animation et effets que le Heavy Punch, sans toucher à son cooldown).
+	ComboLength = 4,
+	FinisherDamage = 15,
+	FinisherKnockback = 70, -- force du recul (le Heavy Punch est à 55)
+	FinisherHitDelay = 0.25, -- moment de l'impact dans l'animation
+	FinisherDuration = 0.45, -- durée de l'animation
+	FinisherEndLag = 1.0, -- temps avant de pouvoir relancer un M1 après le final
 }
 for _, def in pairs(StandData.Stands) do
 	if def.Moves and not def.Moves.LightPunchR then
