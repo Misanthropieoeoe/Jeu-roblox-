@@ -29,7 +29,38 @@ local animationsFolder = ReplicatedStorage:WaitForChild("Animations")
 local STAND_CLIPS = {
 	Barrage = { clip = require(animationsFolder:WaitForChild("StandBarrage")).Rigs.R6 },
 	HeavyPunch = { clip = require(animationsFolder:WaitForChild("StandHeavyPunch")).Rigs.R6 },
+	-- M1 coup léger : le serveur alterne main droite / main gauche (0.42 s).
+	LightPunchR = { clip = require(animationsFolder:WaitForChild("Stand Right Punch")).Rigs.R6 },
+	LightPunchL = { clip = require(animationsFolder:WaitForChild("Stand Left Punch")).Rigs.R6 },
 }
+
+-- Coude pendant le coup léger (en radians, + = plié), en fonction du temps
+-- depuis le début du coup. Le bras qui frappe s'arme (coude plié), se tend
+-- d'un coup à l'impact (~0.16 s, moment où le serveur inflige les dégâts),
+-- puis revient. L'autre bras reste plié en garde.
+local JAB_ELBOW_KEYS = {
+	{ 0.00, 0.15 },
+	{ 0.09, 1.25 }, -- armement
+	{ 0.17, 0.02 }, -- impact : bras tendu
+	{ 0.28, 0.35 },
+	{ 0.42, 0.15 },
+}
+local JAB_GUARD_ELBOW = 1.05
+
+local function jabElbow(t)
+	local keys = JAB_ELBOW_KEYS
+	if t <= keys[1][1] then return keys[1][2] end
+	for i = 1, #keys - 1 do
+		local a, b = keys[i], keys[i + 1]
+		if t < b[1] then
+			local alpha = (t - a[1]) / (b[1] - a[1])
+			-- ease in-out pour éviter un mouvement robotique
+			alpha = alpha * alpha * (3 - 2 * alpha)
+			return a[2] + (b[2] - a[2]) * alpha
+		end
+	end
+	return keys[#keys][2]
+end
 
 -- V9: No independent Stepped loop: a clip is evaluated from the SERVER
 -- action timestamp. This ensures that an old barrage cannot keep animating
@@ -903,11 +934,21 @@ local function animateStand(stand, state, t, now)
     local desired = compiledClips[state]
 	if desired then
 		playClipFrame(rig, state, t)
-		-- Strong straight punch silhouette during Barrage / HeavyPunch.
 		local rightElbow = rig.motors.rightElbow
 		local leftElbow = rig.motors.leftElbow
-		if rightElbow then rightElbow.Transform = CFrame.Angles(0.10, 0, 0) end
-		if leftElbow then leftElbow.Transform = CFrame.Angles(0.11, 0, 0) end
+		if state == "LightPunchR" or state == "LightPunchL" then
+			-- Coup léger : le bras qui frappe s'arme puis se tend, l'autre garde.
+			local punching = jabElbow(math.max(0, t))
+			local guard = JAB_GUARD_ELBOW
+			local right = state == "LightPunchR" and punching or guard
+			local left = state == "LightPunchL" and punching or guard
+			if rightElbow then rightElbow.Transform = CFrame.Angles(right, 0, 0) end
+			if leftElbow then leftElbow.Transform = CFrame.Angles(left, 0, 0) end
+		else
+			-- Strong straight punch silhouette during Barrage / HeavyPunch.
+			if rightElbow then rightElbow.Transform = CFrame.Angles(0.10, 0, 0) end
+			if leftElbow then leftElbow.Transform = CFrame.Angles(0.11, 0, 0) end
+		end
 	else
 		if rig.clipKey or rig.clipConn then
 			clearClip(rig)
