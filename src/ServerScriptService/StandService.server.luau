@@ -1955,6 +1955,11 @@ local function spellTeleport(player, standDef, move)
 		-- la cible jusqu'au coup (TeleportLock.client.luau)
 		standFX:FireClient(player, "LockOn", best.root, (move.HitDelay or 0.3) + 0.25)
 	end
+	-- Le coup se fait au corps à corps : "Range" du sort est la portée de la
+	-- TÉLÉPORTATION (30-40 studs) ; s'en servir pour la zone du coup la plaçait
+	-- 10 à 20 studs devant, loin de la cible collée. Zone de frappe courte ici.
+	local strikeMove = table.clone(move)
+	strikeMove.Range = 8
 	task.delay(math.max(0.05, (move.HitDelay or 0.3) - 0.1), function()
 		if not hrp.Parent then return end
 		-- le coup reste collé à la cible : si elle a bougé, on se recolle
@@ -1962,9 +1967,9 @@ local function spellTeleport(player, standDef, move)
 		if best and best.root and best.root.Parent and best.humanoid and best.humanoid.Health > 0
 			and (best.root.Position - hrp.Position).Magnitude <= (move.Range or 40) then
 			local cf = stickBehind(best)
-			spellStrike(player, standDef, move, cf)
+			spellStrike(player, standDef, strikeMove, cf)
 		else
-			spellStrike(player, standDef, move)
+			spellStrike(player, standDef, strikeMove)
 		end
 	end)
 end
