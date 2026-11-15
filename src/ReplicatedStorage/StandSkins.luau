@@ -77,10 +77,16 @@ for _, skin in LEGENDARY do
 end
 
 -- Skins MYTHIQUES : un modèle unique, au-dessus des légendaires
+-- MYTHIC[standId] = liste de skins mythiques
 local MYTHIC = {
-	TheWorldAU = { Id = "ArpenteurNeant", Name = "Arpenteur du Néant", Model = "ArpenteurNeant", Rarity = "Mythique",
-		Hue = 0.75, Sat = 0.3, Val = 0.3, Aura = rgb(150, 90, 255),
-		Preview = { rgb(18, 14, 30), rgb(140, 70, 255), rgb(90, 230, 255), rgb(190, 190, 215) } },
+	TheWorldAU = {
+		{ Id = "ArpenteurNeant", Name = "Arpenteur du Néant", Model = "ArpenteurNeant", Rarity = "Mythique",
+			Hue = 0.75, Sat = 0.3, Val = 0.3, Aura = rgb(150, 90, 255),
+			Preview = { rgb(18, 14, 30), rgb(140, 70, 255), rgb(90, 230, 255), rgb(190, 190, 215) } },
+		{ Id = "TisserandCosmique", Name = "Tisserand Cosmique", Model = "TisserandCosmique", Rarity = "Mythique",
+			Hue = 0.64, Sat = 0.9, Val = 0.75, Aura = rgb(120, 150, 255),
+			Preview = { rgb(225, 230, 245), rgb(214, 170, 70), rgb(45, 70, 210), rgb(22, 22, 80) } },
+	},
 }
 
 -- Skins propres à chaque Stand
@@ -145,8 +151,8 @@ local CLASSIC = { Id = "Classique", Name = "Classique" }
 -- Liste des skins d'un Stand, dans l'ordre d'affichage
 function StandSkins.List(standId)
 	local list = { CLASSIC }
-	if MYTHIC[standId] then
-		table.insert(list, MYTHIC[standId])
+	for _, skin in MYTHIC[standId] or {} do
+		table.insert(list, skin)
 	end
 	if LEGENDARY[standId] then
 		table.insert(list, LEGENDARY[standId])
@@ -169,8 +175,10 @@ function StandSkins.Legendaries()
 	table.sort(list, function(a, b) return a.skin.Name < b.skin.Name end)
 	-- les mythiques en premier
 	local mythics = {}
-	for standId, skin in pairs(MYTHIC) do
-		table.insert(mythics, { standId = standId, skin = skin })
+	for standId, skins in pairs(MYTHIC) do
+		for _, skin in skins do
+			table.insert(mythics, { standId = standId, skin = skin })
+		end
 	end
 	table.sort(mythics, function(a, b) return a.skin.Name < b.skin.Name end)
 	for i, entry in ipairs(mythics) do

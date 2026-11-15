@@ -660,6 +660,103 @@ R.ArpenteurNeant = function(b)
 	b.sparkle(t, VFX.Smoke, rgb(40, 20, 80), 5, 0.6, 0.7)
 end
 
+-- The World AU : Tisserand Cosmique (MYTHIQUE) — design original : un
+-- tisseur de constellations. Pans de robe ivoire et bleu étoilé, épaulières
+-- en croissant de lune, couronne-orrery (anneau et planètes), halo de
+-- constellation dans le dos, sceau étoilé sur la poitrine, étoiles dans les mains.
+R.TisserandCosmique = function(b)
+	local rig = b.rig
+	local ivory, gold, cosmos, deep, star = rgb(225, 230, 245), rgb(214, 170, 70), rgb(45, 70, 210), rgb(22, 22, 80), rgb(235, 240, 255)
+	local t, h = rig.Torso, rig.Head
+	local back = t.Size.Z / 2 / b.k
+	local front = -t.Size.Z / 2 / b.k
+	local hips = rig.Hips or t
+	local hipsBottom = -hips.Size.Y / 2 / b.k
+	local hz = hips.Size.Z / 2 / b.k
+
+	-- pans de robe devant et derrière : ivoire dehors, bleu étoilé dedans
+	for _, side in { -1, 1 } do -- -1 devant, 1 derrière
+		local z = side * (hz + 0.06)
+		local L = side == 1 and 3.0 or 2.6
+		local tilt = side * rad(6)
+		b.part(hips, Vector3.new(1.5, L, 0.06), CFrame.new(0, hipsBottom + 0.2, z) * CFrame.Angles(tilt, 0, 0) * CFrame.new(0, -L / 2, 0), deep, M.Fabric)
+		b.part(hips, Vector3.new(0.36, L + 0.05, 0.08), CFrame.new(-0.62, hipsBottom + 0.2, z) * CFrame.Angles(tilt, 0, 0) * CFrame.new(0, -L / 2, 0), ivory, M.Fabric)
+		b.part(hips, Vector3.new(0.36, L + 0.05, 0.08), CFrame.new(0.62, hipsBottom + 0.2, z) * CFrame.Angles(tilt, 0, 0) * CFrame.new(0, -L / 2, 0), ivory, M.Fabric)
+		-- petites étoiles sur le tissu bleu
+		for i = 1, 7 do
+			local x = ((i * 37) % 9 - 4) * 0.1
+			local y = -0.3 - ((i * 53) % 10) / 10 * (L - 0.6)
+			b.part(hips, Vector3.new(0.07, 0.07, 0.07), CFrame.new(0, hipsBottom + 0.2, z) * CFrame.Angles(tilt, 0, 0)
+				* CFrame.new(x, y, side * 0.05), i % 3 == 0 and cosmos or star, M.Neon, "Ball")
+		end
+		b.part(hips, Vector3.new(1.6, 0.14, 0.1), CFrame.new(0, hipsBottom + 0.2, z), gold, M.Metal)
+	end
+
+	-- épaulières en croissant de lune (arc de segments dorés)
+	for _, side in { 1, -1 } do
+		local arm = side == 1 and rig.RArm or rig.LArm
+		if arm then
+			local top = arm.Size.Y / 2 / b.k
+			local center = CFrame.new(side * 0.15, top + 0.05, 0)
+			for i = 0, 6 do
+				local a = rad(-70 + i * 23)
+				b.part(arm, Vector3.new(0.3, 0.12, 0.9 - math.abs(i - 3) * 0.12),
+					center * CFrame.Angles(0, 0, side * a) * CFrame.new(side * 0.55, 0, 0) * CFrame.Angles(0, 0, side * rad(90)),
+					gold, M.Metal)
+			end
+			b.part(arm, Vector3.new(1.1, 0.3, 1.1), center * CFrame.new(side * 0.05, -0.12, 0), ivory, M.Fabric)
+		end
+	end
+
+	-- couronne-orrery : anneau incliné et trois petites planètes autour de la tête
+	local top = h.Size.Y / 2 / b.k
+	local orrery = CFrame.new(0, top + 0.35, 0) * CFrame.Angles(rad(78), 0, rad(12))
+	b.ring(h, orrery, 0.75, 20, 0.06, 0.06, gold, M.Metal)
+	local planets = { { 0, cosmos, 0.2 }, { 2.1, star, 0.14 }, { 4.2, rgb(150, 110, 255), 0.17 } }
+	for _, pl in planets do
+		b.part(h, Vector3.new(pl[3], pl[3], pl[3]), orrery * CFrame.Angles(0, 0, pl[1]) * CFrame.new(0, 0.75, 0), pl[2], M.Neon, "Ball")
+	end
+	b.gem(h, 0.16, CFrame.new(0, top + 0.18, -0.1), star, M.Neon)
+	b.part(h, Vector3.new(1.0, 0.1, 0.1), CFrame.new(0, top - 0.06, -0.3), gold, M.Metal)
+
+	-- halo de constellation dans le dos : cercle doré, étoiles reliées par des fils
+	local haloCF = CFrame.new(0, 0.7, back + 0.75)
+	b.ring(t, haloCF, 1.65, 30, 0.07, 0.06, gold, M.Metal)
+	local stars = {
+		Vector3.new(-0.9, 0.7, 0), Vector3.new(-0.3, 1.1, 0), Vector3.new(0.4, 0.8, 0), Vector3.new(0.9, 0.2, 0),
+		Vector3.new(0.3, -0.4, 0), Vector3.new(-0.5, -0.2, 0), Vector3.new(-1.0, -0.8, 0),
+	}
+	for i, p in ipairs(stars) do
+		b.part(t, Vector3.new(0.17, 0.17, 0.17), haloCF * CFrame.new(p), i % 2 == 0 and cosmos or star, M.Neon, "Ball")
+		local nextStar = stars[i + 1]
+		if nextStar then
+			local mid = (p + nextStar) / 2
+			local d = nextStar - p
+			b.part(t, Vector3.new(d.Magnitude, 0.03, 0.03), haloCF * CFrame.new(mid) * CFrame.Angles(0, 0, math.atan2(d.Y, d.X)),
+				ivory, M.Neon)
+		end
+	end
+
+	-- sceau étoilé sur la poitrine
+	b.emblem(gold, 1.15, "star")
+	b.part(t, Vector3.new(0.18, 0.18, 0.06), CFrame.new(0, 0.35, front - 0.09), cosmos, M.Neon, "Ball")
+	b.part(t, Vector3.new(0.1, 1.4, 0.05), CFrame.new(0, -0.35, front - 0.03), gold, M.Metal)
+
+	-- bracelets dorés et une étoile qui flotte au-dessus de chaque main
+	b.bracer(1, gold, cosmos)
+	b.bracer(-1, gold, cosmos)
+	for _, side in { 1, -1 } do
+		local hand = side == 1 and rig.RHand or rig.LHand
+		if hand then
+			local bottom = hand.Name:find("Hand") and 0 or -hand.Size.Y / 2 / b.k
+			b.gem(hand, 0.2, CFrame.new(0, bottom - 0.45, -0.25), star, M.Neon)
+		end
+	end
+
+	b.sparkle(t, VFX.Star, star, 7, 0.28)
+	b.sparkle(t, VFX.Glow, cosmos, 4, 0.5, 0.6)
+end
+
 -- API ------------------------------------------------------------------------------
 function StandSkinModels.Has(name)
 	return R[name] ~= nil
