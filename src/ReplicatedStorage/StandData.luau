@@ -804,19 +804,19 @@ StandData.Stands = {
 -- Letter grades for the StandStatHUD board (JoJo stat-chart style), keyed by
 -- stand id. Kept separate from the stand defs so they stay presentation-only.
 StandData.StatGrades = {
-	StarPlatinum = { Power = "A", Durability = "A", Speed = "A" },
-	TheWorld = { Power = "A", Durability = "A", Speed = "A" },
-	TheWorldAU = { Power = "A", Durability = "B", Speed = "A" },
-	CrazyDiamond = { Power = "A", Durability = "B", Speed = "B" },
-	SilverChariot = { Power = "C", Durability = "C", Speed = "A" },
-	KillerQueen = { Power = "A", Durability = "B", Speed = "B" },
-	GoldExperience = { Power = "C", Durability = "C", Speed = "A" },
-	GoldExperienceRequiem = { Power = "A", Durability = "A", Speed = "A" },
-	KingCrimson = { Power = "A", Durability = "B", Speed = "B" },
+	StarPlatinum = { Power = "A", Durability = "D", Speed = "A" },
+	TheWorld = { Power = "A", Durability = "B", Speed = "A" },
+	TheWorldAU = { Power = "A", Durability = "A", Speed = "A" },
+	CrazyDiamond = { Power = "A", Durability = "C", Speed = "B" },
+	SilverChariot = { Power = "C", Durability = "B", Speed = "A" },
+	KillerQueen = { Power = "A", Durability = "A", Speed = "B" },
+	GoldExperience = { Power = "C", Durability = "B", Speed = "A" },
+	GoldExperienceRequiem = { Power = "A", Durability = "A+", Speed = "A" },
+	KingCrimson = { Power = "A", Durability = "A", Speed = "B" },
 	HierophantGreen = { Power = "C", Durability = "C", Speed = "B" },
 	MagiciansRed = { Power = "B", Durability = "C", Speed = "B" },
-	StickyFingers = { Power = "B", Durability = "A", Speed = "B" },
-	MadeInHeaven = { Power = "B", Durability = "A", Speed = "A+" },
+	StickyFingers = { Power = "B", Durability = "C", Speed = "B" },
+	MadeInHeaven = { Power = "B", Durability = "A+", Speed = "A+" },
 }
 
 -- PV et armure selon la Durabilité du Stand. Un joueur sans Stand a 100 PV
