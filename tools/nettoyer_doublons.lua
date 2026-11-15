@@ -23,8 +23,8 @@ local removed = 0
 -- Bout de code présent seulement dans la dernière version
 local RECENT = {
 	SpellBar = "SpellBarVersion",
-	StandSpells = "HomingRange",
-	StandStrikes = "local BLOCK = hold",
+	StandSpells = "RafaleEstocs",
+	StandStrikes = "snapThrust",
 }
 
 local function remove(child, why)
