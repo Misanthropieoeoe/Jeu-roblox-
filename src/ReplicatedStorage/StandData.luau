@@ -823,11 +823,11 @@ StandData.StatGrades = {
 -- et 0 d'armure. Armor = part des dégâts reçus annulée (0.20 = -20 %).
 StandData.BaseHealth = 100
 StandData.DurabilityBonus = {
-	["A+"] = { Health = 60, Armor = 0.22 },
-	A = { Health = 50, Armor = 0.20 },
-	B = { Health = 35, Armor = 0.15 },
-	C = { Health = 20, Armor = 0.10 },
-	D = { Health = 10, Armor = 0.05 },
+	["A+"] = { Health = 60, Armor = 0.11 },
+	A = { Health = 50, Armor = 0.10 },
+	B = { Health = 35, Armor = 0.075 },
+	C = { Health = 20, Armor = 0.05 },
+	D = { Health = 10, Armor = 0.025 },
 	E = { Health = 0, Armor = 0 },
 }
 
