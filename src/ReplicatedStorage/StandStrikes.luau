@@ -46,16 +46,44 @@ local GUARD = {
 }
 local GUARD_ARM = GUARD.L
 
+-- ─── Courbes et dépassement ────────────────────────────────────────────────
+-- Chaque clé peut avoir une courbe (3e valeur) pour le trajet qui y MÈNE :
+--   "in"    lent puis rapide        "out"   rapide puis lent (coup sec)
+--   "inout" doux aux deux bouts     (rien)  linéaire
+-- Les frappes utilisent : armement "inout", impact "out" (le coup part d'un
+-- coup sec), léger dépassement après l'impact, retour en garde "inout".
+
+-- Pose d'impact "poussée un peu plus loin" : bras plus tendu, buste plus
+-- engagé. Donne du poids au coup avant le retour.
+local function overshoot(pose)
+	local o = {}
+	for k, v in pairs(pose) do o[k] = v end
+	local function arm(a)
+		if not a then return nil end
+		local c = {}
+		for k, v in pairs(a) do c[k] = v end
+		if (c.pitch or 0) > 60 then c.pitch = c.pitch + 4 end
+		c.elbow = (c.elbow or 0) * 0.8
+		return c
+	end
+	o.R, o.L = arm(pose.R), arm(pose.L)
+	o.lean = (pose.lean or 0) * 1.2 + 2
+	o.lunge = (pose.lunge or 0) * 1.2 + 0.15
+	o.twist = (pose.twist or 0) * 1.12
+	return o
+end
+
 -- Fabrique une frappe M1 standard de 0.42 s à partir de 3 poses.
 local function light(windup, impact, follow)
 	return {
 		duration = 0.42,
 		keys = {
 			{ 0.00, GUARD },
-			{ 0.08, windup },
-			{ 0.16, impact },
-			{ 0.27, follow },
-			{ 0.42, GUARD },
+			{ 0.08, windup, "inout" },
+			{ 0.16, impact, "out" },
+			{ 0.20, overshoot(impact), "out" },
+			{ 0.28, follow, "inout" },
+			{ 0.42, GUARD, "inout" },
 		},
 	}
 end
@@ -66,10 +94,11 @@ local function finisher(windup, impact, follow)
 		duration = 0.45,
 		keys = {
 			{ 0.00, GUARD },
-			{ 0.14, windup },
-			{ 0.25, impact },
-			{ 0.36, follow },
-			{ 0.45, GUARD },
+			{ 0.14, windup, "inout" },
+			{ 0.25, impact, "out" },
+			{ 0.30, overshoot(impact), "out" },
+			{ 0.37, follow, "inout" },
+			{ 0.45, GUARD, "inout" },
 		},
 	}
 end
@@ -99,10 +128,11 @@ local function barrage(ext, ret, opts)
 	return {
 		duration = cycle,
 		loop = true,
+		-- chaque jab part sec et ralentit en fin de course
 		keys = {
 			{ 0, a },
-			{ cycle / 2, b },
-			{ cycle, a },
+			{ cycle / 2, b, "out" },
+			{ cycle, a, "out" },
 		},
 	}
 end
@@ -115,7 +145,7 @@ local function hold(pose, rise)
 		duration = rise,
 		keys = {
 			{ 0, GUARD },
-			{ rise * 0.6, pose },
+			{ rise * 0.6, pose, "out" },
 			{ rise, pose },
 		},
 	}
@@ -450,15 +480,17 @@ StandStrikes.Stands = {
 -- ajoutant une entrée du même nom dans StandStrikes.Stands[id].
 -- La dernière pose est tenue jusqu'à la fin de l'attaque.
 local function spell(windup, release, follow, tWindup, tRelease, tFollow)
-	return {
-		duration = tFollow,
-		keys = {
-			{ 0, GUARD },
-			{ tWindup, windup },
-			{ tRelease, release },
-			{ tFollow, follow },
-		},
+	local keys = {
+		{ 0, GUARD },
+		{ tWindup, windup, "inout" },
+		{ tRelease, release, "out" },
 	}
+	local tOver = tRelease + 0.05
+	if tOver < tFollow - 0.05 then
+		table.insert(keys, { tOver, overshoot(release), "out" })
+	end
+	table.insert(keys, { tFollow, follow, "inout" })
+	return { duration = tFollow, keys = keys }
 end
 
 StandStrikes.SpellAnims = {
@@ -715,9 +747,10 @@ function StandStrikes.Compile(standId, kind, joints)
 	local strike = StandStrikes.Get(standId, kind)
 	if not strike then return nil end
 	local isR15 = joints.UpperTorso ~= nil
-	local timestamps, elbows = {}, {}
+	local timestamps, elbows, easings = {}, {}, {}
 	for _, key in ipairs(strike.keys) do
 		local t, pose = key[1], key[2]
+		easings[t] = key[3]
 		local frame = {}
 		for partName, parentRot in pairs(poseToParentSpace(pose, isR15)) do
 			local motor = joints[partName]
@@ -734,6 +767,7 @@ function StandStrikes.Compile(standId, kind, joints)
 		Settings = { Loop = strike.loop == true },
 		Timestamps = timestamps,
 		Elbows = elbows,
+		Easings = easings, -- courbe du trajet qui mène à chaque clé
 	}
 end
 

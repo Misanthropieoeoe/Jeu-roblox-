@@ -86,7 +86,8 @@ local function makeEmitter(parent, color, opts)
 	e.LightEmission = opts.light or 1
 	e.LightInfluence = 0
 	e.Lifetime = NumberRange.new(opts.life or 0.5, (opts.life or 0.5) * 1.5)
-	e.Speed = NumberRange.new(opts.speed or 8, (opts.speed or 8) * 1.6)
+	local speed = opts.speed or 8 -- négatif = particules aspirées vers le centre
+	e.Speed = NumberRange.new(math.min(speed, speed * 1.6), math.max(speed, speed * 1.6))
 	e.SpreadAngle = Vector2.new(opts.spread or 180, opts.spread or 180)
 	e.Size = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, opts.size or 0.5),
@@ -100,6 +101,10 @@ local function makeEmitter(parent, color, opts)
 	e.Drag = opts.drag or 2
 	e.Rotation = NumberRange.new(0, 360)
 	e.RotSpeed = NumberRange.new(-180, 180)
+	if opts.rotation then
+		e.Rotation = NumberRange.new(opts.rotation)
+		e.RotSpeed = NumberRange.new(0)
+	end
 	if opts.streak then
 		-- étincelles étirées dans le sens de leur vitesse
 		e.Orientation = Enum.ParticleOrientation.VelocityParallel
@@ -331,20 +336,70 @@ end
 
 local EFFECTS = {}
 
+-- ─── Synchronisation avec l'animation du Stand ─────────────────────────────
+-- Énergie qui se concentre dans la main pendant l'armement du coup
+local function chargeHand(hand, color, duration)
+	if not hand or duration <= 0.05 then return end
+	aura(hand, color, duration, { rate = 55, speed = -4, life = 0.25, size = 0.6,
+		texture = tex("Glow", SPARKLE), spread = 180, drag = 0 })
+	aura(hand, color, duration, { rate = 25, speed = 2, life = 0.3, size = 0.3 })
+end
+
+-- Orientation du slash selon le geste de l'animation (degrés, 0 = horizontal)
+local SLASH_ROTATION = {
+	Uppercut = 80, Slam = -80, Strike = 45, Kick = 30, Point = 0, Touch = 0, Dash = 10, Spin = 0,
+}
+
+local function swingSlash(position, color, anim, scale)
+	local rotation = SLASH_ROTATION[anim]
+	if rotation == nil or not hasTex("Slash") then return end
+	burst(position, lighter(color, 0.3), { count = 1, speed = 0, life = 0.18, size = 6 * (scale or 1),
+		spread = 0, texture = TEXTURES.Slash, rotation = rotation, light = 1 })
+end
+
+-- Petit tremblement de caméra, seulement pour le joueur dont le Stand frappe
+local function ownShake(ctx, power)
+	if ctx.owner ~= Players.LocalPlayer then return end
+	local character = Players.LocalPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	-- autour du décalage actuel (le shift-lock en utilise un : on le garde)
+	local base = humanoid.CameraOffset
+	task.spawn(function()
+		local rng3 = Random.new()
+		for i = 1, 6 do
+			local fall = 1 - i / 6
+			humanoid.CameraOffset = base + Vector3.new(rng3:NextNumber(-1, 1), rng3:NextNumber(-1, 1), 0) * 0.35 * power * fall
+			task.wait(0.025)
+		end
+		humanoid.CameraOffset = base
+	end)
+end
+
 function EFFECTS.Flurry(ctx)
-	-- poings qui crépitent pendant toute la rafale
+	-- poings qui crépitent et laissent une traînée pendant toute la rafale
 	aura(ctx.handR, ctx.color, ctx.move.Duration or 2, { rate = 45, speed = 6, life = 0.3, size = 0.45 })
 	aura(ctx.handL, ctx.color, ctx.move.Duration or 2, { rate = 45, speed = 6, life = 0.3, size = 0.45 })
+	trail(ctx.handR, ctx.color, ctx.move.Duration or 2)
+	trail(ctx.handL, ctx.color, ctx.move.Duration or 2)
 end
 
 function EFFECTS.Strike(ctx)
-	task.delay(ctx.move.HitDelay or 0.25, function()
-		local pos = ctx.front(ctx.move.Range and math.min(ctx.move.Range * 0.5, 6) or 4)
+	local hitDelay = ctx.move.HitDelay or 0.25
+	-- armement : l'énergie se concentre dans la main, puis traînée pendant le geste
+	chargeHand(ctx.handR, ctx.color, hitDelay * 0.7)
+	trail(ctx.handR, ctx.color, hitDelay + 0.25)
+	task.delay(hitDelay, function()
+		-- l'impact part du poing (là où il est au moment du coup)
+		local front = ctx.front(ctx.move.Range and math.min(ctx.move.Range * 0.5, 6) or 4)
+		local hand = ctx.handR
+		local pos = hand and hand.Parent and (hand.Position + front) / 2 or front
 		-- les attaques lourdes (R, gros dégâts) frappent plus fort visuellement
 		local heavy = ctx.move.Key == "R" or (ctx.move.Damage or 0) >= 15
 		impact(pos, ctx.color, heavy and 1.6 or 1)
+		swingSlash(pos, ctx.color, ctx.move.Anim, heavy and 1.4 or 1)
+		ownShake(ctx, heavy and 1.4 or 0.7)
 	end)
-	trail(ctx.handR, ctx.color, (ctx.move.HitDelay or 0.25) + 0.25)
 end
 
 function EFFECTS.Dash(ctx)
@@ -356,6 +411,8 @@ function EFFECTS.Dash(ctx)
 end
 
 function EFFECTS.Projectile(ctx)
+	chargeHand(ctx.handR, ctx.color, (ctx.move.HitDelay or 0.2) * 0.8)
+	trail(ctx.handR, ctx.color, (ctx.move.HitDelay or 0.2) + 0.15)
 	task.delay(ctx.move.HitDelay or 0.2, function()
 		local hand = ctx.handR or ctx.torso
 		if hand then
@@ -372,6 +429,7 @@ function EFFECTS.Burst(ctx)
 		impact(center + Vector3.new(0, 1, 0), ctx.color, 1.5 + size / 30)
 		ring(center + Vector3.new(0, 0.3, 0), ctx.color, size, 0.5)
 		pillar(center, ctx.color, math.min(size / 4, 4), 14)
+		ownShake(ctx, 1.6)
 		rockDebris(center + Vector3.new(0, 0.5, 0), math.floor(6 + size / 4))
 		burst(center + Vector3.new(0, 1, 0), Color3.fromRGB(90, 80, 70), { count = 14, texture = SMOKE, speed = 16, life = 1, size = 4, light = 0 })
 	end)
@@ -410,6 +468,8 @@ function EFFECTS.Counter(ctx)
 end
 
 function EFFECTS.Pull(ctx)
+	chargeHand(ctx.handR, ctx.color, (ctx.move.HitDelay or 0.2) * 0.8)
+	trail(ctx.handR, ctx.color, (ctx.move.HitDelay or 0.2) + 0.4)
 	task.delay(ctx.move.HitDelay or 0.2, function()
 		local hand = ctx.handR or ctx.torso
 		if hand then burst(hand.Position, ctx.color, { count = 20, speed = 14, life = 0.3, size = 0.45 }) end
@@ -754,6 +814,7 @@ local function playFor(stand)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local color = move.Color or (def.Theme and def.Theme.Aura1) or DEFAULT_COLOR
 	local ctx = {
+		owner = owner,
 		move = move,
 		color = color,
 		stand = stand,

@@ -221,6 +221,15 @@ local function playClipFrame(rig, key, actionElapsed, info)
 	end
 	local segment = t1 - t0
 	local alpha = segment > 0 and math.clamp((clipTime - t0) / segment, 0, 1) or 1
+	-- Courbe du trajet vers la clé t1 (StandStrikes) : coups secs, retours doux
+	local ease = clip.Easings and clip.Easings[t1]
+	if ease == "out" then
+		alpha = 1 - (1 - alpha) ^ 3
+	elseif ease == "in" then
+		alpha = alpha ^ 3
+	elseif ease == "inout" then
+		alpha = alpha * alpha * (3 - 2 * alpha)
+	end
 	local frameA = clip.Timestamps[t0]
 	local frameB = clip.Timestamps[t1]
 	local fadeIn = math.clamp((actionElapsed - (rig.clipStart or 0)) / CLIP_FADE_IN, 0, 1)
