@@ -43,7 +43,8 @@ cashPill.BackgroundColor3 = C.Night
 cashPill.BackgroundTransparency = 0.1
 cashPill.Parent = rail
 UITheme.Corner(cashPill, 20)
-local cashStroke = UITheme.Stroke(cashPill, C.Money, 2)
+local cashStroke = UITheme.Stroke(cashPill, C.Money, 1.35, 0.23)
+UITheme.Surface(cashPill)
 
 local cashIcon = UITheme.Label(cashPill, "$", 22, C.Night, UITheme.Bold)
 cashIcon.Position = UDim2.fromOffset(5, 5)
@@ -140,21 +141,22 @@ local function menuButton(order, window, icon, text, key, accent)
 	button.AutoButtonColor = false
 	button.Text = ""
 	button.BackgroundColor3 = C.Panel
-	button.BackgroundTransparency = 0.08
+	button.BackgroundTransparency = 0.1
 	button.Parent = rail
 	UITheme.Corner(button, 10)
-	local stroke = UITheme.Stroke(button, C.Line, 1.5)
-	UITheme.Gradient(button, Color3.new(1, 1, 1), Color3.fromRGB(190, 180, 210), 90)
+	local stroke = UITheme.Stroke(button, accent, 1.35, 0.23)
+	UITheme.Gradient(button, Color3.new(1, 1, 1), Color3.fromRGB(150, 140, 175), 95)
+	UITheme.Accent(button, accent)
 
 	local badge = UITheme.Label(button, icon, 18, C.Text, UITheme.Body)
 	badge.Position = UDim2.fromOffset(6, 6)
 	badge.Size = UDim2.fromOffset(30, 30)
 	badge.TextXAlignment = Enum.TextXAlignment.Center
 	badge.BackgroundColor3 = accent
-	badge.BackgroundTransparency = 0.25
+	badge.BackgroundTransparency = 0.7
 	UITheme.Corner(badge, 8)
 
-	local label = UITheme.Label(button, text, 19, C.Text, UITheme.Title)
+	local label = UITheme.Label(button, text, 13, C.Text, UITheme.Bold)
 	label.Position = UDim2.fromOffset(42, 0)
 	label.Size = UDim2.new(1, -46, 1, 0)
 
@@ -177,10 +179,13 @@ local function menuButton(order, window, icon, text, key, accent)
 	end
 
 	button.MouseEnter:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.12), { BackgroundColor3 = C.CardHover }):Play()
+		TweenService:Create(button, TweenInfo.new(0.13), { BackgroundColor3 = C.CardHover }):Play()
+		TweenService:Create(stroke, TweenInfo.new(0.13, Enum.EasingStyle.Quad), { Color = C.Text, Transparency = 0.07 }):Play()
 	end)
 	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.12), { BackgroundColor3 = C.Panel }):Play()
+		TweenService:Create(button, TweenInfo.new(0.17), { BackgroundColor3 = C.Panel }):Play()
+		local open = UITheme.IsOpen(window)
+		TweenService:Create(stroke, TweenInfo.new(0.17, Enum.EasingStyle.Quad), { Color = accent, Transparency = open and 0 or 0.23 }):Play()
 	end)
 	button.Activated:Connect(function()
 		if not UITheme.Toggle(window) then
@@ -192,17 +197,18 @@ local function menuButton(order, window, icon, text, key, accent)
 	return button
 end
 
-menuButton(1, "Inventaire", "🎒", "INVENTAIRE", "J", C.Green)
+menuButton(1, "Inventaire", "🎒", "INVENTAIRE", "J", C.Blue)
 menuButton(2, "Boutique", "🛒", "BOUTIQUE", "N", C.Gold)
-menuButton(3, "Skins", "🎨", "SKINS", "K", C.Magenta)
-local standsButton = menuButton(4, "Stands", "⭐", "STANDS", "L", C.Red)
+menuButton(3, "Skins", "🎨", "SKINS", "K", C.Pink)
+local standsButton = menuButton(4, "Stands", "⭐", "STANDS", "L", C.Purple)
 
 -- bouton allumé quand sa fenêtre est ouverte
 UITheme.WindowChanged:Connect(function(name, open)
 	local entry = menuButtons[name]
 	if entry then
-		entry.stroke.Color = open and entry.accent or C.Line
-		entry.stroke.Thickness = open and 2.5 or 1.5
+		entry.stroke.Color = entry.accent
+		entry.stroke.Transparency = open and 0 or 0.23
+		entry.stroke.Thickness = open and 2 or 1.35
 	end
 end)
 

@@ -73,7 +73,7 @@ for _, item in ipairs(ItemCatalog.Items) do
 	UITheme.Corner(icon, 46)
 	UITheme.Stroke(icon, item.Color, 2.5)
 
-	local name = UITheme.Label(card, item.Name, 24, C.Text, UITheme.Title)
+	local name = UITheme.Label(card, item.Name, 17, C.Text, UITheme.Title)
 	name.Position = UDim2.new(0, 10, 0, 116)
 	name.Size = UDim2.new(1, -20, 0, 28)
 	name.TextXAlignment = Enum.TextXAlignment.Center

@@ -15,10 +15,10 @@ local standAction = remotes:WaitForChild("StandAction")
 
 local player = Players.LocalPlayer
 local _, root = UITheme.Screen("InventoryMenu", 8)
-local win = UITheme.Window(root, "Inventaire", "INVENTAIRE", "Tes objets restent avec toi, même après la mort", C.Green,
+local win = UITheme.Window(root, "Inventaire", "INVENTAIRE", "Tes objets restent avec toi, même après la mort", C.Blue,
 	Vector2.new(700, 470))
 
-local list = UITheme.Scroll(win.body, C.Green)
+local list = UITheme.Scroll(win.body, C.Blue)
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 8)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -79,7 +79,7 @@ for _, item in ipairs(ItemCatalog.Items) do
 	count.BackgroundColor3 = C.Night
 	UITheme.Corner(count, 11)
 
-	local name = UITheme.Label(row, item.Name, 24, C.Text, UITheme.Title)
+	local name = UITheme.Label(row, item.Name, 18, C.Text, UITheme.Title)
 	name.Position = UDim2.fromOffset(94, 10)
 	name.Size = UDim2.new(1, -260, 0, 28)
 

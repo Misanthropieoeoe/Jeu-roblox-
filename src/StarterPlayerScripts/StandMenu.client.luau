@@ -12,7 +12,7 @@ local standAction = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Stan
 
 local player = Players.LocalPlayer
 local _, root = UITheme.Screen("StandMenu", 8)
-local win = UITheme.Window(root, "Stands", "CHOISIS TON STAND", "Menu admin · le Stand change tout de suite", C.Red,
+local win = UITheme.Window(root, "Stands", "CHOISIS TON STAND", "Menu admin · le Stand change tout de suite", C.Purple,
 	Vector2.new(760, 500))
 
 local standIds = {}
@@ -23,7 +23,7 @@ table.sort(standIds, function(a, b)
 	return StandData.Stands[a].DisplayName < StandData.Stands[b].DisplayName
 end)
 
-local grid = UITheme.Scroll(win.body, C.Red)
+local grid = UITheme.Scroll(win.body, C.Purple)
 local gridLayout = Instance.new("UIGridLayout")
 gridLayout.CellSize = UDim2.fromOffset(170, 104)
 gridLayout.CellPadding = UDim2.fromOffset(10, 10)
@@ -84,7 +84,7 @@ for order, id in ipairs(standIds) do
 	stripe.Parent = card
 	UITheme.Corner(stripe, 3)
 
-	local name = UITheme.Label(card, def.DisplayName, 20, C.Text, UITheme.Title)
+	local name = UITheme.Label(card, def.DisplayName, 15, C.Text, UITheme.Title)
 	name.Position = UDim2.fromOffset(22, 6)
 	name.Size = UDim2.new(1, -30, 0, 48)
 	name.TextWrapped = true

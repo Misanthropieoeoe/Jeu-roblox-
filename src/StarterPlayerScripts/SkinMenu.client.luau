@@ -166,7 +166,7 @@ local function fill(entries, withStand)
 		end
 
 		local nameY = withStand and 54 or 68
-		local name = UITheme.Label(card, skin.Name, 21, legendary and C.Legend or C.Text, UITheme.Title)
+		local name = UITheme.Label(card, skin.Name, 15, legendary and C.Legend or C.Text, UITheme.Title)
 		name.Position = UDim2.fromOffset(10, nameY)
 		name.Size = UDim2.new(1, -20, 0, 26)
 		name.TextTruncate = Enum.TextTruncate.AtEnd
@@ -223,7 +223,7 @@ do
 	button.LayoutOrder = 0
 	button.Size = UDim2.new(1, 0, 0, 50)
 	UITheme.Gradient(button, Color3.fromRGB(255, 205, 120), Color3.fromRGB(170, 130, 90), 90)
-	local name = UITheme.Label(button, "★ LÉGENDAIRES", 20, C.Legend, UITheme.Title)
+	local name = UITheme.Label(button, "★ LÉGENDAIRES", 15, C.Legend, UITheme.Title)
 	name.Position = UDim2.fromOffset(10, 4)
 	name.Size = UDim2.new(1, -20, 0, 24)
 	local sub = UITheme.Label(button, "Changent le modèle du Stand", 11, C.Text, UITheme.Body)

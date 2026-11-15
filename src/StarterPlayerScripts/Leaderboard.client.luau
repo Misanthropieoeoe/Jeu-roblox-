@@ -40,7 +40,8 @@ board.BackgroundTransparency = 0.12
 board.ClipsDescendants = true
 board.Parent = root
 UITheme.Corner(board, 12)
-UITheme.Stroke(board, C.Gold, 1.5, 0.3)
+UITheme.Stroke(board, C.Gold, 1.35, 0.23)
+UITheme.Surface(board)
 
 local header = Instance.new("TextButton")
 header.Name = "Header"
@@ -50,9 +51,10 @@ header.BackgroundColor3 = C.Panel
 header.Size = UDim2.new(1, 0, 0, 34)
 header.Parent = board
 UITheme.Corner(header, 12)
-UITheme.Gradient(header, C.Gold:Lerp(C.Panel, 0.55), C.Panel, 0)
+UITheme.Surface(header)
+UITheme.Accent(header, C.Gold)
 
-local title = UITheme.Label(header, "JOUEURS", 20, C.Text, UITheme.Title)
+local title = UITheme.Label(header, "JOUEURS", 15, C.Text, UITheme.Title)
 title.Position = UDim2.fromOffset(12, 0)
 title.Size = UDim2.new(0.5, 0, 1, 0)
 local count = UITheme.Label(header, "", 12, C.Muted, UITheme.Bold)

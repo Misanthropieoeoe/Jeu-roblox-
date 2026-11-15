@@ -121,8 +121,8 @@ local slots = {} -- [actionName] = slot
 
 -- Couleur d'accent de la case selon la touche
 local KEY_ACCENT = {
-	Q = C.Muted, M1 = C.Text, E = C.Gold, R = C.Magenta, T = Color3.fromRGB(110, 170, 255),
-	F = C.Legend, G = C.Red, Z = C.Green, X = Color3.fromRGB(150, 200, 255),
+	Q = C.Purple, M1 = C.Gold, E = C.Gold, R = C.Purple, T = C.Blue,
+	F = C.Pink, G = C.Pink, Z = C.Green, X = C.Blue,
 }
 
 -- Crée une case. `action` = nom envoyé au serveur ("Barrage", "LightPunch"…)
@@ -139,16 +139,12 @@ local function makeSlot(order, action, keyText, name)
 	button.ClipsDescendants = true
 	button.Parent = column
 	UITheme.Corner(button, 10)
-	local stroke = UITheme.Stroke(button, LINE, 1.5)
-	UITheme.Gradient(button, Color3.new(1, 1, 1), Color3.fromRGB(150, 140, 175), 0)
+	local stroke = UITheme.Stroke(button, accent, 1.35, 0.23)
+	UITheme.Gradient(button, Color3.new(1, 1, 1), Color3.fromRGB(150, 140, 175), 95)
 
-	-- liseré coloré à gauche
-	local edge = Instance.new("Frame")
-	edge.BackgroundColor3 = accent
-	edge.BorderSizePixel = 0
-	edge.Size = UDim2.new(0, 4, 1, 0)
-	edge.ZIndex = 2
-	edge.Parent = button
+	-- barre d'accent colorée à gauche
+	local edge = UITheme.Accent(button, accent)
+	edge.ZIndex = 6
 
 	-- Voile de recharge qui se vide de gauche à droite
 	local veil = Instance.new("Frame")
@@ -176,7 +172,7 @@ local function makeSlot(order, action, keyText, name)
 	key.Position = UDim2.new(0, 10, 0.5, 0)
 	key.Size = UDim2.fromOffset(30, 30)
 	key.BackgroundColor3 = BG
-	key.Font = FONT_BOLD
+	key.Font = FONT_TITLE
 	key.Text = keyText
 	key.TextSize = keyText:len() > 1 and 12 or 16
 	key.TextColor3 = accent
@@ -185,7 +181,7 @@ local function makeSlot(order, action, keyText, name)
 	UITheme.Corner(key, 8)
 	UITheme.Stroke(key, accent, 1.5)
 
-	local title = UITheme.Label(button, name, 18, TEXT, FONT_TITLE)
+	local title = UITheme.Label(button, name, 14, TEXT, FONT_BOLD)
 	title.Position = UDim2.fromOffset(48, 3)
 	title.Size = UDim2.new(1, -100, 0, 22)
 	title.TextTruncate = Enum.TextTruncate.AtEnd
@@ -196,7 +192,7 @@ local function makeSlot(order, action, keyText, name)
 	status.Size = UDim2.new(1, -100, 0, 14)
 	status.ZIndex = 4
 
-	local timer = UITheme.Label(button, "", 20, TEXT, FONT_TITLE)
+	local timer = UITheme.Label(button, "", 17, TEXT, FONT_TITLE)
 	timer.AnchorPoint = Vector2.new(1, 0.5)
 	timer.Position = UDim2.new(1, -10, 0.5, 0)
 	timer.Size = UDim2.fromOffset(50, 26)
@@ -234,9 +230,10 @@ end
 
 local function flash(slot)
 	if not slot then return end
-	slot.stroke.Color = slot.accent
-	slot.stroke.Thickness = 3
-	TweenService:Create(slot.stroke, TweenInfo.new(0.35), { Color = LINE, Thickness = 1.5 }):Play()
+	slot.stroke.Color = C.Text
+	slot.stroke.Transparency = 0
+	slot.stroke.Thickness = 2.5
+	TweenService:Create(slot.stroke, TweenInfo.new(0.35), { Color = slot.accent, Thickness = 1.35, Transparency = 0.23 }):Play()
 end
 
 local function clearSlots()
@@ -391,7 +388,7 @@ RunService.RenderStepped:Connect(function()
 			local total = math.max(slot.cooldown, remaining)
 			setVeil(slot, remaining / total)
 			slot.status.Text = "RECHARGE"
-			slot.status.TextColor3 = MUTED
+			slot.status.TextColor3 = GOLD
 			slot.timer.Text = remaining >= 10 and string.format("%d", math.ceil(remaining))
 				or string.format("%.1f", remaining)
 		else
@@ -425,7 +422,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 				-- encore en recharge : petite secousse rouge
 				local slot = slots[action]
 				slot.stroke.Color = RED
-				TweenService:Create(slot.stroke, TweenInfo.new(0.3), { Color = LINE }):Play()
+				TweenService:Create(slot.stroke, TweenInfo.new(0.3), { Color = slot.accent }):Play()
 			end
 		end
 	end
