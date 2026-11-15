@@ -1416,6 +1416,9 @@ end
 -- mouvement passe par les verrous de mouvement (lockMovement, section SORTS).
 local frozen = {}
 local lockMovement -- défini plus bas (section SORTS)
+-- Un joueur (ou mannequin) figé par un arrêt du temps encaisse 25 % de
+-- dégâts en moins (appliqué dans guardHook, section PARADE).
+local TIMESTOP_RESISTANCE = 0.25
 
 local function runTimeStop(player, stand, move)
 	standFX:FireAllClients("TimeStop", move.Duration, player.Name)
@@ -2315,6 +2318,12 @@ guardHook = function(target, caster, amount, kind)
 	if defender and erasedUntil[defender] and erasedUntil[defender] > os.clock() then
 		target.guarded = "parry"
 		return 0
+	end
+
+	-- FIGÉ PAR UN ARRÊT DU TEMPS : encaisse moins de dégâts (résistance)
+	local frozenUntil = frozen[defender or target.model]
+	if frozenUntil and frozenUntil > os.clock() then
+		amount = amount * (1 - TIMESTOP_RESISTANCE)
 	end
 
 	-- CONTRE (attaques de type Counter) : le coup est annulé et renvoyé
