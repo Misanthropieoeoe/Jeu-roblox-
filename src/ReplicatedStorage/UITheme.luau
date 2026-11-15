@@ -190,12 +190,49 @@ function UITheme.Money(n)
 	return (out:gsub("^ ", "")) .. " $"
 end
 
+-- Anti-doublon ------------------------------------------------------------------
+-- Studio garde parfois d'anciennes copies d'un script (Rojo, Lemonade). Une
+-- vieille copie de SkinMenu supprimait la nouvelle fenêtre. À appeler en
+-- tout premier : arrête les copies plus anciennes de ce script et leurs
+-- interfaces, et renvoie false si une copie aussi récente tourne déjà.
+UITheme.VERSION = 4
+local LEGACY_GUIS = { SkinMenu = true, StandMenu = true, InventoryMenu = true, ShopMenu = true,
+	GameHUD = true, Leaderboard = true }
+
+function UITheme.Guard(scriptInstance)
+	local folder = scriptInstance.Parent
+	if folder then
+		for _, other in folder:GetChildren() do
+			if other ~= scriptInstance and other.Name == scriptInstance.Name and other:IsA("LocalScript") then
+				if (other:GetAttribute("UIVersion") or 0) < UITheme.VERSION then
+					other:Destroy() -- arrête l'ancienne copie
+				else
+					return false -- une copie à jour tourne déjà
+				end
+			end
+		end
+	end
+	scriptInstance:SetAttribute("UIVersion", UITheme.VERSION)
+	-- anciennes interfaces (avant les noms ANBD_)
+	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local function clean(child)
+		if child:IsA("ScreenGui") and LEGACY_GUIS[child.Name] then
+			child:Destroy()
+		end
+	end
+	for _, child in playerGui:GetChildren() do clean(child) end
+	playerGui.ChildAdded:Connect(function(child) task.defer(clean, child) end)
+	return true
+end
+
 -- Écran ------------------------------------------------------------------------
 -- ScreenGui avec son UIScale : tout est dessiné pour un écran de 720 px de
 -- haut, et suit la taille réelle (plus petit sur mobile).
 function UITheme.Screen(name, displayOrder)
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
+	-- nom unique : une vieille copie d'un script ne peut plus effacer la fenêtre
+	name = "ANBD_" .. name
 	local old = playerGui:FindFirstChild(name)
 	if old then old:Destroy() end
 	local gui = Instance.new("ScreenGui")
