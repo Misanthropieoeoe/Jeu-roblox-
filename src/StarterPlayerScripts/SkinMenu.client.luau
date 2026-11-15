@@ -88,7 +88,7 @@ local LEGEND_TAB = "_Legendaires"
 local function refreshCards()
 	for _, card in pairs(skinCards) do
 		local on = card.skinId == equippedSkin(card.standId)
-		card.stroke.Color = on and C.Gold or (card.legendary and C.Legend or C.Line)
+		card.stroke.Color = on and C.Gold or (card.mythic and C.Purple or (card.legendary and C.Legend or C.Line))
 		card.stroke.Thickness = on and 3 or (card.legendary and 2 or 1.5)
 		card.badge.Visible = on
 	end
@@ -138,11 +138,14 @@ local function fill(entries, withStand)
 	table.clear(skinCards)
 	for order, entry in ipairs(entries) do
 		local standId, skin = entry.standId, entry.skin
-		local legendary = skin.Rarity == "Legendaire"
+		local mythic = skin.Rarity == "Mythique"
+		local legendary = skin.Rarity == "Legendaire" or mythic
 		local card, stroke = UITheme.Card(grid)
 		card.Name = standId .. "_" .. skin.Id
 		card.LayoutOrder = order
-		if legendary then
+		if mythic then
+			UITheme.Gradient(card, Color3.fromRGB(200, 150, 255), Color3.fromRGB(110, 210, 255), 45)
+		elseif legendary then
 			UITheme.Gradient(card, Color3.fromRGB(255, 210, 140), Color3.fromRGB(150, 140, 170), 90)
 		end
 
@@ -167,7 +170,7 @@ local function fill(entries, withStand)
 		end
 
 		local nameY = withStand and 54 or 68
-		local name = UITheme.Label(card, skin.Name, 15, legendary and C.Legend or C.Text, UITheme.Title)
+		local name = UITheme.Label(card, skin.Name, 15, mythic and C.Purple or (legendary and C.Legend or C.Text), UITheme.Title)
 		name.Position = UDim2.fromOffset(10, nameY)
 		name.Size = UDim2.new(1, -20, 0, 26)
 		name.TextTruncate = Enum.TextTruncate.AtEnd
@@ -184,12 +187,12 @@ local function fill(entries, withStand)
 		badge.Visible = false
 
 		if legendary then
-			local tag = UITheme.Label(card, "LÉGENDAIRE", 11, C.Night, UITheme.Bold)
+			local tag = UITheme.Label(card, mythic and "MYTHIQUE" or "LÉGENDAIRE", 11, mythic and C.Text or C.Night, UITheme.Bold)
 			tag.AnchorPoint = Vector2.new(1, 0)
 			tag.Position = UDim2.new(1, -8, 0, 100)
 			tag.Size = UDim2.fromOffset(82, 20)
 			tag.TextXAlignment = Enum.TextXAlignment.Center
-			tag.BackgroundColor3 = C.Legend
+			tag.BackgroundColor3 = mythic and C.Purple or C.Legend
 			tag.BackgroundTransparency = 0
 			UITheme.Corner(tag, 10)
 		end
@@ -197,7 +200,7 @@ local function fill(entries, withStand)
 		card.Activated:Connect(function()
 			choose(standId, skin.Id)
 		end)
-		skinCards[card.Name] = { stroke = stroke, badge = badge, legendary = legendary, standId = standId, skinId = skin.Id }
+		skinCards[card.Name] = { stroke = stroke, badge = badge, legendary = legendary, mythic = mythic, standId = standId, skinId = skin.Id }
 	end
 	grid.CanvasPosition = Vector2.zero
 	refreshTabs()
@@ -227,7 +230,7 @@ do
 	local name = UITheme.Label(button, "★ LÉGENDAIRES", 15, C.Legend, UITheme.Title)
 	name.Position = UDim2.fromOffset(10, 4)
 	name.Size = UDim2.new(1, -20, 0, 24)
-	local sub = UITheme.Label(button, "Changent le modèle du Stand", 11, C.Text, UITheme.Body)
+	local sub = UITheme.Label(button, "Mythiques et légendaires", 11, C.Text, UITheme.Body)
 	sub.Position = UDim2.fromOffset(10, 28)
 	sub.Size = UDim2.new(1, -20, 0, 16)
 	button.Activated:Connect(function()

@@ -580,6 +580,86 @@ R.HorizonInfini = function(b)
 	b.sparkle(rig.Torso, VFX.Star, white, 6, 0.3)
 end
 
+-- The World AU : Arpenteur du Néant (MYTHIQUE) — design original : un
+-- voyageur venu d'une faille entre les mondes. Faille ovale dans le dos,
+-- couronne en croissant, visière lumineuse, éclats en orbite, anneau de
+-- lévitation à la taille, cape en lambeaux et veines d'énergie.
+R.ArpenteurNeant = function(b)
+	local rig = b.rig
+	local obsidian, void, cyan, silver = rgb(18, 14, 30), rgb(140, 70, 255), rgb(90, 230, 255), rgb(190, 190, 215)
+	local t, h = rig.Torso, rig.Head
+	local back = t.Size.Z / 2 / b.k
+	local front = -t.Size.Z / 2 / b.k
+
+	-- faille ovale dans le dos : deux anneaux étirés + éclats à l'intérieur
+	local riftCF = CFrame.new(0, 0.5, back + 0.85)
+	for i = 0, 31 do
+		local a = 2 * math.pi * i / 32
+		local pos = Vector3.new(math.cos(a) * 1.35, math.sin(a) * 2.1, 0)
+		local tangent = math.atan2(math.cos(a) * 2.1, -math.sin(a) * 1.35)
+		b.part(t, Vector3.new(0.34, 0.1, 0.08), riftCF * CFrame.new(pos) * CFrame.Angles(0, 0, tangent),
+			i % 4 == 0 and cyan or void, M.Neon)
+		b.part(t, Vector3.new(0.3, 0.06, 0.05), riftCF * CFrame.new(pos * 0.82 + Vector3.new(0, 0, 0.05)) * CFrame.Angles(0, 0, tangent),
+			obsidian, M.Glass)
+	end
+	for i = 0, 5 do
+		b.gem(t, 0.16 + (i % 3) * 0.05, riftCF * CFrame.new((i % 3 - 1) * 0.45, (math.floor(i / 3) - 0.5) * 1.4, 0.05),
+			i % 2 == 0 and void or cyan, M.Glass)
+	end
+
+	-- couronne en croissant : deux longues cornes qui se recourbent vers le haut
+	b.horn(1, obsidian, 0.5, -14)
+	b.horn(-1, obsidian, 0.5, -14)
+	local top = h.Size.Y / 2 / b.k
+	b.part(h, Vector3.new(0.9, 0.12, 0.12), CFrame.new(0, top - 0.02, -0.38) * CFrame.Angles(rad(-10), 0, 0), silver, M.Metal)
+	b.gem(h, 0.18, CFrame.new(0, top + 0.12, -0.42), cyan, M.Neon)
+	-- visière lumineuse
+	b.part(h, Vector3.new(0.86, 0.08, 0.05), CFrame.new(0, 0.08, -h.Size.Z / 2 / b.k - 0.03), cyan, M.Neon)
+	b.part(h, Vector3.new(0.96, 0.22, 0.04), CFrame.new(0, 0.08, -h.Size.Z / 2 / b.k - 0.01), obsidian, M.Metal)
+
+	-- épaulières superposées
+	b.pauldron(1, obsidian, void, 3, 1.15)
+	b.pauldron(-1, obsidian, void, 3, 1.15)
+
+	-- veines d'énergie le long des bras et du torse
+	for _, key in { "RArm", "LArm" } do
+		local p = rig[key]
+		if p then
+			local f = -p.Size.Z / 2 / b.k - 0.02
+			b.part(p, Vector3.new(0.06, p.Size.Y / b.k * 0.8, 0.04), CFrame.new(0, 0, f), void, M.Neon)
+			b.part(p, Vector3.new(0.04, p.Size.Y / b.k * 0.5, 0.04), CFrame.new(0.15, -0.1, f) * CFrame.Angles(0, 0, rad(12)), cyan, M.Neon)
+		end
+	end
+	b.part(t, Vector3.new(0.07, 1.2, 0.04), CFrame.new(-0.22, 0.05, front - 0.03) * CFrame.Angles(0, 0, rad(-18)), void, M.Neon)
+	b.part(t, Vector3.new(0.07, 1.2, 0.04), CFrame.new(0.22, 0.05, front - 0.03) * CFrame.Angles(0, 0, rad(18)), void, M.Neon)
+	b.gem(t, 0.26, CFrame.new(0, 0.45, front - 0.08), cyan, M.Neon)
+	b.bracer(1, obsidian, cyan)
+	b.bracer(-1, obsidian, cyan)
+	b.claws(1, silver, 2, 0.75)
+	b.claws(-1, silver, 2, 0.75)
+
+	-- éclats en orbite autour du torse
+	for i = 0, 7 do
+		local a = i * math.pi / 4
+		b.gem(t, 0.2 + (i % 2) * 0.08, CFrame.Angles(0, a, 0) * CFrame.new(0, -0.3 + (i % 3) * 0.55, -2.25),
+			i % 2 == 0 and void or cyan, M.Glass)
+	end
+
+	-- anneau de lévitation à la taille
+	local hips = rig.Hips or t
+	b.ring(hips, CFrame.new(0, -0.35, 0) * CFrame.Angles(rad(90), 0, 0), 1.25, 24, 0.07, 0.07, void, M.Neon)
+
+	-- cape en lambeaux (bandes de longueurs différentes)
+	for i = -2, 2 do
+		local L = 2.4 - math.abs(i) * 0.35 + (i % 2) * 0.25
+		b.part(t, Vector3.new(0.34, L, 0.05), CFrame.new(i * 0.36, t.Size.Y / 2 / b.k - 0.05, back + 0.08)
+			* CFrame.Angles(rad(8 + math.abs(i) * 3), 0, rad(i * 3)) * CFrame.new(0, -L / 2, 0), obsidian, M.Fabric)
+	end
+
+	b.sparkle(t, VFX.Shard, void, 6, 0.32)
+	b.sparkle(t, VFX.Smoke, rgb(40, 20, 80), 5, 0.6, 0.7)
+end
+
 -- API ------------------------------------------------------------------------------
 function StandSkinModels.Has(name)
 	return R[name] ~= nil
