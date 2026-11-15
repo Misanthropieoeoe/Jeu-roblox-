@@ -28,7 +28,7 @@ ID dans `TEXTURES`.
 
 ## Sons (assets/sons/)
 
-Effets sonores originaux fabriqués par `tools/generer_sons.py`. À importer dans
+Effets sonores originaux, style anime dramatique, fabriqués par `tools/generer_sons.py`. À importer dans
 Roblox (Gestionnaire d'assets → Audio), puis mettre chaque ID dans
 `src/ReplicatedStorage/SFX.luau`. Tant qu'un ID est vide, le jeu garde l'ancien
 son de Roblox (ou reste silencieux pour les nouveaux sons).
@@ -45,5 +45,6 @@ son de Roblox (ou reste silencieux pour les nouveaux sons).
 | guard_break.wav | GuardBreak | garde brisée |
 | double_jump.wav | DoubleJump | double saut |
 | summon.wav | Summon | éclat de l'arrêt du temps |
+| menace.wav | Menace | grondement ゴゴゴ des emotes |
 | coin.wav | Coin | argent ramassé |
 | chest.wav | Chest | ouverture d'un coffre de skins |
