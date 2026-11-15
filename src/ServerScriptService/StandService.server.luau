@@ -935,9 +935,36 @@ local HITSTUN = {
 	barrage = 0.35, -- renouvelé à chaque coup du barrage
 	heavy = 0.8,
 	final = 0.9,
+	projectile = 0.5,
 }
 local HITSTUN_DEFAULT = 0.5
 local hitstunUntil = {} -- [Player] = os.clock() de fin
+
+-- Garde pendant un combo M1 : la victime ne peut PAS lever sa garde après
+-- les 2 premiers M1 reçus ; à partir du 3e, elle peut (pour bloquer le
+-- coup final). Le compte repart de zéro après une pause de M1_TAKEN_RESET.
+local GUARD_UNLOCK_AFTER_M1 = 3
+local M1_TAKEN_RESET = 1.0
+local m1Taken = {} -- [Player] = { count, lastAt }
+local guardLockUntil = {} -- [Player] = os.clock() de fin
+
+local function onM1Taken(player)
+	local now = os.clock()
+	local entry = m1Taken[player]
+	if not entry or now - entry.lastAt > M1_TAKEN_RESET then
+		entry = { count = 0, lastAt = now }
+		m1Taken[player] = entry
+	end
+	entry.count += 1
+	entry.lastAt = now
+	if entry.count < GUARD_UNLOCK_AFTER_M1 then
+		guardLockUntil[player] = now + HITSTUN.light
+		player:SetAttribute("GuardLocked", true)
+	else
+		guardLockUntil[player] = nil
+		player:SetAttribute("GuardLocked", nil)
+	end
+end
 
 local function applyHitstun(player, kind)
 	local untilT = os.clock() + (HITSTUN[kind] or HITSTUN_DEFAULT)
@@ -957,6 +984,17 @@ RunService.Heartbeat:Connect(function()
 			if player.Parent then player:SetAttribute("Hitstun", nil) end
 		end
 	end
+	for player, untilT in guardLockUntil do
+		if now >= untilT or not player.Parent then
+			guardLockUntil[player] = nil
+			if player.Parent then player:SetAttribute("GuardLocked", nil) end
+		end
+	end
+	for player, entry in m1Taken do
+		if not player.Parent or now - entry.lastAt > M1_TAKEN_RESET then
+			m1Taken[player] = nil
+		end
+	end
 end)
 
 local function dealDamage(targets, amount, caster, knockback, kind)
@@ -971,6 +1009,9 @@ local function dealDamage(targets, amount, caster, knockback, kind)
 			local victim = Players:GetPlayerFromCharacter(target.model)
 			if victim then
 				applyHitstun(victim, kind)
+				if kind == "light" then
+					onM1Taken(victim)
+				end
 			end
 		end
 		if knockback and not target.guarded and target.root and not target.root.Anchored then
@@ -1627,7 +1668,7 @@ local function spawnProjectile(player, standDef, move, origin, direction)
 			if target then
 				if not hitModels[target.model] then
 					hitModels[target.model] = true
-					dealDamage({ target }, move.Damage or 5, character, move.Knockback, "light")
+					dealDamage({ target }, move.Damage or 5, character, move.Knockback, "projectile")
 					stunTargets({ target }, move.Stun)
 					impactFX(hitPos, color, 5, 1.4)
 				end
@@ -1926,6 +1967,8 @@ local function startBlock(player)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then return end
 	if spellStuns[humanoid] or humanoid.WalkSpeed == 0 then return end -- étourdi
+	-- en plein combo M1 (avant le 3e coup reçu) : pas de garde
+	if guardLockUntil[player] and guardLockUntil[player] > os.clock() then return end
 	if activeBarrages[player.UserId] then return end
 	local stand = workspace:FindFirstChild(player.Name .. "Stand")
 	if stand and stand:GetAttribute("State") ~= "Idle" then return end -- en pleine attaque
@@ -1975,14 +2018,20 @@ guardHook = function(target, caster, amount, kind)
 
 	-- GARDE
 	target.guarded = "block"
-	guardUsedAt[defender] = os.clock()
+	-- Le barrage (et son coup final) ne vide pas la jauge de garde
+	local drainsGuard = kind ~= "barrage" and kind ~= "final"
+	if drainsGuard then
+		guardUsedAt[defender] = os.clock()
+	end
 	-- Petit éclat sur la garde (limité pour ne pas en mettre partout pendant
 	-- un barrage)
 	if os.clock() - (blockFxAt[defender] or 0) > 0.15 then
 		blockFxAt[defender] = os.clock()
 		impactFX(root.Position + toAttacker.Unit * 1.5, Color3.fromRGB(210, 215, 235), 4, 1.8)
 	end
-	setGuard(defender, guardOf(defender) - amount)
+	if drainsGuard then
+		setGuard(defender, guardOf(defender) - amount)
+	end
 	if guardOf(defender) <= 0 then
 		-- GARDE BRISÉE
 		stopBlock(defender)

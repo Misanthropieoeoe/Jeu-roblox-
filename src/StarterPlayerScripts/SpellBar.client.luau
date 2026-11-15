@@ -346,6 +346,10 @@ local function renderGuard(slot)
 	if player:GetAttribute("Blocking") then
 		slot.status.Text = "EN GARDE"
 		slot.status.TextColor3 = GOLD
+	elseif player:GetAttribute("GuardLocked") then
+		-- en train de prendre un combo M1 (garde possible après le 3e coup)
+		slot.status.Text = "COMBO SUBI"
+		slot.status.TextColor3 = RED
 	elseif guard < GUARD_MAX * 0.15 then
 		slot.status.Text = "BRISÉE"
 		slot.status.TextColor3 = RED

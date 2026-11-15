@@ -51,6 +51,14 @@ local function refresh()
 	end
 end
 player:GetAttributeChangedSignal("Blocking"):Connect(refresh)
+
+-- Garde verrouillée pendant un combo M1 reçu (avant le 3e coup) : si X est
+-- toujours maintenu quand le verrou saute, on lève la garde tout de suite.
+player:GetAttributeChangedSignal("GuardLocked"):Connect(function()
+	if not player:GetAttribute("GuardLocked") and holding and not player:GetAttribute("Blocking") then
+		standAction:FireServer("Block", true)
+	end
+end)
 player.CharacterAdded:Connect(function()
 	holding = false
 end)
