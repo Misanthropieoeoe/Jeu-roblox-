@@ -863,8 +863,13 @@ local function setSkinTable(player, data)
 	player:SetAttribute("StandSkins", HttpService:JSONEncode(clean))
 end
 
+-- Skin équipé, seulement s'il est débloqué (coffres) ou si le joueur est admin
 local function getSkinChoice(player, standId)
-	return getSkinTable(player)[standId]
+	local skinId = getSkinTable(player)[standId]
+	if skinId and not Inventory.HasSkin(player, standId, skinId) then
+		return nil
+	end
+	return skinId
 end
 
 local function removeStand(player)
@@ -2777,6 +2782,11 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		local standId, skinId = tostring(args[1]), tostring(args[2])
 		if not StandData.GetStand(standId) or not StandSkins.IsValid(standId, skinId) then
 			warn("[StandService] ChooseSkin refusé :", standId, skinId)
+			return
+		end
+		-- skins bloqués : il faut l'avoir gagné dans un coffre (sauf admins)
+		if not Inventory.HasSkin(player, standId, skinId) then
+			standAction:FireClient(player, "SkinLocked", standId, skinId)
 			return
 		end
 		local skins = getSkinTable(player)

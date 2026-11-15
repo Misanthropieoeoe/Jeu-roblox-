@@ -17,6 +17,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
 local ItemCatalog = require(ReplicatedStorage:WaitForChild("ItemCatalog"))
+local StandSkins = require(ReplicatedStorage:WaitForChild("StandSkins"))
 
 local Inventory = {}
 
@@ -24,6 +25,7 @@ local SAVE_INTERVAL = 120
 local ACTION_COOLDOWN = 0.35
 
 local stored = {}   -- [userId] = { [itemId] = n }
+local ownedSkins = {} -- [userId] = { ["StandId/SkinId"] = true }
 local loaded = {}   -- [userId] = true quand les données sont chargées
 local lastAction = {}
 local toolBuilder = nil -- function(itemId) -> Tool, donné par StandService
@@ -60,6 +62,20 @@ end
 local function publish(player)
 	local items = stored[player.UserId] or {}
 	player:SetAttribute("Inventory", HttpService:JSONEncode(items))
+end
+
+local function skinKey(standId, skinId)
+	return tostring(standId) .. "/" .. tostring(skinId)
+end
+
+-- Liste des skins possédés, pour l'onglet SKINS (attribut "OwnedSkins")
+local function publishSkins(player)
+	local list = {}
+	for key in pairs(ownedSkins[player.UserId] or {}) do
+		table.insert(list, key)
+	end
+	table.sort(list)
+	player:SetAttribute("OwnedSkins", HttpService:JSONEncode(list))
 end
 
 local function isItem(id)
@@ -99,9 +115,14 @@ end
 local function save(player)
 	if not store or not loaded[player.UserId] then return end
 	local cash = cashValue(player)
+	local skins = {}
+	for key in pairs(ownedSkins[player.UserId] or {}) do
+		table.insert(skins, key)
+	end
 	local data = {
 		Items = stored[player.UserId] or {},
 		Cash = cash and cash.Value or 0,
+		Skins = skins,
 	}
 	-- les objets en main comptent aussi (ils reviennent dans l'inventaire au retour)
 	local items = table.clone(data.Items)
@@ -139,6 +160,19 @@ local function load(player)
 		end
 	end
 	stored[player.UserId] = items
+	local skins = {}
+	if type(data) == "table" and type(data.Skins) == "table" then
+		for _, key in data.Skins do
+			if type(key) == "string" then
+				local standId, skinId = key:match("^([^/]+)/(.+)$")
+				if standId and StandSkins.IsValid(standId, skinId) then
+					skins[key] = true
+				end
+			end
+		end
+	end
+	ownedSkins[player.UserId] = skins
+	publishSkins(player)
 	-- objets déjà ramassés pendant le chargement
 	Inventory.StoreHeld(player)
 	publish(player)
@@ -200,6 +234,76 @@ function Inventory.Remove(player, itemId, n)
 	end
 	publish(player)
 	return true
+end
+
+-- Skins ---------------------------------------------------------------------------
+-- Les admins (attribut StandAdmin, mis par StandService) ont tous les skins.
+function Inventory.HasSkin(player, standId, skinId)
+	if not skinId or skinId == StandSkins.DEFAULT then return true end
+	if player:GetAttribute("StandAdmin") == true then return true end
+	local owned = ownedSkins[player.UserId]
+	return owned ~= nil and owned[skinKey(standId, skinId)] == true
+end
+
+function Inventory.GiveSkin(player, standId, skinId)
+	if not StandSkins.IsValid(standId, skinId) then return false end
+	local owned = ownedSkins[player.UserId]
+	if not owned then
+		owned = {}
+		ownedSkins[player.UserId] = owned
+	end
+	owned[skinKey(standId, skinId)] = true
+	publishSkins(player)
+	return true
+end
+
+local function rollRarity()
+	local odds = ItemCatalog.SkinBox.Odds
+	local total = 0
+	for _, w in pairs(odds) do total += w end
+	local roll = math.random() * total
+	for _, rarity in { "Mythique", "Legendaire", "Commun" } do
+		roll -= odds[rarity] or 0
+		if roll <= 0 then return rarity end
+	end
+	return "Commun"
+end
+
+-- Ouvre un coffre : paye, tire un skin, le donne (ou rembourse un doublon)
+local boxAt = {}
+local function openSkinBox(player)
+	local box = ItemCatalog.SkinBox
+	-- un coffre toutes les 2 s (le temps de l'animation d'ouverture)
+	if (boxAt[player.UserId] or 0) + 2 > os.clock() then
+		return false, "Attends la fin de l'ouverture."
+	end
+	boxAt[player.UserId] = os.clock()
+	local cash = cashValue(player)
+	if not cash or cash.Value < box.Price then
+		return false, "Pas assez d'argent pour un coffre (" .. box.Price .. " $)."
+	end
+	local pool = StandSkins.Pool()
+	local rarity = rollRarity()
+	if #pool[rarity] == 0 then rarity = "Commun" end
+	local entry = pool[rarity][math.random(#pool[rarity])]
+	cash.Value -= box.Price
+	local duplicate = (ownedSkins[player.UserId] or {})[skinKey(entry.standId, entry.skin.Id)] == true
+	local refund = 0
+	if duplicate then
+		refund = box.Refund[rarity] or 0
+		cash.Value += refund
+	else
+		Inventory.GiveSkin(player, entry.standId, entry.skin.Id)
+	end
+	task.spawn(save, player)
+	print("[Inventory]", player.Name, "coffre ->", rarity, entry.standId, entry.skin.Id, duplicate and "(doublon)" or "")
+	return true, {
+		standId = entry.standId,
+		skinId = entry.skin.Id,
+		rarity = rarity,
+		duplicate = duplicate,
+		refund = refund,
+	}
 end
 
 -- Prendre un objet en main
@@ -271,6 +375,14 @@ remote.OnServerEvent:Connect(function(player, action, itemId, qty)
 		ok, message = n > 0, n > 0 and "Rangé dans l'inventaire." or "Rien à ranger."
 	elseif action == "Buy" and isItem(itemId) then
 		ok, message = buy(player, itemId, qty)
+	elseif action == "OpenSkinBox" then
+		local result
+		ok, result = openSkinBox(player)
+		if ok then
+			remote:FireClient(player, "BoxResult", result)
+			return
+		end
+		message = result
 	else
 		return
 	end
@@ -308,6 +420,7 @@ end
 Players.PlayerRemoving:Connect(function(player)
 	save(player)
 	stored[player.UserId] = nil
+	ownedSkins[player.UserId] = nil
 	loaded[player.UserId] = nil
 	lastAction[player.UserId] = nil
 end)
