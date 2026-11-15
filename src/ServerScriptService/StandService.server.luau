@@ -2039,7 +2039,7 @@ local function spellPull(player, standDef, move, aim)
 	local color = spellColor(standDef, move, player)
 	local flat = flatLook(hrp)
 	local origin = hrp.Position + flat * 2 + Vector3.new(0, 1.3, 0)
-	local dir = aimDirection(origin, flat, aim)
+	local dir = flat -- le harpon part droit devant le joueur, comme les projectiles
 	local range = move.Range or 20
 	local params = projectileParams(player)
 	local target, endPos = nil, origin + dir * range
