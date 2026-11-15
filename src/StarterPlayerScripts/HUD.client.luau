@@ -1,6 +1,6 @@
 -- HUD. En haut à gauche : l'argent du joueur (avec l'animation "+30" quand
 -- on ramasse de l'argent au sol) et le menu qui ouvre les fenêtres :
--- INVENTAIRE (J), BOUTIQUE (N), SKINS (K) et STANDS (admins, L).
+-- INVENTAIRE (J), BOUTIQUE (N), SKINS (K), EMOTES (H) et STANDS (admins, L).
 -- Les fenêtres elles-mêmes sont dans InventoryMenu, ShopMenu, SkinMenu et
 -- StandMenu ; le style est dans ReplicatedStorage/UITheme.
 local Players = game:GetService("Players")
@@ -18,7 +18,7 @@ local gui, root = UITheme.Screen("GameHUD", 6)
 
 -- Barre en haut au centre : en haut à gauche, la fenêtre du chat de Roblox
 -- passait par-dessus et prenait les clics.
-local BUTTON_W = 134
+local BUTTON_W = 116
 
 local rail = Instance.new("Frame")
 rail.Name = "Rail"
@@ -39,7 +39,7 @@ railLayout.Parent = rail
 local cashPill = Instance.new("Frame")
 cashPill.Name = "Cash"
 cashPill.LayoutOrder = 0
-cashPill.Size = UDim2.fromOffset(160, 40)
+cashPill.Size = UDim2.fromOffset(150, 40)
 cashPill.BackgroundColor3 = C.Night
 cashPill.BackgroundTransparency = 0.1
 cashPill.Parent = rail
@@ -157,7 +157,7 @@ local function menuButton(order, window, icon, text, key, accent)
 	badge.BackgroundTransparency = 0.7
 	UITheme.Corner(badge, 8)
 
-	local label = UITheme.Label(button, text, 13, C.Text, UITheme.Bold)
+	local label = UITheme.Label(button, text, 12, C.Text, UITheme.Bold)
 	label.Position = UDim2.fromOffset(42, 0)
 	label.Size = UDim2.new(1, -46, 1, 0)
 
@@ -201,7 +201,8 @@ end
 menuButton(1, "Inventaire", "🎒", "INVENTAIRE", "J", C.Blue)
 menuButton(2, "Boutique", "🛒", "BOUTIQUE", "N", C.Gold)
 menuButton(3, "Skins", "🎨", "SKINS", "K", C.Pink)
-local standsButton = menuButton(4, "Stands", "⭐", "STANDS", "L", C.Purple)
+menuButton(4, "Emotes", "🕺", "EMOTES", "H", C.Pink)
+local standsButton = menuButton(5, "Stands", "⭐", "STANDS", "L", C.Purple)
 
 -- bouton allumé quand sa fenêtre est ouverte
 UITheme.WindowChanged:Connect(function(name, open)
@@ -228,6 +229,7 @@ local SHORTCUTS = {
 	[Enum.KeyCode.N] = "Boutique",
 	[Enum.KeyCode.K] = "Skins",
 	[Enum.KeyCode.L] = "Stands",
+	[Enum.KeyCode.H] = "Emotes",
 }
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end

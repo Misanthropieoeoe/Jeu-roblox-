@@ -164,6 +164,81 @@ PlayerPoses.Clips = {
 	},
 }
 
+-- ─── Emotes : poses originales style JoJo (fenêtre EMOTES, EmoteMenu) ────────
+-- Chaque emote est tenue en boucle avec une légère respiration, jusqu'à ce
+-- que le joueur bouge. Le module ReplicatedStorage.Animations.<Id> fait
+-- Build("<Id>"). Pour en ajouter une : une entrée ici + le module.
+PlayerPoses.Emotes = {
+	{ Id = "EmoteDefi", Name = "Défi", Icon = "👉", pose = {
+		R = { pitch = 82, swing = -6, elbow = 0, wrist = 5 },
+		L = { pitch = -15, abduct = 35, swing = -15, elbow = 105 },
+		twist = 25, lean = -8, headPitch = 8, headYaw = -10,
+		legR = { hip = -8, knee = 4 }, legL = { hip = 12, knee = 14 },
+	} },
+	{ Id = "EmoteImperiale", Name = "Impériale", Icon = "👑", pose = {
+		R = { pitch = 70, swing = 55, elbow = 112 },
+		L = { pitch = 64, swing = 55, elbow = 118 },
+		twist = -25, lean = -18, headPitch = 16, headYaw = 15,
+		legR = { hip = 10, knee = 6 }, legL = { hip = -14, knee = 12 },
+	} },
+	{ Id = "EmoteMasque", Name = "Masque", Icon = "🎭", pose = {
+		R = { pitch = 125, swing = 45, elbow = 135, wrist = 10 },
+		L = { pitch = -25, abduct = 42, elbow = 8 },
+		twist = 30, lean = -5, drop = 0.1, headPitch = -10, headYaw = 20,
+		legR = { hip = 25, knee = 35 }, legL = { hip = -10, knee = 6 },
+	} },
+	{ Id = "EmoteTorsade", Name = "Torsade", Icon = "🌀", pose = {
+		R = { pitch = 168, abduct = 22, elbow = 62 },
+		L = { pitch = 58, swing = 50, elbow = 118 },
+		twist = 40, lean = 10, drop = 0.25, headPitch = -6, headYaw = -25,
+		legR = { hip = 62, knee = 92 }, legL = { hip = -5, knee = 12 },
+	} },
+	{ Id = "EmoteGrace", Name = "Grâce", Icon = "🌸", pose = {
+		R = { pitch = 110, swing = 40, elbow = 125, wrist = -20 },
+		L = { pitch = 108, swing = 40, elbow = 128, wrist = -20 },
+		twist = -10, lean = 12, drop = 0.5, headPitch = -5, headYaw = 12,
+		legR = { hip = 40, knee = 60 }, legL = { hip = 34, knee = 56 },
+	} },
+	{ Id = "EmoteMenace", Name = "Menace", Icon = "ゴ", pose = {
+		R = { pitch = 40, abduct = 60, elbow = 72 },
+		L = { pitch = 40, abduct = 60, elbow = 72 },
+		twist = 10, lean = 30, drop = 0.6, headPitch = 25,
+		legR = { hip = 35, knee = 60 }, legL = { hip = 10, knee = 55 },
+	} },
+	{ Id = "EmoteSalut", Name = "Salut", Icon = "🙌", pose = {
+		R = { pitch = 165, abduct = 15, elbow = 5 },
+		L = { pitch = 20, abduct = 20, elbow = 60 },
+		lean = 5, drop = 1.3, headPitch = 22,
+		legR = { hip = 90, knee = 90 }, legL = { hip = -10, knee = 100 },
+	} },
+	{ Id = "EmoteRevers", Name = "Révérence", Icon = "🎩", pose = {
+		R = { pitch = 50, swing = 60, elbow = 120 },
+		L = { pitch = -30, abduct = 10, swing = -40, elbow = 100 },
+		lean = 35, headPitch = -15,
+		legR = { hip = -5, knee = 0 }, legL = { hip = 12, knee = 6 },
+	} },
+}
+
+-- Respiration : la même pose, un peu plus basse et ouverte
+local function breathe(pose)
+	local b = table.clone(pose)
+	b.lean = (pose.lean or 0) + 1.5
+	b.drop = (pose.drop or 0) + 0.04
+	b.headPitch = (pose.headPitch or 0) + 2
+	return b
+end
+
+for _, emote in ipairs(PlayerPoses.Emotes) do
+	PlayerPoses.Clips[emote.Id] = {
+		loop = true,
+		keys = {
+			{ 0, emote.pose },
+			{ 1.6, breathe(emote.pose), "inout" },
+			{ 3.2, emote.pose, "inout" },
+		},
+	}
+end
+
 local function angles(x, y, z)
 	return CFrame.Angles(rad(x or 0), rad(y or 0), rad(z or 0))
 end
@@ -173,7 +248,7 @@ local function r15Frame(p)
 	local frame = {
 		LowerTorso = CFrame.new(0, -(p.drop or 0), 0) * angles(-lean * 0.4, twist * 0.4, 0),
 		UpperTorso = angles(-lean * 0.6, twist * 0.6, 0),
-		Head = angles(p.headPitch, -twist, 0),
+		Head = angles(p.headPitch, -twist + (p.headYaw or 0), 0),
 	}
 	for _, side in ipairs({ { "Right", p.R, 1, p.legR }, { "Left", p.L, -1, p.legL } }) do
 		local name, arm, s, leg = side[1], side[2] or {}, side[3], side[4] or {}
@@ -193,7 +268,7 @@ local function r6Frame(p)
 	return {
 		-- RootJoint R6 tourné de 90° : son axe Z local est la verticale
 		Torso = CFrame.new(0, 0, -(p.drop or 0)) * angles(p.lean, 0, 0),
-		Head = angles(-(p.headPitch or 0), 0, 0),
+		Head = angles(-(p.headPitch or 0), 0, p.headYaw or 0),
 		["Right Arm"] = angles(0, R.swing, R.pitch),
 		["Left Arm"] = angles(0, -(L.swing or 0), -(L.pitch or 0)),
 		["Right Leg"] = angles(0, 0, legR.hip),

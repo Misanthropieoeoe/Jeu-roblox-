@@ -28,6 +28,7 @@ local function isProtected(name)
 	return name == "Block" or string.sub(name, 1, 3) == "Cmd"
 		or string.sub(name, 1, 9) == "PlayerHit" or name == "PlayerKnockdown"
 		or string.sub(name, 1, 10) == "PlayerStab"
+		or string.sub(name, 1, 5) == "Emote" -- emotes (EmoteMenu les arrête quand on bouge)
 end
 
 -- Reference speed the clip was authored for; sprint (24) plays ~1.5x faster.
