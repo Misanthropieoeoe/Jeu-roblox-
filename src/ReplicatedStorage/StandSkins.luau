@@ -187,6 +187,32 @@ function StandSkins.Legendaries()
 	return list
 end
 
+-- Rareté d'un skin pour les coffres : "Commun", "Legendaire" ou "Mythique"
+function StandSkins.RarityOf(skin)
+	return skin.Rarity or "Commun"
+end
+
+-- Tous les skins à gagner dans un coffre, rangés par rareté :
+-- { Commun = { {standId, skin}, ... }, Legendaire = {...}, Mythique = {...} }
+-- (Classique n'est pas dedans : tout le monde l'a)
+local poolCache
+function StandSkins.Pool()
+	if poolCache then return poolCache end
+	local StandData = require(script.Parent:WaitForChild("StandData"))
+	poolCache = { Commun = {}, Legendaire = {}, Mythique = {} }
+	local ids = {}
+	for id in pairs(StandData.Stands) do table.insert(ids, id) end
+	table.sort(ids)
+	for _, standId in ids do
+		for _, skin in StandSkins.List(standId) do
+			if skin.Id ~= StandSkins.DEFAULT then
+				table.insert(poolCache[StandSkins.RarityOf(skin)], { standId = standId, skin = skin })
+			end
+		end
+	end
+	return poolCache
+end
+
 function StandSkins.Get(standId, skinId)
 	if not skinId or skinId == StandSkins.DEFAULT then return CLASSIC end
 	for _, skin in StandSkins.List(standId) do
