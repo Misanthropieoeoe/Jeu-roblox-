@@ -2837,10 +2837,14 @@ rewardKill = function(victim, humanoid)
 	if not killerId or not at or os.clock() - at > KILL_CREDIT_TIME then return end
 	local killer = Players:GetPlayerByUserId(killerId)
 	if not killer or killer == victim then return end
+	humanoid:SetAttribute("LastAttackerId", nil) -- une seule élimination par mort
 	local character = killer.Character
 	local killerHumanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	if not killerHumanoid or killerHumanoid.Health <= 0 then return end
+	local stats = killer:FindFirstChild("leaderstats")
+	local kills = stats and stats:FindFirstChild("Kills")
+	if kills then kills.Value += 1 end
 	local before = killerHumanoid.Health
 	killerHumanoid.Health = math.min(killerHumanoid.MaxHealth, before + killerHumanoid.MaxHealth * KILL_HEAL)
 	local healed = killerHumanoid.Health - before

@@ -1,5 +1,5 @@
 -- Leaderboard. Tableau des scores en haut à droite (remplace celui de
--- Roblox) : chaque joueur, son Stand et son argent, triés par argent.
+-- Roblox) : chaque joueur, son Stand et ses éliminations (kills), triés par kills.
 -- Tab l'ouvre / le replie.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -78,7 +78,7 @@ columns.Parent = board
 local colStand = UITheme.Label(columns, "STAND", 10, C.Muted, UITheme.Bold)
 colStand.Position = UDim2.new(0.5, 0, 0, 0)
 colStand.Size = UDim2.new(0.28, 0, 1, 0)
-local colCash = UITheme.Label(columns, "ARGENT", 10, C.Muted, UITheme.Bold)
+local colCash = UITheme.Label(columns, "KILLS", 10, C.Muted, UITheme.Bold)
 colCash.AnchorPoint = Vector2.new(1, 0)
 colCash.Position = UDim2.new(1, -12, 0, 0)
 colCash.Size = UDim2.new(0.25, 0, 1, 0)
@@ -102,7 +102,7 @@ local rows = {} -- [Player] = row
 
 local function cashOf(player)
 	local stats = player:FindFirstChild("leaderstats")
-	local cash = stats and stats:FindFirstChild("Cash")
+	local cash = stats and stats:FindFirstChild("Kills")
 	return cash and cash.Value or 0
 end
 
@@ -155,7 +155,7 @@ local function refreshRow(player)
 	row.name.Text = player.DisplayName
 	row.stand.Text = standName(player)
 	row.stand.TextColor3 = standColor(player):Lerp(Color3.new(1, 1, 1), 0.35)
-	row.cash.Text = UITheme.Money(cashOf(player))
+	row.cash.Text = "⚔ " .. tostring(cashOf(player))
 	sortRows()
 end
 
@@ -184,7 +184,7 @@ local function addPlayer(player)
 	stand.Size = UDim2.new(0.28, 0, 1, 0)
 	stand.TextTruncate = Enum.TextTruncate.AtEnd
 
-	local cash = UITheme.Label(frame, "", 12, C.Money, UITheme.Bold)
+	local cash = UITheme.Label(frame, "", 12, C.Pink, UITheme.Bold)
 	cash.AnchorPoint = Vector2.new(1, 0)
 	cash.Position = UDim2.new(1, -12, 0, 0)
 	cash.Size = UDim2.new(0.25, 0, 1, 0)
@@ -195,7 +195,7 @@ local function addPlayer(player)
 	player:GetAttributeChangedSignal("Standless"):Connect(function() refreshRow(player) end)
 	task.spawn(function()
 		local stats = player:WaitForChild("leaderstats", 30)
-		local value = stats and stats:WaitForChild("Cash", 30)
+		local value = stats and stats:WaitForChild("Kills", 30)
 		if value and rows[player] then
 			value.Changed:Connect(function() refreshRow(player) end)
 		end
