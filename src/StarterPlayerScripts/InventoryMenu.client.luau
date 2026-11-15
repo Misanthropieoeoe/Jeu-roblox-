@@ -1,4 +1,4 @@
--- InventoryMenu. Fenêtre INVENTAIRE (touche I) : les flèches et fruits du
+-- InventoryMenu. Fenêtre INVENTAIRE (touche J) : les flèches et fruits du
 -- joueur. Ils sont gardés à la mort et sauvegardés (serveur : Inventory).
 -- "Prendre en main" donne l'objet au personnage (clic pour l'utiliser),
 -- "Ranger" le remet dans l'inventaire.
@@ -165,7 +165,7 @@ standAction.OnClientEvent:Connect(function(actionName, kind)
 	if actionName == "ItemPicked" then
 		local item = ItemCatalog.ById[PICK_NAME[kind] or kind]
 		if item then
-			UITheme.Toast(item.Icon .. "  " .. item.Name .. " rangé dans ton inventaire (I)", item.Color)
+			UITheme.Toast(item.Icon .. "  " .. item.Name .. " rangé dans ton inventaire (J)", item.Color)
 		end
 	end
 end)

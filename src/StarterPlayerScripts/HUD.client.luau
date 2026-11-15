@@ -1,6 +1,6 @@
 -- HUD. En haut à gauche : l'argent du joueur (avec l'animation "+30" quand
 -- on ramasse de l'argent au sol) et le menu qui ouvre les fenêtres :
--- INVENTAIRE (I), BOUTIQUE (N), SKINS (K) et STANDS (admins, L).
+-- INVENTAIRE (J), BOUTIQUE (N), SKINS (K) et STANDS (admins, L).
 -- Les fenêtres elles-mêmes sont dans InventoryMenu, ShopMenu, SkinMenu et
 -- StandMenu ; le style est dans ReplicatedStorage/UITheme.
 local Players = game:GetService("Players")
@@ -177,7 +177,7 @@ local function menuButton(order, window, icon, text, key, accent)
 	return button
 end
 
-menuButton(1, "Inventaire", "🎒", "INVENTAIRE", "I", C.Green)
+menuButton(1, "Inventaire", "🎒", "INVENTAIRE", "J", C.Green)
 menuButton(2, "Boutique", "🛒", "BOUTIQUE", "N", C.Gold)
 menuButton(3, "Skins", "🎨", "SKINS", "K", C.Magenta)
 local standsButton = menuButton(4, "Stands", "⭐", "STANDS", "L", C.Red)
@@ -202,7 +202,7 @@ refreshAdmin()
 
 -- Raccourcis clavier
 local SHORTCUTS = {
-	[Enum.KeyCode.I] = "Inventaire",
+	[Enum.KeyCode.J] = "Inventaire",
 	[Enum.KeyCode.N] = "Boutique",
 	[Enum.KeyCode.K] = "Skins",
 	[Enum.KeyCode.L] = "Stands",
