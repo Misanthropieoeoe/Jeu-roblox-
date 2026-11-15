@@ -389,6 +389,69 @@ remote.OnServerEvent:Connect(function(player, action, itemId, qty)
 	remote:FireClient(player, "Result", ok, message, action, itemId)
 end)
 
+-- Panneau ADMIN (AdminMenu) ------------------------------------------------------
+-- Donner de l'argent, des objets ou des skins à soi-même ou à un autre joueur.
+-- Le serveur revérifie que l'expéditeur est admin (attribut StandAdmin, mis
+-- par StandService) : un joueur normal ne peut rien faire, même en trichant.
+local adminRemote = remotes:FindFirstChild("AdminAction") or Instance.new("RemoteEvent")
+adminRemote.Name = "AdminAction"
+adminRemote.Parent = remotes
+
+local MAX_CASH_GIFT = 1000000
+local MAX_ITEM_GIFT = 100
+
+adminRemote.OnServerEvent:Connect(function(admin, action, targetId, a, b)
+	if admin:GetAttribute("StandAdmin") ~= true then
+		warn("[Inventory] Action admin refusée (pas admin) :", admin.Name)
+		return
+	end
+	local target = Players:GetPlayerByUserId(tonumber(targetId) or 0)
+	if not target then
+		adminRemote:FireClient(admin, "Result", false, "Joueur introuvable.")
+		return
+	end
+	if not loaded[target.UserId] then
+		adminRemote:FireClient(admin, "Result", false, "L'inventaire de " .. target.Name .. " charge encore.")
+		return
+	end
+	local ok, message = false, "Action inconnue."
+	if action == "GiveCash" then
+		local amount = math.clamp(math.floor(tonumber(a) or 0), -MAX_CASH_GIFT, MAX_CASH_GIFT)
+		local cash = cashValue(target)
+		if cash and amount ~= 0 then
+			cash.Value = math.max(0, cash.Value + amount)
+			ok, message = true, string.format("%s%d $ pour %s (total %d $).", amount > 0 and "+" or "", amount, target.Name, cash.Value)
+		else
+			message = "Montant invalide."
+		end
+	elseif action == "GiveItem" and isItem(a) then
+		local n = math.clamp(math.floor(tonumber(b) or 1), 1, MAX_ITEM_GIFT)
+		Inventory.Add(target, a, n)
+		ok, message = true, string.format("%d × %s pour %s.", n, ItemCatalog.ById[a].Name, target.Name)
+	elseif action == "GiveSkin" and type(a) == "string" and type(b) == "string" and StandSkins.IsValid(a, b) then
+		Inventory.GiveSkin(target, a, b)
+		ok, message = true, StandSkins.Get(a, b).Name .. " débloqué pour " .. target.Name .. "."
+	elseif action == "GiveAllSkins" then
+		local n = 0
+		for _, list in pairs(StandSkins.Pool()) do
+			for _, entry in list do
+				Inventory.GiveSkin(target, entry.standId, entry.skin.Id)
+				n += 1
+			end
+		end
+		ok, message = true, "Tous les skins (" .. n .. ") débloqués pour " .. target.Name .. "."
+	elseif action == "TakeAllSkins" then
+		ownedSkins[target.UserId] = {}
+		publishSkins(target)
+		ok, message = true, "Skins retirés à " .. target.Name .. "."
+	end
+	if ok then
+		task.spawn(save, target)
+		print("[Admin]", admin.Name, "->", target.Name, action, a, b)
+	end
+	adminRemote:FireClient(admin, "Result", ok, message)
+end)
+
 -- Joueurs ------------------------------------------------------------------------
 local function onCharacter(player, character)
 	local humanoid = character:WaitForChild("Humanoid", 10)

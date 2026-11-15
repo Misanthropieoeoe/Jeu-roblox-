@@ -1,6 +1,6 @@
 -- HUD. En haut à gauche : l'argent du joueur (avec l'animation "+30" quand
 -- on ramasse de l'argent au sol) et le menu qui ouvre les fenêtres :
--- INVENTAIRE (J), BOUTIQUE (N), SKINS (K), EMOTES (H) et STANDS (admins, L).
+-- INVENTAIRE (J), BOUTIQUE (N), SKINS (K), EMOTES (H) et ADMIN (admins, L).
 -- Les fenêtres elles-mêmes sont dans InventoryMenu, ShopMenu, SkinMenu et
 -- StandMenu ; le style est dans ReplicatedStorage/UITheme.
 local Players = game:GetService("Players")
@@ -202,7 +202,8 @@ menuButton(1, "Inventaire", "🎒", "INVENTAIRE", "J", C.Blue)
 menuButton(2, "Boutique", "🛒", "BOUTIQUE", "N", C.Gold)
 menuButton(3, "Skins", "🎨", "SKINS", "K", C.Pink)
 menuButton(4, "Emotes", "🕺", "EMOTES", "H", C.Pink)
-local standsButton = menuButton(5, "Stands", "⭐", "STANDS", "L", C.Purple)
+-- ADMIN : argent, objets, skins et changement de Stand (AdminMenu)
+local standsButton = menuButton(5, "Admin", "🛠", "ADMIN", "L", C.Purple)
 
 -- bouton allumé quand sa fenêtre est ouverte
 UITheme.WindowChanged:Connect(function(name, open)
@@ -218,7 +219,10 @@ end)
 local function refreshAdmin()
 	local admin = player:GetAttribute("StandAdmin") == true
 	standsButton.Visible = admin
-	if not admin then UITheme.Close("Stands") end
+	if not admin then
+		UITheme.Close("Admin")
+		UITheme.Close("Stands")
+	end
 end
 player:GetAttributeChangedSignal("StandAdmin"):Connect(refreshAdmin)
 refreshAdmin()
@@ -228,18 +232,19 @@ local SHORTCUTS = {
 	[Enum.KeyCode.J] = "Inventaire",
 	[Enum.KeyCode.N] = "Boutique",
 	[Enum.KeyCode.K] = "Skins",
-	[Enum.KeyCode.L] = "Stands",
+	[Enum.KeyCode.L] = "Admin",
 	[Enum.KeyCode.H] = "Emotes",
 }
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	local window = SHORTCUTS[input.KeyCode]
-	if window == "Stands" and player:GetAttribute("StandAdmin") ~= true then return end
+	if window == "Admin" and player:GetAttribute("StandAdmin") ~= true then return end
 	if window then
 		UITheme.Toggle(window)
 	elseif input.KeyCode == Enum.KeyCode.Escape then
 		for name in pairs(menuButtons) do
 			UITheme.Close(name)
 		end
+		UITheme.Close("Stands")
 	end
 end)
