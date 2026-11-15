@@ -45,12 +45,19 @@ local function basePart(size, color, material)
 	part.CanTouch = false
 	part.CastShadow = false
 	part.Material = material or Enum.Material.Neon
-	part.Color = color
+	part.Color = tint(color)
 	part.Size = size
 	return part
 end
 
+-- Skin équipé : la couleur du skin remplace les couleurs fixes des looks
+local override = nil
+local function tint(color)
+	return override or color
+end
+
 local function addTrail(part, color, width, lifetime)
+	color = tint(color)
 	local a0 = Instance.new("Attachment")
 	a0.Position = Vector3.new(0, width / 2, 0)
 	a0.Parent = part
@@ -71,6 +78,7 @@ end
 
 -- Particules qui sortent du projectile en vol
 local function addEmitter(part, color, opts)
+	color = tint(color)
 	local e = Instance.new("ParticleEmitter")
 	e.Texture = opts.texture or SPARKLE
 	e.Color = ColorSequence.new(lighter(color, 0.3), color)
@@ -94,6 +102,7 @@ local function addEmitter(part, color, opts)
 end
 
 local function addLight(part, color, range)
+	color = tint(color)
 	local light = Instance.new("PointLight")
 	light.Color = color
 	light.Range = range or 6
@@ -251,7 +260,13 @@ standFX.OnClientEvent:Connect(function(kind, id, a, b, c, d, e)
 		style = typeof(style) == "table" and style or {}
 		local color = typeof(style.Color) == "Color3" and style.Color or Color3.new(1, 1, 1)
 		local build = LOOKS[style.StandId] or defaultLook
-		local part, look = build(style, color)
+		override = style.Skinned == true and color or nil
+		local ok, part, look = pcall(build, style, color)
+		override = nil
+		if not ok then
+			warn("[ProjectileFX]", part)
+			return
+		end
 		part.CFrame = CFrame.lookAt(origin, origin + dir)
 		part.Parent = folder
 		local maxRange = typeof(range) == "number" and range or 60

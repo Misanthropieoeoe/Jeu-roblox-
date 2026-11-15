@@ -802,7 +802,9 @@ local function playFor(stand)
 	local owner = Players:GetPlayerByUserId(stand:GetAttribute("Owner") or 0)
 	local character = owner and owner.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local color = move.Color or (def.Theme and def.Theme.Aura1) or DEFAULT_COLOR
+	-- skin équipé : sa couleur remplace celle de l'attaque
+	local skinColor = stand:GetAttribute("SkinColor")
+	local color = (typeof(skinColor) == "Color3" and skinColor) or move.Color or (def.Theme and def.Theme.Aura1) or DEFAULT_COLOR
 	local ctx = {
 		owner = owner,
 		move = move,
@@ -899,7 +901,8 @@ local function watch(stand)
 	stand:GetAttributeChangedSignal("State"):Connect(function()
 		if stand:GetAttribute("State") == "Block" then
 			local def = StandData.GetStand(stand:GetAttribute("StandId") or "")
-			local color = (def and def.Theme and def.Theme.Aura1) or DEFAULT_COLOR
+			local skinColor = stand:GetAttribute("SkinColor")
+			local color = (typeof(skinColor) == "Color3" and skinColor) or (def and def.Theme and def.Theme.Aura1) or DEFAULT_COLOR
 			startMenacing(stand, color, function()
 				return stand:GetAttribute("State") == "Block"
 			end)

@@ -205,7 +205,10 @@ function MOVES.Grapple(p, character, root, humanoid)
 	beam.FaceCamera = true
 	beam.LightEmission = 1
 	local def = StandData.GetStand(player:GetAttribute("StandId") or "")
-	local color = p.Color or (def and def.Theme and def.Theme.Aura1) or Color3.fromRGB(110, 255, 140)
+	local standModel = workspace:FindFirstChild(player.Name .. "Stand")
+	local skinColor = standModel and standModel:GetAttribute("SkinColor")
+	local color = (typeof(skinColor) == "Color3" and skinColor) or p.Color or (def and def.Theme and def.Theme.Aura1)
+		or Color3.fromRGB(110, 255, 140)
 	beam.Color = ColorSequence.new(color)
 	beam.Parent = anchor
 
