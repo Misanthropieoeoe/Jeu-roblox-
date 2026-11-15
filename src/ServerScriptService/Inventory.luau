@@ -6,7 +6,7 @@
 -- main, comme avant. À la mort, en quittant ou avec "Ranger", les outils en
 -- main retournent dans l'inventaire.
 --
--- L'argent (leaderstats.Cash) est aussi sauvegardé ici.
+-- L'argent (leaderstats.Cash) et les kills (leaderstats.Kills) sont aussi sauvegardés ici.
 --
 -- Utilisé par StandService (ramassage et outils), TradeService (échanges)
 -- et MoneyService (argent). Côté client : InventoryMenu et ShopMenu, via le
@@ -112,6 +112,13 @@ function Inventory.StoreHeld(player, itemId)
 	return n
 end
 
+-- Éliminations (leaderstats.Kills, comptées par StandService)
+local function killsValue(player)
+	local stats = player:FindFirstChild("leaderstats")
+	local kills = stats and stats:FindFirstChild("Kills")
+	return kills and kills.Value or 0
+end
+
 local function save(player)
 	if not store or not loaded[player.UserId] then return end
 	local cash = cashValue(player)
@@ -122,6 +129,7 @@ local function save(player)
 	local data = {
 		Items = stored[player.UserId] or {},
 		Cash = cash and cash.Value or 0,
+		Kills = killsValue(player),
 		Skins = skins,
 	}
 	-- les objets en main comptent aussi (ils reviennent dans l'inventaire au retour)
@@ -176,6 +184,13 @@ local function load(player)
 	-- objets déjà ramassés pendant le chargement
 	Inventory.StoreHeld(player)
 	publish(player)
+	if type(data) == "table" and type(data.Kills) == "number" then
+		task.spawn(function()
+			local stats = player:WaitForChild("leaderstats", 15)
+			local kills = stats and stats:WaitForChild("Kills", 15)
+			if kills then kills.Value += math.max(0, math.floor(data.Kills)) end
+		end)
+	end
 	if type(data) == "table" and type(data.Cash) == "number" then
 		task.spawn(function()
 			local stats = player:WaitForChild("leaderstats", 15)
