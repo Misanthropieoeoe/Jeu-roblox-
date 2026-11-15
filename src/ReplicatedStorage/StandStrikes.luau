@@ -238,6 +238,33 @@ StandStrikes.Stands = {
 	-- Silver Chariot : escrimeur. Droite = estoc à la rapière, gauche = taillade
 	-- (toujours avec le bras droit, qui tient la rapière).
 	SilverChariot = {
+		-- Rafale d'Estocs (E) : une avalanche d'estocs droit devant. Huit coups
+		-- par boucle (0,4 s), chacun bras complètement tendu, visant tour à tour
+		-- haut, bas, gauche, droite. Le corps reste en fente, penché vers
+		-- l'avant ; la main gauche reste levée derrière (garde d'escrimeur).
+		Flurry = (function()
+			local L = { pitch = 118, abduct = 58, elbow = 90 }
+			local legs = { legR = { hip = 55, knee = 55 }, legL = { hip = -30, knee = 8 } }
+			local function out(pitch, swing, twist)
+				return { R = { pitch = pitch, abduct = 2, swing = swing, elbow = 0, wrist = 0 }, L = L,
+					twist = twist, lean = 18, lunge = 1.05, drop = 0.3, legR = legs.legR, legL = legs.legL }
+			end
+			local function back(twist)
+				return { R = { pitch = 82, abduct = 4, swing = 0, elbow = 95, wrist = -10 }, L = L,
+					twist = twist, lean = 15, lunge = 0.7, drop = 0.3, legR = legs.legR, legL = legs.legL }
+			end
+			-- (hauteur, côté, rotation du buste) de chaque estoc
+			local aims = { { 96, -6, 30 }, { 80, 8, 26 }, { 100, 10, 34 }, { 84, -10, 24 },
+				{ 92, 0, 32 }, { 76, -4, 26 }, { 98, -12, 30 }, { 86, 12, 28 } }
+			local keys, t, step = {}, 0, 0.025
+			for _, aim in aims do
+				table.insert(keys, { t, back(aim[3] - 12) })
+				table.insert(keys, { t + step, out(aim[1], aim[2], aim[3]), "out" })
+				t += step * 2
+			end
+			table.insert(keys, { t, back(18) })
+			return { duration = t, loop = true, keys = keys }
+		end)(),
 		-- Rapid Stabs : seul le bras droit (la rapière) pique, très vite, en
 		-- visant un peu à gauche puis un peu à droite.
 		Barrage = {
