@@ -1380,42 +1380,38 @@ local function runHeal(player, stand, move)
 		"+" .. tostring(math.floor(healed + 0.5)) .. " HP")
 end
 
+-- Arrêt du temps : [Player ou mannequin] = os.clock() de fin. Le blocage du
+-- mouvement passe par les verrous de mouvement (lockMovement, section SORTS).
 local frozen = {}
+local lockMovement -- défini plus bas (section SORTS)
 
 local function runTimeStop(player, stand, move)
 	standFX:FireAllClients("TimeStop", move.Duration, player.Name)
+	local untilT = os.clock() + move.Duration
+	-- Tous les autres joueurs et les mannequins sont figés. Le verrou
+	-- "timestop" expire tout seul : leur vitesse est rendue à la fin, même
+	-- s'ils ont été étourdis entre-temps (avant, les joueurs restaient
+	-- bloqués pour toujours).
+	local function freeze(key, humanoid)
+		frozen[key] = math.max(frozen[key] or 0, untilT)
+		lockMovement(humanoid, "timestop", move.Duration)
+	end
 	for _, other in Players:GetPlayers() do
-		if other ~= player and other.Character and other.Character:FindFirstChildOfClass("Humanoid") then
-			local humanoid = other.Character:FindFirstChildOfClass("Humanoid")
-			if not frozen[other] then
-				frozen[other] = { WalkSpeed = humanoid.WalkSpeed, JumpPower = humanoid.JumpPower, JumpHeight = humanoid.JumpHeight }
-				humanoid.WalkSpeed = 0
-				humanoid.JumpPower = 0
-				humanoid.JumpHeight = 0
-			end
+		local humanoid = other ~= player and other.Character and other.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			freeze(other, humanoid)
 		end
 	end
 	for _, dummy in workspace:GetChildren() do
-		if dummy:GetAttribute("IsDummy") and not frozen[dummy] then
-			local humanoid = dummy:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				frozen[dummy] = { Anchored = true }
-				humanoid.WalkSpeed = 0
-			end
+		local humanoid = dummy:GetAttribute("IsDummy") and dummy:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			freeze(dummy, humanoid)
 		end
 	end
-
-	task.delay(move.Duration, function()
-		for instance, saved in frozen do
-			if instance.Parent then
-				local humanoid = instance:FindFirstChildOfClass("Humanoid")
-				if humanoid then
-					if saved.WalkSpeed then humanoid.WalkSpeed = saved.WalkSpeed end
-					if saved.JumpPower then humanoid.JumpPower = saved.JumpPower end
-					if saved.JumpHeight then humanoid.JumpHeight = saved.JumpHeight end
-				end
-			end
-			frozen[instance] = nil
+	task.delay(move.Duration + 0.05, function()
+		local now = os.clock()
+		for key, endsAt in frozen do
+			if now >= endsAt then frozen[key] = nil end
 		end
 	end)
 end
@@ -1454,36 +1450,76 @@ local function getTargetsInRadius(caster, center, radius)
 	return targets
 end
 
--- Étourdissement : vitesse et saut à 0 pendant `seconds`, puis restauration.
-local spellStuns = {} -- [Humanoid] = { untilT, WalkSpeed, JumpPower, JumpHeight }
+-- ─── Verrous de mouvement ──────────────────────────────────────────────────
+-- Étourdissements, arrêt du temps… posent chacun un verrou avec une durée.
+-- Tant qu'il reste au moins un verrou, vitesse et saut sont à 0 ; quand le
+-- dernier expire, on rend les valeurs d'AVANT le premier verrou. Un seul
+-- système pour tout le monde : plus de joueur bloqué parce que deux effets
+-- ont sauvegardé / restauré la vitesse l'un par-dessus l'autre.
+local spellStuns = {} -- [Humanoid] = { reasons = { [raison] = fin }, WalkSpeed, JumpPower, JumpHeight }
+local DEFAULT_WALKSPEED = game:GetService("StarterPlayer").CharacterWalkSpeed
+
+lockMovement = function(h, reason, seconds)
+	if not h or not h.Parent or not seconds or seconds <= 0 then return end
+	local entry = spellStuns[h]
+	if not entry then
+		entry = { reasons = {}, WalkSpeed = h.WalkSpeed, JumpPower = h.JumpPower, JumpHeight = h.JumpHeight }
+		spellStuns[h] = entry
+	end
+	local untilT = os.clock() + seconds
+	entry.reasons[reason] = math.max(entry.reasons[reason] or 0, untilT)
+	h.WalkSpeed = 0
+	h.JumpPower = 0
+	h.JumpHeight = 0
+end
+
+-- Remet la vitesse `value` si elle vaut encore `expected` (fin d'un bonus de
+-- vitesse, fin de garde…). Si le joueur est verrouillé à ce moment-là, on
+-- corrige la valeur qui sera rendue à la fin du verrou.
+local function restoreWalkSpeed(h, expected, value)
+	if not h or not h.Parent then return end
+	local entry = spellStuns[h]
+	if entry then
+		if math.abs(entry.WalkSpeed - expected) < 0.01 then entry.WalkSpeed = value end
+	elseif math.abs(h.WalkSpeed - expected) < 0.01 then
+		h.WalkSpeed = value
+	end
+end
+
 local function stunTargets(targets, seconds)
 	if not seconds or seconds <= 0 then return end
-	local untilT = os.clock() + seconds
 	for _, target in targets do
-		local h = target.humanoid
-		if h and h.Parent and not target.guarded then
-			local entry = spellStuns[h]
-			if not entry then
-				entry = { WalkSpeed = h.WalkSpeed, JumpPower = h.JumpPower, JumpHeight = h.JumpHeight }
-				spellStuns[h] = entry
-			end
-			entry.untilT = math.max(entry.untilT or 0, untilT)
-			h.WalkSpeed = 0
-			h.JumpPower = 0
-			h.JumpHeight = 0
+		if not target.guarded then
+			lockMovement(target.humanoid, "stun", seconds)
 		end
 	end
 end
+
 RunService.Heartbeat:Connect(function()
 	local now = os.clock()
 	for h, entry in spellStuns do
 		if not h.Parent then
 			spellStuns[h] = nil
-		elseif now >= entry.untilT then
+			continue
+		end
+		for reason, untilT in entry.reasons do
+			if now >= untilT then entry.reasons[reason] = nil end
+		end
+		if next(entry.reasons) == nil then
 			spellStuns[h] = nil
-			h.WalkSpeed = entry.WalkSpeed
+			local walk = entry.WalkSpeed
+			-- sécurité : un joueur ne doit jamais ressortir avec une vitesse 0
+			local isPlayer = h.Parent and Players:GetPlayerFromCharacter(h.Parent)
+			if isPlayer and walk <= 0 then walk = DEFAULT_WALKSPEED end
+			h.WalkSpeed = walk
 			h.JumpPower = entry.JumpPower
 			h.JumpHeight = entry.JumpHeight
+		elseif h.WalkSpeed ~= 0 or h.JumpPower ~= 0 or h.JumpHeight ~= 0 then
+			-- un autre script a changé la vitesse pendant le verrou : on la retient
+			if h.WalkSpeed > 0 then entry.WalkSpeed = h.WalkSpeed end
+			h.WalkSpeed = 0
+			h.JumpPower = 0
+			h.JumpHeight = 0
 		end
 	end
 end)
@@ -1762,9 +1798,7 @@ local function spellBuff(player, standDef, move)
 		humanoid.WalkSpeed = boosted
 		task.delay(move.BuffTime or 5, function()
 			-- Ne restaure que si personne d'autre n'a changé la vitesse entre-temps
-			if humanoid.Parent and math.abs(humanoid.WalkSpeed - boosted) < 0.01 then
-				humanoid.WalkSpeed = base
-			end
+			restoreWalkSpeed(humanoid, boosted, base)
 		end)
 	end
 	impactFX(hrp.Position, color, 9, 0.6)
@@ -2082,9 +2116,7 @@ local function spellErase(player, standDef, move)
 		for d, t in saved do
 			if d.Parent then d.Transparency = t end
 		end
-		if boosted and humanoid.Parent and math.abs(humanoid.WalkSpeed - boosted) < 0.01 then
-			humanoid.WalkSpeed = base
-		end
+		if boosted then restoreWalkSpeed(humanoid, boosted, base) end
 		if hrp.Parent then impactFX(hrp.Position, spellColor(standDef, move), 8, 0.6) end
 	end)
 end
@@ -2238,9 +2270,7 @@ local function stopBlock(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	-- Restaure la vitesse seulement si personne d'autre ne l'a changée
-	if humanoid and math.abs(humanoid.WalkSpeed - BLOCK_WALKSPEED) < 0.01 then
-		humanoid.WalkSpeed = state.savedSpeed
-	end
+	restoreWalkSpeed(humanoid, BLOCK_WALKSPEED, state.savedSpeed)
 	local stand = workspace:FindFirstChild(player.Name .. "Stand")
 	if stand and stand:GetAttribute("State") == "Block" then
 		stand:SetAttribute("State", "Idle")
@@ -2658,7 +2688,7 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 	if hitstunUntil[player] and hitstunUntil[player] > os.clock() then return end
 	local myHumanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	if myHumanoid and spellStuns[myHumanoid] then return end
-	if frozen[player] then return end
+	if frozen[player] and frozen[player] > os.clock() then return end
 
 	if actionName == "Mobility" then
 		useMobility(player)
