@@ -265,28 +265,93 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
 	currentAnimationName = nil
 end)
 
-function AnimationController.Play(animationName)
+-- ─── Synchronisation multijoueur ───────────────────────────────────────────
+-- Les articulations modifiées ici ne sont visibles que sur NOTRE écran
+-- (Roblox ne transmet pas Motor6D.Transform). On prévient donc le serveur
+-- (Remotes.AnimSync) de chaque animation lancée / arrêtée ; il la note sur
+-- notre personnage et les autres joueurs la rejouent (AnimReplicator).
+local syncRemote = nil
+local function sync(animationName)
+	if not syncRemote then
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		syncRemote = remotes and remotes:FindFirstChild("AnimSync")
+	end
+	if syncRemote then
+		syncRemote:FireServer(animationName or false)
+	end
+end
+
+local function resolveTable(animationName, character)
 	local animModule = AnimationsFolder:FindFirstChild(animationName)
 	if not animModule then
 		warn("AnimationController: no animation named", animationName)
-		return
+		return nil
 	end
-	local exec = ensureExecutor()
 	local animTable = require(animModule)
 	if animTable.Rigs then
-		local humanoid = exec.Character:WaitForChild("Humanoid")
+		local humanoid = character:WaitForChild("Humanoid")
 		animTable = animTable.Rigs[humanoid.RigType.Name]
 	end
+	return animTable
+end
+
+local function playOn(exec, animationName, animTable)
 	local skipLegFix = SKIP_LEG_COUNTERROTATE[animationName] == true
 		or animTable.Settings.CounterRotateLegs == false
 	exec:PlayFromTable(animTable, { counterRotateLegs = not skipLegFix })
+end
+
+function AnimationController.Play(animationName)
+	local exec = ensureExecutor()
+	local animTable = resolveTable(animationName, exec.Character)
+	if not animTable then return end
+	playOn(exec, animationName, animTable)
 	currentAnimationName = animationName
+	sync(animationName)
 end
 
 function AnimationController.Stop(animationName)
 	if animationName and animationName ~= currentAnimationName then return end
 	if executor then executor:Stop() end
 	currentAnimationName = nil
+	sync(nil)
+end
+
+-- ─── Personnages des AUTRES joueurs (utilisé par AnimReplicator) ───────────
+local remoteExecutors = setmetatable({}, { __mode = "k" }) -- [Model] = { exec, name }
+
+function AnimationController.PlayOn(character, animationName)
+	local entry = remoteExecutors[character]
+	if not entry then
+		entry = { exec = AnimationExecutor.new(character) }
+		remoteExecutors[character] = entry
+	end
+	local animTable = resolveTable(animationName, character)
+	if not animTable then return end
+	playOn(entry.exec, animationName, animTable)
+	entry.name = animationName
+end
+
+function AnimationController.StopOn(character)
+	local entry = remoteExecutors[character]
+	if entry then
+		entry.exec:Stop()
+		entry.name = nil
+	end
+end
+
+function AnimationController.SetClipSpeedOn(character, animationName, playbackRate, extraTorsoPitch)
+	local entry = remoteExecutors[character]
+	if not entry or entry.name ~= animationName then return end
+	entry.exec.PlaybackRate = playbackRate
+	entry.exec.ExtraTorsoPitch = extraTorsoPitch or 0
+end
+
+function AnimationController.CurrentAnimationOn(character)
+	local entry = remoteExecutors[character]
+	if not entry then return nil end
+	if not entry.exec.IsPlaying then entry.name = nil end
+	return entry.name
 end
 
 -- Live speed control for the currently playing clip. Silently ignored when

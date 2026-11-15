@@ -409,6 +409,38 @@ local standFX = Instance.new("RemoteEvent")
 standFX.Name = "StandFX"
 standFX.Parent = remotes
 
+-- Animations des personnages visibles par tout le monde : le client annonce
+-- l'animation qu'il joue (AnimationController), le serveur la note sur son
+-- personnage (attributs SyncAnim / SyncAnimAt) et les autres clients la
+-- rejouent (AnimReplicator).
+local animSync = Instance.new("RemoteEvent")
+animSync.Name = "AnimSync"
+animSync.Parent = remotes
+local animSyncBudget = {} -- [Player] = { count, windowStart }
+local ANIMATIONS_FOLDER = ReplicatedStorage:WaitForChild("Animations")
+animSync.OnServerEvent:Connect(function(player, name)
+	local character = player.Character
+	if not character then return end
+	-- au plus 30 messages par seconde et par joueur
+	local now = os.clock()
+	local budget = animSyncBudget[player]
+	if not budget or now - budget.windowStart > 1 then
+		budget = { count = 0, windowStart = now }
+		animSyncBudget[player] = budget
+	end
+	budget.count += 1
+	if budget.count > 30 then return end
+	if name == false then
+		character:SetAttribute("SyncAnim", nil)
+	elseif typeof(name) == "string" and #name <= 48 and ANIMATIONS_FOLDER:FindFirstChild(name) then
+		character:SetAttribute("SyncAnim", name)
+		character:SetAttribute("SyncAnimAt", workspace:GetServerTimeNow())
+	end
+end)
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+	animSyncBudget[player] = nil
+end)
+
 local ServerStorage = game:GetService("ServerStorage")
 
 local DEFAULT_STAND_ID = "StarPlatinum"
@@ -1608,30 +1640,6 @@ local function targetFromPart(player, part)
 	return nil
 end
 
-local function makeProjectilePart(move, color, size)
-	local part = Instance.new("Part")
-	part.Name = "SpellProjectile"
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Material = Enum.Material.Neon
-	part.Color = color
-	if move.Shape == "Blade" then
-		part.Size = Vector3.new(size * 0.4, size * 0.4, size * 3)
-	else
-		part.Shape = Enum.PartType.Ball
-		part.Size = Vector3.new(size, size, size)
-	end
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Range = 6
-	light.Brightness = 0.5
-	light.Parent = part
-	return part
-end
-
 local function spawnProjectile(player, standDef, move, origin, direction)
 	local color = spellColor(standDef, move)
 	local size = move.Size or 0.6
@@ -1643,22 +1651,20 @@ local function spawnProjectile(player, standDef, move, origin, direction)
 
 	projectileCounter += 1
 	local id = projectileCounter
-	local serverPart
-	if move.Homing then
-		serverPart = makeProjectilePart(move, color, size)
-		serverPart.CFrame = CFrame.lookAt(origin, origin + direction)
-		serverPart.Parent = spellFolder
-	else
-		standFX:FireAllClients("Projectile", id, origin, direction, speed, maxRange,
-			{ Size = size, Shape = move.Shape or "Ball", Color = color })
-	end
+	-- Tous les projectiles sont affichés par les clients (ProjectileFX), avec
+	-- le look de leur Stand / attaque. Ceux à tête chercheuse reçoivent leur
+	-- position 10 fois par seconde (ProjectileSync).
+	standFX:FireAllClients("Projectile", id, origin, direction, speed, maxRange, {
+		Size = size, Shape = move.Shape or "Ball", Color = color,
+		StandId = player:GetAttribute("StandId"), Move = move.Label, Homing = move.Homing ~= nil,
+	})
+	local lastSync = 0
 
 	local pos, dir, traveled = origin, direction, 0
 	local hitModels = {}
 	local connection
 	local function finish(endPos, explode)
 		if connection then connection:Disconnect() end
-		if serverPart then serverPart:Destroy() end
 		standFX:FireAllClients("ProjectileEnd", id, endPos)
 		if explode and move.Explode then
 			spellBurstAt(player, endPos, move.Explode.Radius or 8, move.Explode.Damage or 15, 40, 15, nil, color)
@@ -1729,8 +1735,9 @@ local function spawnProjectile(player, standDef, move, origin, direction)
 		end
 		pos = from
 		traveled += step
-		if serverPart then
-			serverPart.CFrame = CFrame.lookAt(pos, pos + dir)
+		if move.Homing and os.clock() - lastSync >= 0.1 then
+			lastSync = os.clock()
+			standFX:FireAllClients("ProjectileSync", id, pos, dir)
 		end
 		if traveled >= maxRange - 0.01 then
 			finish(pos, move.Explode ~= nil)

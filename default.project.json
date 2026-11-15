@@ -39,6 +39,9 @@
       "StandStrikes": {
         "$path": "src/ReplicatedStorage/StandStrikes.luau"
       },
+      "VFXTextures": {
+        "$path": "src/ReplicatedStorage/VFXTextures.luau"
+      },
       "Animations": {
         "$className": "Folder",
         "$ignoreUnknownInstances": true,
@@ -286,6 +289,9 @@
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
+        "AnimReplicator": {
+          "$path": "src/StarterPlayerScripts/AnimReplicator.client.luau"
+        },
         "ArrowStabAnimationHook": {
           "$path": "src/StarterPlayerScripts/ArrowStabAnimationHook.client.luau",
           "$attributes": {
