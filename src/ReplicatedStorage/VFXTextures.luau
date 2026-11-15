@@ -15,4 +15,7 @@ return {
 	Petal = "rbxassetid://95473304233140",
 	Gem = "rbxassetid://126447150623322",
 	Zipper = "rbxassetid://113054516565882",
+	-- cercle des attaques "Zone" (assets/textures/zone.png) : mettre l'ID
+	-- une fois l'image importée dans Roblox
+	Zone = "",
 }

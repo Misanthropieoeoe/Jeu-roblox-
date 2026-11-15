@@ -21,6 +21,7 @@ Importées dans Roblox (Gestionnaire de contenus) ; leurs ID sont dans
 | petal     | 95473304233140   |
 | gem       | 126447150623322  |
 | zipper    | 113054516565882  |
+| zone.png | Zone | cercle des attaques "Zone" au sol (à importer) |
 
 Pour modifier une texture : la redessiner, la réimporter, puis remplacer son
 ID dans `TEXTURES`.
