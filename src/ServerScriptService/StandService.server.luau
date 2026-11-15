@@ -1941,15 +1941,29 @@ local function spellTeleport(player, standDef, move)
 	end
 	local color = spellColor(standDef, move, player)
 	impactFX(hrp.Position, color, 6, 1.6)
+	-- derrière la cible, collé, et tourné vers elle
+	local STICK_DISTANCE = 2.6
+	local function stickBehind(target)
+		local behind = target.root.CFrame * CFrame.new(0, 0, STICK_DISTANCE)
+		local cf = CFrame.lookAt(behind.Position, Vector3.new(target.root.Position.X, behind.Position.Y, target.root.Position.Z))
+		character:PivotTo(cf)
+		return cf
+	end
 	if best then
-		local behind = best.root.CFrame * CFrame.new(0, 0, 3.5)
-		character:PivotTo(CFrame.lookAt(behind.Position, best.root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, behind.Position.Y, 0)))
+		stickBehind(best)
 		-- verrouillage : le client tourne le joueur et recentre la caméra sur
 		-- la cible jusqu'au coup (TeleportLock.client.luau)
 		standFX:FireClient(player, "LockOn", best.root, (move.HitDelay or 0.3) + 0.25)
 	end
 	task.delay(math.max(0.05, (move.HitDelay or 0.3) - 0.1), function()
-		if hrp.Parent then
+		if not hrp.Parent then return end
+		-- le coup reste collé à la cible : si elle a bougé, on se recolle
+		-- derrière elle juste avant de frapper (tant qu'elle est à portée)
+		if best and best.root and best.root.Parent and best.humanoid and best.humanoid.Health > 0
+			and (best.root.Position - hrp.Position).Magnitude <= (move.Range or 40) then
+			local cf = stickBehind(best)
+			spellStrike(player, standDef, move, cf)
+		else
 			spellStrike(player, standDef, move)
 		end
 	end)
