@@ -1,6 +1,11 @@
 -- MapBuilder: places the imported OLD A BIZARRE DAY town map and its spawn pads.
 local Workspace = game:GetService("Workspace")
 
+-- Heure d'ouverture du serveur (le HUD affiche depuis combien de temps il tourne)
+if not Workspace:GetAttribute("ServerStartedAt") then
+	Workspace:SetAttribute("ServerStartedAt", Workspace:GetServerTimeNow())
+end
+
 local oldBase = Workspace:FindFirstChild("Baseplate")
 if oldBase then oldBase:Destroy() end
 local oldSpawn = Workspace:FindFirstChild("SpawnLocation")
