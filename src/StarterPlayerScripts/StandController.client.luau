@@ -1491,6 +1491,11 @@ local function updateStand(stand, standDef, character, now)
 		targetPos = hrp.Position + flat * (-moveDef.BarrageOffset.Z + lunge)
 			+ Vector3.new(0, moveDef.BarrageOffset.Y + math.sin(now * 3) * 0.08, 0)
 		smooth = moveDef.BarrageSmoothness
+	elseif state == "HeavyPunch" and not (moveDef and moveDef.HeavyOffset) then
+		-- Coup final du combo M1 / contre : le Stand frappe devant le joueur
+		local strike = math.clamp((t - 0.18) / 0.12, 0, 1)
+		targetPos = hrp.Position + flat * (3 + strike * 1.5) + Vector3.new(0, 1.4, 0)
+		smooth = 0.35
 	elseif state == "HeavyPunch" and moveDef and moveDef.HeavyOffset then
 		local strike = math.clamp((t - 0.22) / 0.13, 0, 1)
 		local reach = 3 + strike * 1.7
@@ -1632,7 +1637,7 @@ local function fireAction(name)
 	local standId = localPlayer:GetAttribute("StandId")
 	local def = (standId and StandData.GetStand(standId)) or StandData.GetStand(StandData.DefaultStand)
 	local move = def and def.Moves and def.Moves[name]
-	if move and move.Type == "Projectile" then
+	if move and (move.Type == "Projectile" or move.Type == "Pull") then
 		standAction:FireServer(name, getAimPoint())
 	else
 		standAction:FireServer(name)

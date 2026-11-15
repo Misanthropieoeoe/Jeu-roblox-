@@ -50,8 +50,10 @@ local function hookCharacter(character)
 	end)
 
 	RunService.Heartbeat:Connect(function()
-		-- En garde (Guard.client.luau) : on ne remplace pas l'animation Block
-		if AnimationController.CurrentAnimation() == "Block" then
+		-- En garde (Guard.client.luau) ou en pleine attaque du Stand
+		-- (SpellGestures, poses Cmd*) : on ne remplace pas l'animation
+		local current = AnimationController.CurrentAnimation()
+		if current == "Block" or (current and string.sub(current, 1, 3) == "Cmd") then
 			stoppedSince = nil
 			return
 		end

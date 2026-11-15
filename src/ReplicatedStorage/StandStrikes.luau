@@ -534,6 +534,59 @@ StandStrikes.SpellAnims = {
 		{ R = { pitch = 40, abduct = 8, swing = 25, elbow = 15 }, L = GUARD_ARM, twist = 18, lean = 14, lunge = 0.5 },
 		0.15, 0.3, 0.7
 	),
+
+	-- ─── Moveset original ───────────────────────────────────────────────────
+	-- Posture de contre : main ouverte devant, l'autre armée, prêt à punir
+	CounterStance = hold({
+		R = { pitch = 35, abduct = 25, elbow = 125 },
+		L = { pitch = 80, abduct = 5, swing = 25, elbow = 35, wrist = 50 },
+		twist = -20, lean = 6, drop = 0.2,
+		legR = { hip = -15, knee = 25 }, legL = { hip = 20, knee = 30 },
+	}, 0.2),
+	-- Harpon : bras lancé devant, puis on tire violemment vers soi
+	Pull = {
+		duration = 0.7,
+		keys = {
+			{ 0, GUARD },
+			{ 0.12, { R = { pitch = 95, abduct = 3, swing = 6, elbow = 0, wrist = 0 }, L = GUARD_ARM, twist = 25, lean = 10, lunge = 0.6 } },
+			{ 0.3, { R = { pitch = 92, abduct = 3, swing = 6, elbow = 5 }, L = GUARD_ARM, twist = 25, lean = 10, lunge = 0.6 } },
+			{ 0.5, { R = { pitch = 40, abduct = 20, swing = -10, elbow = 120 }, L = GUARD_ARM, twist = -25, lean = -8, lunge = -0.2 } },
+			{ 0.7, { R = { pitch = 45, abduct = 18, elbow = 115 }, L = GUARD_ARM, twist = -15, lean = -4 } },
+		},
+	},
+	-- Pose au sol : accroupi, main posée devant (pièges, zones)
+	Plant = spell(
+		{ R = { pitch = 70, abduct = 15, elbow = 60 }, L = GUARD_ARM, lean = 15, drop = 0.3 },
+		{ R = { pitch = 45, abduct = 10, swing = 10, elbow = 10, wrist = -30 }, L = { pitch = 20, abduct = 30, elbow = 80 }, lean = 40, drop = 0.9, lunge = 0.4,
+			legR = { hip = 70, knee = 100 }, legL = { hip = 20, knee = 110 } },
+		{ R = { pitch = 45, abduct = 10, swing = 10, elbow = 12, wrist = -25 }, L = { pitch = 20, abduct = 30, elbow = 80 }, lean = 36, drop = 0.85, lunge = 0.4,
+			legR = { hip = 65, knee = 95 }, legL = { hip = 20, knee = 105 } },
+		0.15, 0.35, 0.8
+	),
+	-- Canalisation : deux mains devant, paumes ouvertes, tenues
+	Channel = hold({
+		R = { pitch = 88, abduct = 20, swing = 20, elbow = 25, wrist = 45 },
+		L = { pitch = 88, abduct = 20, swing = 20, elbow = 25, wrist = 45 },
+		lean = 6, headPitch = 5,
+	}, 0.3),
+	-- Tourbillon : bras ouverts, le buste tourne d'un côté puis de l'autre
+	Spin = {
+		duration = 0.9,
+		keys = {
+			{ 0, GUARD },
+			{ 0.15, { R = { pitch = 20, abduct = 85, elbow = 15 }, L = { pitch = 20, abduct = 85, elbow = 15 }, twist = -60, drop = 0.2 } },
+			{ 0.4, { R = { pitch = 20, abduct = 85, elbow = 10 }, L = { pitch = 20, abduct = 85, elbow = 10 }, twist = 70, drop = 0.1 } },
+			{ 0.6, { R = { pitch = 20, abduct = 85, elbow = 10 }, L = { pitch = 20, abduct = 85, elbow = 10 }, twist = -20 } },
+			{ 0.9, GUARD },
+		},
+	},
+	-- Coup de pied haut de la jambe droite
+	Kick = spell(
+		{ R = GUARD_ARM, L = GUARD_ARM, twist = 10, lean = -6, legR = { hip = 60, knee = 100 } },
+		{ R = { pitch = 30, abduct = 40, elbow = 80 }, L = { pitch = 40, abduct = 30, elbow = 90 }, twist = -15, lean = -18, lunge = 0.5, legR = { hip = 120, knee = 5 } },
+		{ R = GUARD_ARM, L = GUARD_ARM, twist = -10, lean = -12, legR = { hip = 100, knee = 20 } },
+		0.15, 0.3, 0.7
+	),
 }
 
 -- ─── Miroir (pour fabriquer LightL à partir de LightR) ──────────────────────
@@ -562,6 +615,10 @@ function StandStrikes.Get(standId, kind)
 	local animName = string.match(kind, "^Anim:(.+)$")
 	if animName then
 		local own = StandStrikes.Stands[standId]
+		if animName == "Flurry" then
+			-- La rafale reprend le barrage à thème du Stand (estocs, griffes…)
+			return (own and (own.Flurry or own.Barrage)) or DEFAULT_BARRAGE
+		end
 		return (own and own[animName]) or StandStrikes.SpellAnims[animName]
 	end
 	local def = StandStrikes.Stands[standId]

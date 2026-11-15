@@ -848,11 +848,20 @@ for _, def in pairs(StandData.Stands) do
 	end
 end
 
--- Attaques spéciales supplémentaires (T / F / G) : voir StandSpells.
+-- Moveset original de chaque Stand (E / R / T / F / G) : voir StandSpells.
+-- Les anciennes attaques sur ces touches (Barrage, Heavy Punch, Time Stop,
+-- Life Channel) sont retirées : leurs données restent plus haut mais ne sont
+-- plus utilisées.
+local SPELL_KEYS = { E = true, R = true, T = true, F = true, G = true }
 local extraSpells = require(script.Parent:WaitForChild("StandSpells"))
 for standId, moves in pairs(extraSpells) do
 	local def = StandData.Stands[standId]
 	if def and def.Moves then
+		for moveName, move in pairs(def.Moves) do
+			if move.Key and SPELL_KEYS[move.Key] then
+				def.Moves[moveName] = nil
+			end
+		end
 		for moveName, move in pairs(moves) do
 			def.Moves[moveName] = move
 		end

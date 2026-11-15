@@ -936,6 +936,7 @@ local HITSTUN = {
 	heavy = 0.8,
 	final = 0.9,
 	projectile = 0.5,
+	zone = 0.2,
 }
 local HITSTUN_DEFAULT = 0.5
 local hitstunUntil = {} -- [Player] = os.clock() de fin
@@ -1824,9 +1825,244 @@ local function spellTeleport(player, standDef, move)
 	end)
 end
 
-local function runSpell(player, stand, standDef, move, aim)
+-- ─── Mécaniques du moveset original ─────────────────────────────────────────
+
+-- Point au sol sous `pos` (pour les zones et les pièges)
+local function groundAt(player, pos)
+	local params = projectileParams(player)
+	local result = workspace:Raycast(pos + Vector3.new(0, 4, 0), Vector3.new(0, -40, 0), params)
+	return result and result.Position or (pos - Vector3.new(0, 3, 0))
+end
+
+local function flatLook(hrp)
+	local look = hrp.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	return flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
+end
+
+local function fxPart(props)
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	for k, v in pairs(props) do
+		part[k] = v
+	end
+	part.Parent = spellFolder
+	return part
+end
+
+-- Rafale : coups répétés devant le Stand pendant Duration, puis coup final.
+-- Comme un barrage : la cible est retenue, et la garde ne s'use pas.
+local function spellFlurry(player, stand, standDef, move, actionName)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not hrp or not humanoid then return end
+	local color = spellColor(standDef, move)
+	task.spawn(function()
+		local tick = move.TickRate or 0.1
+		local endsAt = os.clock() + (move.Duration or 2) - 0.2
+		task.wait(0.15) -- armement
+		local count = 0
+		local function stillRunning()
+			return stand.Parent and stand:GetAttribute("State") == actionName
+				and hrp.Parent and humanoid.Health > 0 and not spellStuns[humanoid]
+		end
+		while os.clock() < endsAt do
+			if not stillRunning() then return end
+			local targets = getTargets(player, hrp.CFrame, move.BoxSize or Vector3.new(7, 7, 10), move.Range or 9)
+			if #targets > 0 then
+				dealDamage(targets, move.Damage or 0.8, character, nil, "barrage")
+				stunTargets(targets, tick + 0.1)
+				count += 1
+				if count % 3 == 1 and targets[1].root then
+					impactFX(targets[1].root.Position, color, 4, 1.6)
+				end
+			end
+			task.wait(tick)
+		end
+		if not stillRunning() then return end
+		local targets = getTargets(player, hrp.CFrame, move.BoxSize or Vector3.new(7, 7, 10), move.Range or 9)
+		dealDamage(targets, move.FinalDamage or 4, character, move.FinalKnockback or 45, "final")
+		impactFX(#targets > 0 and targets[1].root and targets[1].root.Position
+			or (hrp.CFrame * CFrame.new(0, 0, -(move.Range or 9) / 2)).Position, color, 10, 0.9)
+	end)
+end
+
+-- Contre : pendant Duration, le prochain coup reçu est annulé et renvoyé.
+-- (Déclenché dans guardHook, section PARADE.)
+local counterState = {} -- [Player] = { untilT, move, standDef }
+
+local function spellCounter(player, standDef, move)
+	counterState[player] = { untilT = os.clock() + (move.Duration or 1), move = move, standDef = standDef }
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		impactFX(hrp.Position, spellColor(standDef, move), 5, 1.8)
+	end
+end
+
+-- Harpon : attrape la première cible vers la souris et la ramène devant soi.
+local function spellPull(player, standDef, move, aim)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local color = spellColor(standDef, move)
+	local flat = flatLook(hrp)
+	local origin = hrp.Position + flat * 2 + Vector3.new(0, 1.3, 0)
+	local dir = aimDirection(origin, flat, aim)
+	local range = move.Range or 20
+	local params = projectileParams(player)
+	local target, endPos = nil, origin + dir * range
+	local from, remaining = origin, range
+	for _ = 1, 6 do
+		local result = workspace:Spherecast(from, 1.2, dir * remaining, params)
+		if not result then break end
+		local hit = targetFromPart(player, result.Instance)
+		local hitPos = from + dir * result.Distance
+		if hit then
+			target, endPos = hit, hitPos
+			break
+		elseif hit == nil and result.Instance.CanCollide then
+			endPos = hitPos
+			break
+		end
+		local ignore = params.FilterDescendantsInstances
+		table.insert(ignore, hit == false and result.Instance:FindFirstAncestorOfClass("Model") or result.Instance)
+		params.FilterDescendantsInstances = ignore
+		from = hitPos + dir * 0.05
+		remaining -= result.Distance + 0.05
+	end
+
+	-- Le "câble" visible pendant un instant
+	local length = (endPos - origin).Magnitude
+	local rope = fxPart({
+		Color = color, Transparency = 0.2,
+		Size = Vector3.new(0.25, 0.25, math.max(length, 0.5)),
+		CFrame = CFrame.lookAt((origin + endPos) / 2, endPos),
+	})
+	TweenService:Create(rope, TweenInfo.new(0.35), { Transparency = 1 }):Play()
+	game:GetService("Debris"):AddItem(rope, 0.4)
+
+	if not target then return end
+	dealDamage({ target }, move.Damage or 6, character, nil, "projectile")
+	impactFX(endPos, color, 5, 1.4)
+	if target.guarded or not target.root then return end -- bloqué : pas de prise
+	stunTargets({ target }, move.Stun)
+	-- La cible est tirée devant le joueur
+	local model, root = target.model, target.root
+	local startCF = model:GetPivot()
+	local pullTime = move.PullTime or 0.25
+	local elapsed = 0
+	local connection
+	connection = RunService.Heartbeat:Connect(function(dt)
+		elapsed += dt
+		if not model.Parent or not hrp.Parent then
+			connection:Disconnect()
+			return
+		end
+		local goal = hrp.Position + flatLook(hrp) * (move.PullTo or 4)
+		goal = Vector3.new(goal.X, startCF.Position.Y, goal.Z)
+		local alpha = math.min(1, elapsed / pullTime)
+		local pos = startCF.Position:Lerp(goal, alpha * alpha * (3 - 2 * alpha))
+		model:PivotTo(CFrame.lookAt(pos, Vector3.new(hrp.Position.X, pos.Y, hrp.Position.Z)))
+		if alpha >= 1 then
+			connection:Disconnect()
+			root.AssemblyLinearVelocity = Vector3.zero
+		end
+	end)
+end
+
+-- Zone : champ au sol qui fait des dégâts à chaque tick à ceux qui restent dedans
+local function spellZone(player, standDef, move)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local color = spellColor(standDef, move)
+	local radius = move.Radius or 8
+	local ground = groundAt(player, hrp.Position + flatLook(hrp) * (move.Offset or 0))
+	local disc = fxPart({
+		Shape = Enum.PartType.Cylinder, Color = color, Transparency = 0.55,
+		Size = Vector3.new(0.3, radius * 2, radius * 2),
+		CFrame = CFrame.new(ground + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+	})
+	impactFX(ground + Vector3.new(0, 1, 0), color, radius, 0.8)
+	task.spawn(function()
+		local endsAt = os.clock() + (move.Lifetime or 3)
+		while os.clock() < endsAt and character.Parent do
+			local targets = getTargetsInRadius(player, ground + Vector3.new(0, 2, 0), radius)
+			if #targets > 0 then
+				dealDamage(targets, move.Damage or 3, character, nil, "zone")
+				stunTargets(targets, move.Slow)
+			end
+			task.wait(move.TickRate or 0.5)
+		end
+		TweenService:Create(disc, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+		game:GetService("Debris"):AddItem(disc, 0.35)
+	end)
+end
+
+-- Piège : posé devant, il explose quand un ennemi s'approche (un seul piège
+-- de chaque type par joueur : en poser un nouveau retire l'ancien).
+local activeMines = {} -- [Player] = { [Label] = part }
+
+local function spellMine(player, standDef, move)
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	local color = spellColor(standDef, move)
+	local key = move.Label or "Mine"
+	activeMines[player] = activeMines[player] or {}
+	local old = activeMines[player][key]
+	if old and old.Parent then old:Destroy() end
+
+	local pos = groundAt(player, hrp.Position + flatLook(hrp) * (move.Offset or 4)) + Vector3.new(0, 0.5, 0)
+	local mine = fxPart({
+		Name = "StandMine", Shape = Enum.PartType.Ball, Color = color, Transparency = 0.3,
+		Size = Vector3.new(1.1, 1.1, 1.1), CFrame = CFrame.new(pos),
+	})
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 6
+	light.Parent = mine
+	TweenService:Create(mine, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{ Size = Vector3.new(1.5, 1.5, 1.5), Transparency = 0.6 }):Play()
+	activeMines[player][key] = mine
+
+	task.spawn(function()
+		task.wait(move.ArmTime or 0.6)
+		local endsAt = os.clock() + (move.Lifetime or 12)
+		while mine.Parent and os.clock() < endsAt and player.Parent do
+			if #getTargetsInRadius(player, pos, move.TriggerRadius or 5) > 0 then
+				spellBurstAt(player, pos, move.Radius or 7, move.Damage, move.Knockback, move.Launch, move.Stun, color)
+				break
+			end
+			task.wait(0.1)
+		end
+		if mine.Parent then mine:Destroy() end
+	end)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	counterState[player] = nil
+	for _, mine in pairs(activeMines[player] or {}) do
+		if mine.Parent then mine:Destroy() end
+	end
+	activeMines[player] = nil
+end)
+
+local function runSpell(player, stand, standDef, move, aim, actionName)
 	local kind = move.Type
-	if kind == "Dash" then
+	if kind == "Flurry" then
+		spellFlurry(player, stand, standDef, move, actionName)
+		return
+	elseif kind == "Counter" then
+		spellCounter(player, standDef, move)
+		return
+	elseif kind == "Dash" then
 		spellDash(player, standDef, move)
 		return
 	elseif kind == "Teleport" then
@@ -1851,6 +2087,12 @@ local function runSpell(player, stand, standDef, move, aim)
 			end
 		elseif kind == "Buff" then
 			spellBuff(player, standDef, move)
+		elseif kind == "Pull" then
+			spellPull(player, standDef, move, aim)
+		elseif kind == "Zone" then
+			spellZone(player, standDef, move)
+		elseif kind == "Mine" then
+			spellMine(player, standDef, move)
 		end
 	end)
 end
@@ -1984,6 +2226,42 @@ end
 -- Appelé par dealDamage pour chaque cible : renvoie les dégâts réellement subis.
 guardHook = function(target, caster, amount, kind)
 	local defender = Players:GetPlayerFromCharacter(target.model)
+
+	-- CONTRE (attaques de type Counter) : le coup est annulé et renvoyé
+	local counter = defender and counterState[defender]
+	if counter and counter.untilT > os.clock() and caster and caster ~= target.model then
+		counterState[defender] = nil
+		target.guarded = "parry"
+		local attackerRoot = caster:FindFirstChild("HumanoidRootPart")
+		local attackerHumanoid = caster:FindFirstChildOfClass("Humanoid")
+		local defenderCharacter = defender.Character
+		if attackerRoot and attackerHumanoid and defenderCharacter then
+			local attacker = { model = caster, humanoid = attackerHumanoid, root = attackerRoot }
+			local move = counter.move
+			task.defer(function()
+				dealDamage({ attacker }, move.CounterDamage or 14, defenderCharacter, move.CounterKnockback, "heavy")
+				stunTargets({ attacker }, move.CounterStun)
+			end)
+			-- Le Stand frappe (animation du coup lourd du Stand)
+			local stand = workspace:FindFirstChild(defender.Name .. "Stand")
+			if stand then
+				local started = workspace:GetServerTimeNow()
+				stand:SetAttribute("State", "HeavyPunch")
+				stand:SetAttribute("StateStarted", started)
+				task.delay(0.45, function()
+					if stand.Parent and stand:GetAttribute("StateStarted") == started then
+						stand:SetAttribute("State", "Idle")
+						stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
+					end
+				end)
+			end
+			local pos = target.root and target.root.Position or attackerRoot.Position
+			impactFX(pos, spellColor(counter.standDef, move), 12, 1.3)
+			floatingText(pos, "COUNTER!", spellColor(counter.standDef, move))
+		end
+		return 0
+	end
+
 	local state = defender and blockState[defender]
 	if not state then return amount end
 	local root = target.root
@@ -2497,7 +2775,7 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		end)
 	elseif move.Type then
 		-- Attaques T / F / G (StandSpells) ; 1er argument = point visé
-		runSpell(player, stand, standDef, move, (...))
+		runSpell(player, stand, standDef, move, (...), actionName)
 		task.delay(move.Duration or 0.6, function()
 			if stand.Parent and stand:GetAttribute("State") == actionName then
 				stand:SetAttribute("State", "Idle")

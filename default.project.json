@@ -19,6 +19,9 @@
           }
         }
       },
+      "PlayerPoses": {
+        "$path": "src/ReplicatedStorage/PlayerPoses.luau"
+      },
       "StandData": {
         "$path": "src/ReplicatedStorage/StandData.luau",
         "$attributes": {
@@ -46,6 +49,24 @@
         },
         "Block": {
           "$path": "src/ReplicatedStorage/Animations/Block.luau"
+        },
+        "CmdBrace": {
+          "$path": "src/ReplicatedStorage/Animations/CmdBrace.luau"
+        },
+        "CmdCast": {
+          "$path": "src/ReplicatedStorage/Animations/CmdCast.luau"
+        },
+        "CmdDash": {
+          "$path": "src/ReplicatedStorage/Animations/CmdDash.luau"
+        },
+        "CmdPlant": {
+          "$path": "src/ReplicatedStorage/Animations/CmdPlant.luau"
+        },
+        "CmdPoint": {
+          "$path": "src/ReplicatedStorage/Animations/CmdPoint.luau"
+        },
+        "CmdSummon": {
+          "$path": "src/ReplicatedStorage/Animations/CmdSummon.luau"
         },
         "Cool Run Sprint": {
           "$path": "src/ReplicatedStorage/Animations/Cool Run Sprint.luau",
@@ -297,6 +318,9 @@
         },
         "SpellBar": {
           "$path": "src/StarterPlayerScripts/SpellBar.client.luau"
+        },
+        "SpellGestures": {
+          "$path": "src/StarterPlayerScripts/SpellGestures.client.luau"
         },
         "StandController": {
           "$path": "src/StarterPlayerScripts/StandController.client.luau",
