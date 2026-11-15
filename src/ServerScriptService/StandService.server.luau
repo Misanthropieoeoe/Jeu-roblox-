@@ -2734,6 +2734,7 @@ end
 
 local function saveStandData(player)
 	if not standStore then return end
+	if player:GetAttribute("StandLoadFailed") then return end
 	local data = player:GetAttribute("Standless")
 		and { Standless = true }
 		or { StandId = player:GetAttribute("StandId") }
@@ -2749,15 +2750,28 @@ local function saveStandData(player)
 end
 
 local function loadStandData(player)
-	if not standStore then return end
+	if not standStore then
+		-- pas de sauvegarde (Studio sans accès aux API) : on part sans Stand
+		player:SetAttribute("Standless", true)
+		return
+	end
 	local ok, data = pcall(function()
 		return standStore:GetAsync("Stand_" .. player.UserId)
 	end)
 	if not ok then
 		warn("[StandService] Failed to load stand for", player.Name, data)
+		-- on ne sait pas ce qu'il avait : sans Stand pour cette partie, et
+		-- surtout on n'écrase pas sa vraie sauvegarde en partant
+		player:SetAttribute("StandLoadFailed", true)
+		player:SetAttribute("Standless", true)
 		return
 	end
-	if type(data) ~= "table" then return end
+	if type(data) ~= "table" then
+		-- nouveau joueur (jamais joué) : il apparaît sans Stand
+		player:SetAttribute("Standless", true)
+		print("[StandService] Nouveau joueur sans Stand :", player.Name)
+		return
+	end
 	if type(data.Skins) == "table" then
 		setSkinTable(player, data.Skins)
 	end
