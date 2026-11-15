@@ -848,17 +848,17 @@ local LIGHT_PUNCH_DEFAULTS = {
 	Label = "Light Punch",
 	Key = "M1",
 	Cooldown = 0.48, -- temps entre deux M1 (l'animation dure 0.42 s)
-	Damage = 4,
-	Range = 9,
+	Damage = 3,
+	Range = 10,
 	BoxSize = Vector3.new(7, 7, 10),
 	LightOffset = Vector3.new(0, 1.2, -3.2),
 	LightSmoothness = 0.3,
 
 	-- Combo : ComboLength coups, le dernier est un coup puissant qui repousse
 	-- (même animation et effets que le Heavy Punch, sans toucher à son cooldown).
-	ComboLength = 4,
-	FinisherDamage = 8,
-	FinisherKnockback = 150, -- force du recul (le Heavy Punch est à 55)
+	ComboLength = 5,
+	FinisherDamage = 9,
+	FinisherKnockback = 175, -- force du recul (le Heavy Punch est à 55)
 	FinisherHitDelay = 0.25, -- moment de l'impact dans l'animation
 	FinisherDuration = 0.45, -- durée de l'animation
 	FinisherEndLag = 1.0, -- temps avant de pouvoir relancer un M1 après le final

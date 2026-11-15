@@ -80,17 +80,17 @@ return {
 			FinalDamage = 5, FinalKnockback = 45,
 		},
 		Starbreaker = {
-			Label = "Starbreaker", Key = "R", Cooldown = 7, Type = "Strike",
+			Label = "Starbreaker", Key = "R", Cooldown = 12, Type = "Strike",
 			Duration = 0.8, HitDelay = 0.45, Anim = "Uppercut", PlayerAnim = "CmdPoint", Color = VIOLET,
 			Damage = 17, Knockback = 60, Range = 10, BoxSize = Vector3.new(8, 8, 11),
 		},
 		CometPebble = {
-			Label = "Comet Pebble", Key = "T", Cooldown = 7, Type = "Projectile",
+			Label = "Comet Pebble", Key = "T", Cooldown = 10, Type = "Projectile",
 			Duration = 0.5, HitDelay = 0.2, Anim = "Flick", PlayerAnim = "CmdPoint", Color = SILVER,
 			Count = 1, Speed = 180, Range = 100, Damage = 11, Knockback = 15, Size = 0.6,
 		},
 		StellarFinger = {
-			Label = "Stellar Finger", Key = "F", Cooldown = 9, Type = "Strike",
+			Label = "Stellar Finger", Key = "F", Cooldown = 12, Type = "Strike",
 			Duration = 0.6, HitDelay = 0.22, Anim = "Point", PlayerAnim = "CmdPoint", Color = VIOLET,
 			-- le doigt s'allonge : portée longue, zone très fine
 			Damage = 13, Knockback = 20, Range = 18, BoxSize = Vector3.new(3, 3, 20),
@@ -112,12 +112,12 @@ return {
 			FinalDamage = 5, FinalKnockback = 50,
 		},
 		CrownHammer = {
-			Label = "Crown Hammer", Key = "R", Cooldown = 8, Type = "Burst",
+			Label = "Crown Hammer", Key = "R", Cooldown = 12, Type = "Burst",
 			Duration = 0.9, HitDelay = 0.5, Anim = "Slam", PlayerAnim = "CmdPoint", Color = GOLD,
 			Offset = 5, Radius = 7, Damage = 17, Knockback = 45, Launch = 20,
 		},
 		DaggerRain = {
-			Label = "Dagger Rain", Key = "T", Cooldown = 10, Type = "Projectile",
+			Label = "Dagger Rain", Key = "T", Cooldown = 12, Type = "Projectile",
 			Duration = 0.6, HitDelay = 0.22, Anim = "Throw", PlayerAnim = "CmdCast", Color = SILVER,
 			Count = 6, Spread = 40, Speed = 120, Range = 70, Damage = 2.5, Size = 0.4, Shape = "Blade",
 		},
@@ -128,7 +128,7 @@ return {
 			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 		EmperorsStep = {
-			Label = "Emperor's Step", Key = "G", Cooldown = 14, Type = "Teleport",
+			Label = "Emperor's Step", Key = "G", Cooldown = 16, Type = "Teleport",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Strike", PlayerAnim = "CmdDash", Color = GOLD,
 			Range = 30, Damage = 14, Knockback = 30, BoxSize = Vector3.new(8, 7, 10),
 		},
@@ -139,21 +139,21 @@ return {
 		SavageFlurry = {
 			Label = "Savage Flurry", Key = "E", Cooldown = 14, Type = "Flurry",
 			Duration = 2.0, Anim = "Flurry", PlayerAnim = "CmdBrace",
-			TickRate = 0.1, Damage = 0.9, Range = 9, BoxSize = Vector3.new(8, 7, 10),
+			TickRate = 0.1, Damage = 1.2, Range = 9, BoxSize = Vector3.new(8, 7, 10),
 			FinalDamage = 5, FinalKnockback = 55,
 		},
 		SkullCrusher = {
-			Label = "Skull Crusher", Key = "R", Cooldown = 8, Type = "Strike",
+			Label = "Skull Crusher", Key = "R", Cooldown = 13, Type = "Strike",
 			Duration = 0.9, HitDelay = 0.5, Anim = "Slam", PlayerAnim = "CmdPoint",
 			Damage = 18, Knockback = 50, Stun = 0.4, Range = 9, BoxSize = Vector3.new(8, 8, 10),
 		},
 		ShrapnelFan = {
-			Label = "Shrapnel Fan", Key = "T", Cooldown = 11, Type = "Projectile",
+			Label = "Shrapnel Fan", Key = "T", Cooldown = 13, Type = "Projectile",
 			Duration = 0.6, HitDelay = 0.22, Anim = "Throw", PlayerAnim = "CmdCast", Color = SILVER,
-			Count = 8, Spread = 50, Speed = 125, Range = 60, Damage = 2, Size = 0.4, Shape = "Blade",
+			Count = 8, Spread = 50, Speed = 125, Range = 60, Damage = 2.2, Size = 0.4, Shape = "Blade",
 		},
 		PredatorLunge = {
-			Label = "Predator Lunge", Key = "F", Cooldown = 9, Type = "Dash",
+			Label = "Predator Lunge", Key = "F", Cooldown = 12, Type = "Dash",
 			Duration = 0.6, HitDelay = 0.1, Anim = "Dash", PlayerAnim = "CmdDash",
 			DashSpeed = 100, DashTime = 0.25, Damage = 14, Knockback = 40, BoxSize = Vector3.new(8, 7, 8),
 		},
@@ -174,17 +174,17 @@ return {
 			FinalDamage = 5, FinalKnockback = 50,
 		},
 		RebuildSmash = {
-			Label = "Rebuild Smash", Key = "R", Cooldown = 7, Type = "Strike",
+			Label = "Rebuild Smash", Key = "R", Cooldown = 12, Type = "Strike",
 			Duration = 0.75, HitDelay = 0.35, Anim = "Strike", PlayerAnim = "CmdPoint", Color = PINK,
 			Damage = 16, Knockback = 55, Range = 10, BoxSize = Vector3.new(8, 7, 11),
 		},
 		Mend = {
-			Label = "Mend", Key = "T", Cooldown = 25, Type = "Buff",
+			Label = "Mend", Key = "T", Cooldown = 50, Type = "Buff",
 			Duration = 0.8, HitDelay = 0.35, Anim = "Raise", PlayerAnim = "CmdSummon", Color = PINK,
-			Heal = 22,
+			Heal = 15,
 		},
 		ShardRecall = {
-			Label = "Shard Recall", Key = "F", Cooldown = 12, Type = "Pull",
+			Label = "Shard Recall", Key = "F", Cooldown = 14, Type = "Pull",
 			Duration = 0.7, HitDelay = 0.2, Anim = "Pull", PlayerAnim = "CmdPoint", Color = PINK,
 			Range = 20, Damage = 8, Stun = 1,
 		},
@@ -192,37 +192,37 @@ return {
 			Label = "Fusion Lock", Key = "G", Cooldown = 14, Type = "Strike",
 			Duration = 0.6, HitDelay = 0.22, Anim = "Touch", PlayerAnim = "CmdPoint", Color = PINK,
 			-- la cible est "réparée" dans le décor : immobilisée
-			Damage = 8, Stun = 2.2, Range = 9, BoxSize = Vector3.new(6, 6, 9),
+			Damage = 8, Stun = 2.5, Range = 9, BoxSize = Vector3.new(6, 6, 9),
 		},
 	},
 
 	-- ─── Silver Chariot : vitesse et escrime ─────────────────────────────────
 	SilverChariot = {
 		ThousandNeedles = {
-			Label = "Thousand Needles", Key = "E", Cooldown = 12, Type = "Flurry",
+			Label = "Thousand Needles", Key = "E", Cooldown = 15, Type = "Flurry",
 			Duration = 1.8, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = SILVER,
 			TickRate = 0.08, Damage = 0.6, Range = 10, BoxSize = Vector3.new(6, 6, 11),
 			FinalDamage = 4, FinalKnockback = 35,
 		},
 		PiercingArc = {
-			Label = "Piercing Arc", Key = "R", Cooldown = 5, Type = "Strike",
+			Label = "Piercing Arc", Key = "R", Cooldown = 10, Type = "Strike",
 			Duration = 0.6, HitDelay = 0.25, Anim = "Point", PlayerAnim = "CmdPoint", Color = SILVER,
 			Damage = 14, Knockback = 30, Range = 14, BoxSize = Vector3.new(4, 5, 16),
 		},
 		AfterimageFeint = {
-			Label = "Afterimage Feint", Key = "T", Cooldown = 20, Type = "Buff",
+			Label = "Afterimage Feint", Key = "T", Cooldown = 50, Type = "Buff",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Spin", PlayerAnim = "CmdSummon", Color = SILVER,
-			SpeedBoost = 1.5, BuffTime = 5,
+			SpeedBoost = 1.75, BuffTime = 5,
 		},
 		BladeVolley = {
-			Label = "Blade Volley", Key = "F", Cooldown = 9, Type = "Projectile",
+			Label = "Blade Volley", Key = "F", Cooldown = 12, Type = "Projectile",
 			Duration = 0.55, HitDelay = 0.22, Anim = "Throw", PlayerAnim = "CmdCast", Color = SILVER,
 			Count = 3, Spread = 10, Speed = 140, Range = 80, Damage = 4.5, Size = 0.5, Shape = "Blade",
 		},
 		Riposte = {
-			Label = "Riposte", Key = "G", Cooldown = 14, Type = "Counter",
+			Label = "Riposte", Key = "G", Cooldown = 25, Type = "Counter",
 			Duration = 1.0, Anim = "CounterStance", PlayerAnim = "CmdBrace", Color = SILVER,
-			CounterDamage = 15, CounterKnockback = 40, CounterStun = 1,
+			CounterDamage = 20, CounterKnockback = 40, CounterStun = 1.5,
 		},
 	},
 
@@ -231,7 +231,7 @@ return {
 		DetonationJabs = {
 			Label = "Detonation Jabs", Key = "E", Cooldown = 14, Type = "Flurry",
 			Duration = 2.0, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = FIRE,
-			TickRate = 0.1, Damage = 0.7, Range = 9, BoxSize = Vector3.new(7, 7, 10),
+			TickRate = 0.1, Damage = 1, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 6, FinalKnockback = 50,
 		},
 		PrimedPalm = {
@@ -263,13 +263,13 @@ return {
 	-- ─── Gold Experience : la vie ────────────────────────────────────────────
 	GoldExperience = {
 		BloomFlurry = {
-			Label = "Bloom Flurry", Key = "E", Cooldown = 14, Type = "Flurry",
+			Label = "Bloom Flurry", Key = "E", Cooldown = 12, Type = "Flurry",
 			Duration = 2.0, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = GREEN,
 			TickRate = 0.1, Damage = 0.8, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 4, FinalKnockback = 45,
 		},
 		VitalOverload = {
-			Label = "Vital Overload", Key = "R", Cooldown = 8, Type = "Strike",
+			Label = "Vital Overload", Key = "R", Cooldown = 13, Type = "Strike",
 			Duration = 0.6, HitDelay = 0.22, Anim = "Touch", PlayerAnim = "CmdPoint", Color = GREEN,
 			Damage = 12, Stun = 1, Range = 9, BoxSize = Vector3.new(6, 6, 9),
 		},
@@ -280,35 +280,35 @@ return {
 			Damage = 14, Launch = 40, Stun = 0.6,
 		},
 		Swarm = {
-			Label = "Swarm", Key = "F", Cooldown = 11, Type = "Projectile",
+			Label = "Swarm", Key = "F", Cooldown = 12, Type = "Projectile",
 			Duration = 0.7, HitDelay = 0.3, Anim = "ChargeBlast", PlayerAnim = "CmdCast", Color = GREEN,
 			Count = 4, Spread = 20, Speed = 70, Range = 70, Damage = 3.5, Size = 0.5,
 			Homing = 2, HomingRange = 25,
 		},
 		Lifespring = {
-			Label = "Lifespring", Key = "G", Cooldown = 25, Type = "Buff",
+			Label = "Lifespring", Key = "G", Cooldown = 50, Type = "Buff",
 			Duration = 0.8, HitDelay = 0.35, Anim = "Raise", PlayerAnim = "CmdSummon", Color = GREEN,
-			Heal = 20,
+			Heal = 15,
 		},
 	},
 
 	-- ─── Gold Experience Requiem : l'inévitable ──────────────────────────────
 	GoldExperienceRequiem = {
 		RequiemFlurry = {
-			Label = "Requiem Flurry", Key = "E", Cooldown = 14, Type = "Flurry",
+			Label = "Requiem Flurry", Key = "E", Cooldown = 12, Type = "Flurry",
 			Duration = 2.0, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = GOLD,
 			TickRate = 0.1, Damage = 0.9, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 6, FinalKnockback = 55,
 		},
 		FinalVerdict = {
-			Label = "Final Verdict", Key = "R", Cooldown = 8, Type = "Strike",
+			Label = "Final Verdict", Key = "R", Cooldown = 12, Type = "Strike",
 			Duration = 0.75, HitDelay = 0.35, Anim = "Strike", PlayerAnim = "CmdPoint", Color = GOLD,
 			Damage = 18, Knockback = 60, Range = 10, BoxSize = Vector3.new(8, 7, 11),
 		},
 		UndoStep = {
-			Label = "Undo Step", Key = "T", Cooldown = 18, Type = "Counter",
+			Label = "Undo Step", Key = "T", Cooldown = 25, Type = "Counter",
 			Duration = 1.2, Anim = "CounterStance", PlayerAnim = "CmdBrace", Color = GOLD,
-			CounterDamage = 18, CounterKnockback = 45, CounterStun = 1.2,
+			CounterDamage = 22, CounterKnockback = 45, CounterStun = 1.5,
 		},
 		GoldenTide = {
 			Label = "Golden Tide", Key = "F", Cooldown = 18, Type = "Burst",
@@ -316,7 +316,7 @@ return {
 			Offset = 0, Radius = 12, Damage = 16, Knockback = 45,
 		},
 		AscendantDash = {
-			Label = "Ascendant Dash", Key = "G", Cooldown = 9, Type = "Dash",
+			Label = "Ascendant Dash", Key = "G", Cooldown = 16, Type = "Dash",
 			Duration = 0.6, HitDelay = 0.1, Anim = "Dash", PlayerAnim = "CmdDash", Color = GOLD,
 			DashSpeed = 95, DashTime = 0.25, Damage = 14, Knockback = 40, BoxSize = Vector3.new(8, 7, 8),
 		},
@@ -325,20 +325,20 @@ return {
 	-- ─── King Crimson : prédiction et coups invisibles ───────────────────────
 	KingCrimson = {
 		CrimsonFlurry = {
-			Label = "Crimson Flurry", Key = "E", Cooldown = 14, Type = "Flurry",
+			Label = "Crimson Flurry", Key = "E", Cooldown = 12, Type = "Flurry",
 			Duration = 2.0, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = CRIMSON,
-			TickRate = 0.1, Damage = 0.9, Range = 9, BoxSize = Vector3.new(7, 7, 10),
+			TickRate = 0.1, Damage = 1.3, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 5, FinalKnockback = 50,
 		},
 		HeartPiercer = {
-			Label = "Heart Piercer", Key = "R", Cooldown = 8, Type = "Strike",
+			Label = "Heart Piercer", Key = "R", Cooldown = 13, Type = "Strike",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Point", PlayerAnim = "CmdPoint", Color = CRIMSON,
 			Damage = 18, Knockback = 30, Range = 12, BoxSize = Vector3.new(4, 5, 14),
 		},
 		BlindSpot = {
-			Label = "Blind Spot", Key = "T", Cooldown = 14, Type = "Teleport",
+			Label = "Blind Spot", Key = "T", Cooldown = 19, Type = "Teleport",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Strike", PlayerAnim = "CmdDash", Color = CRIMSON,
-			Range = 35, Damage = 15, Knockback = 30, BoxSize = Vector3.new(8, 7, 10),
+			Range = 35, Damage = 20, Knockback = 30, BoxSize = Vector3.new(8, 7, 10),
 		},
 		Foreseen = {
 			Label = "Foreseen", Key = "F", Cooldown = 16, Type = "Counter",
@@ -358,7 +358,7 @@ return {
 		GemStream = {
 			Label = "Gem Stream", Key = "E", Cooldown = 12, Type = "Projectile",
 			Duration = 0.7, HitDelay = 0.3, Anim = "ChargeBlast", PlayerAnim = "CmdCast", Color = EMERALD,
-			Count = 6, Spread = 20, Speed = 110, Range = 90, Damage = 3, Size = 0.5,
+			Count = 6, Spread = 20, Speed = 110, Range = 90, Damage = 2.5, Size = 0.5,
 		},
 		CoilLash = {
 			Label = "Coil Lash", Key = "R", Cooldown = 6, Type = "Strike",
@@ -404,44 +404,44 @@ return {
 		AshField = {
 			Label = "Ash Field", Key = "F", Cooldown = 16, Type = "Zone",
 			Duration = 0.9, HitDelay = 0.4, Anim = "Channel", PlayerAnim = "CmdCast", Color = FIRE,
-			Offset = 6, Radius = 7, Lifetime = 3.5, TickRate = 0.5, Damage = 3,
+			Offset = 6, Radius = 7, Lifetime = 3.5, TickRate = 0.5, Damage = 1.5,
 		},
 		FireBird = {
 			Label = "Fire Bird", Key = "G", Cooldown = 15, Type = "Projectile",
 			Duration = 0.7, HitDelay = 0.3, Anim = "ChargeBlast", PlayerAnim = "CmdCast", Color = FIRE,
-			Count = 1, Speed = 60, Range = 80, Damage = 8, Size = 1.6,
-			Explode = { Radius = 8, Damage = 10 }, Homing = 2.5, HomingRange = 30,
+			Count = 1, Speed = 60, Range = 80, Damage = 7, Size = 1.6,
+			Explode = { Radius = 8, Damage = 8 }, Homing = 2.5, HomingRange = 30,
 		},
 	},
 
 	-- ─── Sticky Fingers : fermetures éclair et passages ──────────────────────
 	StickyFingers = {
 		ZipFlurry = {
-			Label = "Zip Flurry", Key = "E", Cooldown = 14, Type = "Flurry",
+			Label = "Zip Flurry", Key = "E", Cooldown = 12, Type = "Flurry",
 			Duration = 2.0, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = BLUE,
 			TickRate = 0.1, Damage = 0.8, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 5, FinalKnockback = 45,
 		},
 		UnzipSmash = {
-			Label = "Unzip Smash", Key = "R", Cooldown = 7, Type = "Strike",
+			Label = "Unzip Smash", Key = "R", Cooldown = 12.5, Type = "Strike",
 			Duration = 0.8, HitDelay = 0.45, Anim = "Uppercut", PlayerAnim = "CmdPoint", Color = BLUE,
 			Damage = 16, Knockback = 50, Range = 10, BoxSize = Vector3.new(8, 8, 11),
 		},
 		SeamHop = {
-			Label = "Seam Hop", Key = "T", Cooldown = 7, Type = "Dash",
+			Label = "Seam Hop", Key = "T", Cooldown = 15, Type = "Dash",
 			Duration = 0.5, HitDelay = 0.1, Anim = "Dash", PlayerAnim = "CmdDash", Color = BLUE,
 			DashSpeed = 110, DashTime = 0.25, Damage = 6, BoxSize = Vector3.new(6, 6, 8),
 		},
 		ZipLine = {
-			Label = "Zip Line", Key = "F", Cooldown = 11, Type = "Pull",
+			Label = "Zip Line", Key = "F", Cooldown = 13, Type = "Pull",
 			Duration = 0.7, HitDelay = 0.2, Anim = "Pull", PlayerAnim = "CmdPoint", Color = BLUE,
 			Range = 24, Damage = 6, Stun = 1,
 		},
 		SplitTrap = {
 			Label = "Split Trap", Key = "G", Cooldown = 14, Type = "Mine",
 			Duration = 0.8, HitDelay = 0.35, Anim = "Plant", PlayerAnim = "CmdPlant", Color = BLUE,
-			Offset = 4, Radius = 6, TriggerRadius = 4.5, ArmTime = 0.6, Lifetime = 12,
-			Damage = 10, Stun = 1.8,
+			Offset = 4, Radius = 10, TriggerRadius = 7.5, ArmTime = 0.5, Lifetime = 12,
+			Damage = 10, Stun = 1.5,
 		},
 	},
 
@@ -450,28 +450,28 @@ return {
 		VelocityFlurry = {
 			Label = "Velocity Flurry", Key = "E", Cooldown = 12, Type = "Flurry",
 			Duration = 1.6, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = CYAN,
-			TickRate = 0.07, Damage = 0.6, Range = 9, BoxSize = Vector3.new(7, 7, 10),
+			TickRate = 0.07, Damage = 1, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 5, FinalKnockback = 45,
 		},
 		MachChop = {
-			Label = "Mach Chop", Key = "R", Cooldown = 7, Type = "Dash",
+			Label = "Mach Chop", Key = "R", Cooldown = 15, Type = "Dash",
 			Duration = 0.55, HitDelay = 0.1, Anim = "Dash", PlayerAnim = "CmdDash", Color = CYAN,
-			DashSpeed = 140, DashTime = 0.3, Damage = 15, BoxSize = Vector3.new(8, 7, 10),
+			DashSpeed = 140, DashTime = 0.3, Damage = 17, BoxSize = Vector3.new(8, 7, 10),
 		},
 		Accelerate = {
-			Label = "Accelerate", Key = "T", Cooldown = 20, Type = "Buff",
+			Label = "Accelerate", Key = "T", Cooldown = 25, Type = "Buff",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Raise", PlayerAnim = "CmdSummon", Color = CYAN,
-			SpeedBoost = 1.6, BuffTime = 6,
+			SpeedBoost = 2, BuffTime = 6,
 		},
 		OrbitStrike = {
 			Label = "Orbit Strike", Key = "F", Cooldown = 13, Type = "Teleport",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Strike", PlayerAnim = "CmdDash", Color = CYAN,
-			Range = 40, Damage = 14, Knockback = 30, BoxSize = Vector3.new(8, 7, 10),
+			Range = 40, Damage = 20, Knockback = 30, BoxSize = Vector3.new(8, 7, 10),
 		},
 		EventHorizon = {
-			Label = "Event Horizon", Key = "G", Cooldown = 28, Type = "Burst",
+			Label = "Event Horizon", Key = "G", Cooldown = 25, Type = "Burst",
 			Duration = 1.1, HitDelay = 0.9, Anim = "Raise", PlayerAnim = "CmdSummon", Color = CYAN,
-			Offset = 0, Radius = 16, Damage = 22, Knockback = 55, Stun = 1,
+			Offset = 0, Radius = 16, Damage = 30, Knockback = 55, Stun = 1.5,
 		},
 	},
 }
