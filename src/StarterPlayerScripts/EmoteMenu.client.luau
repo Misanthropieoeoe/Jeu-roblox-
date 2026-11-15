@@ -13,6 +13,7 @@ local UITheme = require(ReplicatedStorage:WaitForChild("UITheme"))
 if not UITheme.Guard(script) then return end
 local PlayerPoses = require(ReplicatedStorage:WaitForChild("PlayerPoses"))
 local AnimationController = require(ReplicatedStorage:WaitForChild("AnimationController"))
+local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
 local C = UITheme.Colors
 
 local player = Players.LocalPlayer
@@ -184,6 +185,18 @@ local function watchCharacter(character)
 		menacing[character] = true
 		task.spawn(function()
 			local rootPart = character:FindFirstChild("HumanoidRootPart")
+			-- grondement ゴゴゴ (si son ID est rempli dans SFX)
+			local menaceId = SFX.Get("Menace")
+			local menaceSound
+			if menaceId ~= "" and rootPart then
+				menaceSound = Instance.new("Sound")
+				menaceSound.SoundId = menaceId
+				menaceSound.Volume = 0.5
+				menaceSound.Looped = true
+				menaceSound.RollOffMaxDistance = 70
+				menaceSound.Parent = rootPart
+				menaceSound:Play()
+			end
 			local started = os.clock()
 			-- l'attribut SyncAnim reste tant que le joueur n'a pas lancé autre chose
 			while character.Parent and rootPart and isEmote(character:GetAttribute("SyncAnim"))
@@ -193,6 +206,7 @@ local function watchCharacter(character)
 				letter(rootPart)
 				task.wait(0.28)
 			end
+			if menaceSound then menaceSound:Destroy() end
 			menacing[character] = nil
 		end)
 	end

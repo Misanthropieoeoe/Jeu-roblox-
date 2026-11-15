@@ -13,6 +13,7 @@ local SFX = {
 	GuardBreak = "",  -- guard_break.wav : garde brisée
 	DoubleJump = "",  -- double_jump.wav : double saut
 	Summon = "",      -- summon.wav      : arrêt du temps (petit éclat sous le cri)
+	Menace = "",      -- menace.wav      : grondement ゴゴゴ des emotes
 	Coin = "",        -- coin.wav        : argent ramassé (+30)
 	Chest = "",       -- chest.wav       : ouverture d'un coffre de skins
 }

@@ -90,101 +90,169 @@ def save(name, x, gain=0.9):
     return path
 
 
+# ─── Outils "anime" : écho, saturation, accords de cuivres ───────────────────
+def fft_convolve(x, ir):
+    n = len(x) + len(ir) - 1
+    size = 1 << (n - 1).bit_length()
+    y = np.fft.irfft(np.fft.rfft(x, size) * np.fft.rfft(ir, size), size)[:n]
+    return y
+
+
+def reverb(x, seconds=1.2, wet=0.35, bright=4000):
+    """réverbération de grande salle (réponse impulsionnelle de bruit qui s'éteint)"""
+    ir = noise(seconds) * np.exp(-np.linspace(0, 6, int(seconds * RATE)))
+    ir = lowpass(ir, bright)
+    ir /= np.sqrt(np.sum(ir ** 2)) + 1e-9
+    wet_sig = fft_convolve(x, ir)
+    out = np.zeros(len(wet_sig))
+    out[: len(x)] += x * (1 - wet)
+    return out + wet_sig * wet
+
+
+def drive(x, amount=2.5):
+    """saturation douce : rend les coups plus "épais" """
+    return np.tanh(x * amount) / np.tanh(amount)
+
+
+def brass(dur, freqs, attack=0.02, decay=2.5, cutoff=2200):
+    """accord de cuivres synthétiques (dents de scie filtrées, léger désaccord)"""
+    layers = []
+    for f in freqs:
+        for detune in (-0.004, 0.0, 0.005):
+            layers.append(tone(dur, f * (1 + detune), f * (1 + detune), "saw"))
+    chord = mix(*layers) / len(layers)
+    return env(lowpass(chord, cutoff), attack, decay)
+
+
+def reverse_swell(dur, bright=6000):
+    """souffle inversé qui monte (comme une cymbale passée à l'envers)"""
+    x = lowpass(noise(dur), bright) * np.linspace(0, 1, int(dur * RATE)) ** 3
+    return x
+
+
+def note(name):
+    table = {"C": -9, "D": -7, "E": -5, "F": -4, "G": -2, "A": 0, "B": 2}
+    letter, acc, octave = name[0], name[1:-1], int(name[-1])
+    semi = table[letter] + (1 if acc == "#" else -1 if acc == "b" else 0) + (octave - 4) * 12
+    return 440 * 2 ** (semi / 12)
+
+
 # ─── Les sons ──────────────────────────────────────────────────────────────
 def punch_hit():
-    """coup de poing : claque sèche + bruit grave"""
-    thump = env(tone(0.16, 180, 60), 0.002, 9)
-    crack = env(lowpass(noise(0.08), 3500), 0.001, 14) * 0.8
-    return save("punch_hit", mix(thump, crack))
+    """coup de poing anime : claque saturée + basse courte + petit écho"""
+    thump = env(tone(0.18, 210, 55), 0.001, 10)
+    crack = env(lowpass(noise(0.07), 6000), 0.0005, 16)
+    x = drive(mix(thump, crack * 0.9), 3.0)
+    return save("punch_hit", reverb(x, 0.5, 0.18))
 
 
 def heavy_hit():
-    """coup final / gros coup : boum grave + craquement"""
-    boom = env(tone(0.55, 120, 38), 0.003, 6)
-    sub = env(tone(0.5, 55, 40), 0.01, 5) * 0.6
-    crack = env(lowpass(noise(0.18), 5000), 0.001, 10) * 0.9
-    return save("heavy_hit", mix(boom, sub, crack))
+    """coup final : énorme impact + accord de cuivres sombre + longue salle"""
+    boom = env(tone(0.7, 140, 32), 0.002, 5)
+    sub = env(tone(0.9, 48, 36), 0.01, 3.5) * 0.8
+    crack = env(lowpass(noise(0.2), 7000), 0.0005, 9)
+    hit = drive(mix(boom, sub, crack), 3.5)
+    stab = brass(0.9, [note("D2"), note("A2"), note("D3"), note("F3")], 0.004, 3.2, 1800) * 0.55
+    return save("heavy_hit", reverb(mix(hit, stab), 1.6, 0.3))
 
 
 def impact():
-    """impact de sort : grondement court"""
-    rumble = env(lowpass(noise(0.8), 600), 0.004, 5)
-    body = env(tone(0.6, 90, 45), 0.004, 5) * 0.7
-    snap = env(lowpass(noise(0.06), 6000), 0.001, 12) * 0.5
-    return save("impact", mix(rumble, body, snap))
+    """impact de sort : explosion grave qui roule dans une grande salle"""
+    rumble = env(lowpass(noise(1.0), 500), 0.003, 4)
+    body = env(tone(0.8, 95, 40), 0.003, 4) * 0.8
+    snap = env(lowpass(noise(0.05), 8000), 0.0005, 14) * 0.6
+    return save("impact", reverb(drive(mix(rumble, body, snap), 2.2), 1.4, 0.35))
 
 
 def whoosh():
-    """mouvement rapide : souffle filtré qui monte puis redescend"""
-    n = noise(0.38)
-    x = sweep_lowpass(n, 300, 2600)
-    e = np.sin(np.linspace(0, np.pi, len(x))) ** 2
-    return save("whoosh", x * e, 0.75)
+    """mouvement éclair : souffle inversé qui s'arrête net + traînée"""
+    swell = reverse_swell(0.32, 5000)
+    cut = env(sweep_lowpass(noise(0.25), 3000, 400), 0.001, 6) * 0.5
+    x = np.concatenate([swell, cut])
+    return save("whoosh", reverb(x, 0.6, 0.2), 0.75)
 
 
 def projectile():
-    """tir : zap descendant"""
-    zap = env(tone(0.3, 1400, 300, "saw"), 0.002, 5) * 0.5
-    air = env(sweep_lowpass(noise(0.3), 4000, 800), 0.002, 4) * 0.6
-    return save("projectile", mix(lowpass(zap, 4000), air), 0.7)
+    """tir : charge très courte puis décharge d'énergie"""
+    charge = tone(0.08, 300, 1600, "saw") * np.linspace(0.2, 1, int(0.08 * RATE))
+    blast = env(mix(tone(0.35, 1500, 220, "saw") * 0.5, sweep_lowpass(noise(0.35), 6000, 900)), 0.001, 4)
+    x = np.concatenate([lowpass(charge, 5000) * 0.6, lowpass(blast, 5000)])
+    return save("projectile", reverb(drive(x, 1.8), 0.7, 0.22), 0.7)
 
 
 def block():
-    """coup bloqué : choc sourd et métallique"""
-    clang = env(mix(tone(0.25, 420), tone(0.25, 610) * 0.6, tone(0.25, 980) * 0.3), 0.001, 12)
-    knock = env(lowpass(noise(0.05), 2500), 0.001, 15)
-    return save("block", mix(clang, knock), 0.8)
+    """garde : choc métallique sourd, comme un bouclier"""
+    partials = [(380, 1.0), (571, 0.6), (897, 0.4), (1340, 0.25)]
+    clang = env(mix(*[tone(0.4, f) * a for f, a in partials]), 0.0008, 9)
+    knock = env(lowpass(noise(0.05), 3000), 0.0005, 15)
+    return save("block", reverb(drive(mix(clang, knock), 2.0), 0.6, 0.2), 0.8)
 
 
 def parry():
-    """parade parfaite : tintement clair qui résonne"""
-    ring = mix(tone(0.7, 1320), tone(0.7, 1980) * 0.5, tone(0.7, 2640) * 0.3)
-    ring = env(ring, 0.002, 4)
-    hit = env(lowpass(noise(0.04), 7000), 0.001, 15) * 0.6
-    return save("parry", mix(ring, hit), 0.8)
+    """parade parfaite : tintement d'acier qui résonne + accord brillant"""
+    ring = env(mix(tone(1.0, 1568), tone(1.0, 2349) * 0.5, tone(1.0, 3136) * 0.3), 0.001, 3)
+    hit = env(lowpass(noise(0.04), 9000), 0.0005, 16) * 0.7
+    shine = brass(0.8, [note("E5"), note("B5"), note("E6")], 0.01, 3.5, 6000) * 0.25
+    return save("parry", reverb(mix(ring, hit, shine), 1.5, 0.35), 0.8)
 
 
 def guard_break():
-    """garde brisée : éclatement + notes qui tombent"""
-    shatter = env(lowpass(noise(0.6), 7000), 0.001, 6)
-    fall = env(mix(tone(0.6, 900, 250), tone(0.6, 1350, 380) * 0.6), 0.002, 4) * 0.6
-    return save("guard_break", mix(shatter, fall), 0.85)
+    """garde brisée : éclatement + accord qui s'effondre"""
+    shatter = env(lowpass(noise(0.7), 8000), 0.0005, 5)
+    d = 0.8
+    fall = mix(*[env(tone(d, f, f * 0.55, "saw"), 0.002, 3) for f in (note("A4"), note("E5"), note("C5"))]) * 0.35
+    return save("guard_break", reverb(mix(shatter, lowpass(fall, 3000)), 1.2, 0.3), 0.85)
 
 
 def double_jump():
-    """double saut : souffle qui monte"""
-    air = sweep_lowpass(noise(0.32), 400, 3000)
-    e = np.sin(np.linspace(0, np.pi, len(air))) ** 1.5
-    lift = env(tone(0.32, 300, 700), 0.01, 4) * 0.25
-    return save("double_jump", mix(air * e, lift), 0.6)
+    """double saut : souffle vif qui monte + petite note"""
+    air = sweep_lowpass(noise(0.3), 500, 5000)
+    air *= np.sin(np.linspace(0, np.pi, len(air))) ** 1.5
+    pip = env(tone(0.25, note("E5"), note("B5")), 0.005, 6) * 0.25
+    return save("double_jump", reverb(mix(air, pip), 0.5, 0.2), 0.6)
 
 
 def summon():
-    """invocation du Stand : scintillement qui monte"""
-    d = 0.9
-    shimmer = mix(*[env(tone(d, f, f * 2), 0.15, 3) * a for f, a in ((440, 0.5), (660, 0.35), (880, 0.25))])
-    trem = 0.6 + 0.4 * np.sin(2 * np.pi * 14 * t(d))
-    air = sweep_lowpass(noise(d), 500, 5000) * np.linspace(0.1, 0.6, int(d * RATE))
-    return save("summon", mix(shimmer * trem, env(air, 0.3, 2)), 0.7)
+    """arrêt du temps : souffle inversé, coup de gong grave, puis silence qui sonne"""
+    swell = reverse_swell(0.7, 7000) * 0.8
+    gong_partials = [(55, 1.0), (82.5, 0.6), (131, 0.5), (196, 0.35), (277, 0.25)]
+    gong = env(mix(*[tone(2.2, f, f * 0.995) * a for f, a in gong_partials]), 0.003, 2.2)
+    stab = brass(1.6, [note("C2"), note("G2"), note("Eb3"), note("G3")], 0.005, 2.0, 1500) * 0.6
+    x = np.concatenate([swell, drive(mix(gong, stab), 1.8)])
+    return save("summon", reverb(x, 2.2, 0.4), 0.8)
+
+
+def menace():
+    """ゴゴゴ : grondement grave et pulsé, menaçant"""
+    d = 2.4
+    tt = t(d)
+    drone = mix(tone(d, 41), tone(d, 41.6) * 0.8, tone(d, 61.7) * 0.5, lowpass(noise(d), 180) * 0.8)
+    pulse = 0.55 + 0.45 * np.sin(2 * np.pi * 2.6 * tt) ** 2
+    shape = np.minimum(1, tt / 0.4) * np.minimum(1, (d - tt) / 0.6)
+    return save("menace", reverb(drive(drone * pulse * shape, 1.6), 1.5, 0.3), 0.8)
 
 
 def coin():
-    """argent ramassé : deux notes brillantes"""
-    a = env(tone(0.12, 1320, 1320, "square"), 0.002, 6) * 0.4
-    b = env(tone(0.3, 1760, 1760, "square"), 0.002, 5) * 0.4
-    x = np.concatenate([a, b])
-    return save("coin", lowpass(x, 6000), 0.6)
+    """argent : deux notes vives, façon jeu d'arcade"""
+    a = env(tone(0.09, note("B5"), note("B5"), "square"), 0.002, 5) * 0.4
+    b = env(tone(0.35, note("E6"), note("E6"), "square"), 0.002, 4) * 0.4
+    return save("coin", reverb(lowpass(np.concatenate([a, b]), 7000), 0.5, 0.15), 0.55)
 
 
 def chest():
-    """coffre de skins : roulement puis éclat brillant"""
-    roll = env(lowpass(noise(0.5), 1500), 0.05, 1) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 18 * t(0.5))))
-    sparkle = env(mix(tone(0.8, 880, 1760), tone(0.8, 1320, 2640) * 0.5), 0.005, 3)
-    return save("chest", np.concatenate([roll * 0.5, sparkle]), 0.75)
+    """coffre : roulement de tambour qui monte, puis accord de fanfare"""
+    roll_d = 0.9
+    tt = t(roll_d)
+    hits = (np.sin(2 * np.pi * (10 + 14 * tt / roll_d) * tt) > 0.6).astype(float)
+    roll = lowpass(noise(roll_d), 1800) * hits * np.linspace(0.3, 1, len(tt))
+    fanfare = brass(1.2, [note("C4"), note("E4"), note("G4"), note("C5")], 0.01, 2.0, 4000)
+    sparkle = env(mix(tone(1.0, note("C6"), note("G6")) * 0.2, tone(1.0, note("E6"), note("C7")) * 0.15), 0.01, 3)
+    return save("chest", reverb(np.concatenate([roll * 0.6, mix(fanfare, sparkle)]), 1.3, 0.3), 0.75)
 
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    for f in (punch_hit, heavy_hit, impact, whoosh, projectile, block, parry, guard_break, double_jump, summon, coin, chest):
+    for f in (punch_hit, heavy_hit, impact, whoosh, projectile, block, parry, guard_break, double_jump, summon,
+              menace, coin, chest):
         p = f()
         print(p, os.path.getsize(p) // 1024, "Ko")
