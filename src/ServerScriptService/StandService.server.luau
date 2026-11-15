@@ -3403,7 +3403,7 @@ local MAX_ARROWS = 6
 local MAX_FRUITS = 6
 local MAX_REQUIEM_ARROWS = 1
 local REQUIEM_INTERVAL = 300 -- Requiem Arrows roll a spawn every 5 minutes
-local REQUIEM_CHANCE = 0.00001 -- ...et seulement 0,001 % des tirages en font apparaître une
+local REQUIEM_CHANCE = 0.0001 -- ...et seulement 0,01 % des tirages en font apparaître une
 local ITEM_LIFETIME = 240
 
 local itemFolder = Instance.new("Folder")
@@ -3884,7 +3884,7 @@ task.spawn(function()
 			if requiems < MAX_REQUIEM_ARROWS then
 				local arrow = spawnItem("RequiemArrow")
 				if arrow then
-					print("[StandItems] Requiem Arrow spawned (0.001% roll hit)")
+					print("[StandItems] Requiem Arrow spawned (0.01% roll hit)")
 					-- message dans le chat de tous les joueurs (ChatAnnounce.client.luau)
 					standFX:FireAllClients("Announce", "✦ Une Flèche Requiem est apparue quelque part sur la carte ! ✦",
 						Color3.fromRGB(190, 120, 255))

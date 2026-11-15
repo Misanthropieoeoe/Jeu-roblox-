@@ -345,7 +345,7 @@ end
 
 local function buy(player, itemId, qty)
 	local item = ItemCatalog.ById[itemId]
-	if not item or not item.Price then return false, "Objet inconnu." end
+	if not item or not item.Price or item.NotInShop then return false, "Cet objet n'est pas vendu en boutique." end
 	qty = math.clamp(math.floor(tonumber(qty) or 1), 1, ItemCatalog.MaxBuy)
 	local cash = cashValue(player)
 	local total = item.Price * qty

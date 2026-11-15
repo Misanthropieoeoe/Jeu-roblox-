@@ -28,8 +28,17 @@ ItemCatalog.Items = {
 		Price = 2500,
 		Color = Color3.fromRGB(190, 120, 255),
 		Rare = true,
+		NotInShop = true, -- pas vendue : seulement sur la carte (très rare) ou via ADMIN
 	},
 }
+
+-- Objets vendus en boutique (ceux sans NotInShop)
+ItemCatalog.ShopItems = {}
+for _, item in ipairs(ItemCatalog.Items) do
+	if not item.NotInShop then
+		table.insert(ItemCatalog.ShopItems, item)
+	end
+end
 
 ItemCatalog.ById = {}
 for order, item in ipairs(ItemCatalog.Items) do
