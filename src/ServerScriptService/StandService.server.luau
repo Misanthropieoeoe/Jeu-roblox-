@@ -1160,7 +1160,7 @@ local function finishBarrage(player, session, completed)
 	if not root or not humanoid or humanoid.Health <= 0 then return end
 	local move = session.move
 	local targets = getTargets(player, root.CFrame, move.BoxSize, move.Range)
-	dealDamage(targets, 2, character, move.FinalKnockback, "final")
+	dealDamage(targets, move.FinalDamage or 4, character, move.FinalKnockback, "final")
 	if #targets > 0 then
 		impactFX((root.CFrame * CFrame.new(0, 0, -4)).Position, PURPLE, 12, 1.2)
 	end
