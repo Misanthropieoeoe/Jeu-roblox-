@@ -1753,6 +1753,9 @@ local function spellBuff(player, standDef, move)
 			standFX:FireAllClients("Healed", hrp.Position, healed)
 		end
 	end
+	if move.Rewind then
+		standFX:FireClient(player, "Rewind", move.Rewind)
+	end
 	if move.SpeedBoost then
 		local base = humanoid.WalkSpeed
 		local boosted = base * move.SpeedBoost
@@ -2046,7 +2049,48 @@ local function spellMine(player, standDef, move)
 	end)
 end
 
+-- Effacer le temps (King Crimson) : intouchable et à moitié invisible.
+-- Les dégâts sont annulés dans guardHook (section PARADE).
+local erasedUntil = {} -- [Player] = os.clock() de fin
+
+local function spellErase(player, standDef, move)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not hrp then return end
+	local duration = move.EraseTime or 2.5
+	erasedUntil[player] = os.clock() + duration
+	player:SetAttribute("Erased", true)
+	impactFX(hrp.Position, spellColor(standDef, move), 8, 0.6)
+
+	-- à moitié invisible pour tout le monde
+	local saved = {}
+	for _, d in character:GetDescendants() do
+		if (d:IsA("BasePart") and d.Name ~= "HumanoidRootPart") or d:IsA("Decal") then
+			saved[d] = d.Transparency
+			d.Transparency = math.max(d.Transparency, 0.8)
+		end
+	end
+	local base, boosted = humanoid.WalkSpeed, nil
+	if move.SpeedBoost then
+		boosted = base * move.SpeedBoost
+		humanoid.WalkSpeed = boosted
+	end
+	task.delay(duration, function()
+		erasedUntil[player] = nil
+		if player.Parent then player:SetAttribute("Erased", nil) end
+		for d, t in saved do
+			if d.Parent then d.Transparency = t end
+		end
+		if boosted and humanoid.Parent and math.abs(humanoid.WalkSpeed - boosted) < 0.01 then
+			humanoid.WalkSpeed = base
+		end
+		if hrp.Parent then impactFX(hrp.Position, spellColor(standDef, move), 8, 0.6) end
+	end)
+end
+
 Players.PlayerRemoving:Connect(function(player)
+	erasedUntil[player] = nil
 	counterState[player] = nil
 	for _, mine in pairs(activeMines[player] or {}) do
 		if mine.Parent then mine:Destroy() end
@@ -2061,6 +2105,9 @@ local function runSpell(player, stand, standDef, move, aim, actionName)
 		return
 	elseif kind == "Counter" then
 		spellCounter(player, standDef, move)
+		return
+	elseif kind == "Erase" then
+		spellErase(player, standDef, move)
 		return
 	elseif kind == "Dash" then
 		spellDash(player, standDef, move)
@@ -2226,6 +2273,12 @@ end
 -- Appelé par dealDamage pour chaque cible : renvoie les dégâts réellement subis.
 guardHook = function(target, caster, amount, kind)
 	local defender = Players:GetPlayerFromCharacter(target.model)
+
+	-- TEMPS EFFACÉ (King Crimson) : rien ne le touche
+	if defender and erasedUntil[defender] and erasedUntil[defender] > os.clock() then
+		target.guarded = "parry"
+		return 0
+	end
 
 	-- CONTRE (attaques de type Counter) : le coup est annulé et renvoyé
 	local counter = defender and counterState[defender]

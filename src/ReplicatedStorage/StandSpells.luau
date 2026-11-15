@@ -45,6 +45,12 @@
 --              (par tick), Slow (immobilise à chaque tick, s)
 -- "Mine"       piège posé devant : Offset, Radius (explosion),
 --              TriggerRadius, ArmTime, Lifetime, Damage, Knockback, Launch, Stun
+-- "TimeStop"   arrêt du temps (l'attaque doit s'appeler TimeStop) : Duration,
+--              TimeStopOffset, TimeStopSmoothness ; voix : TimeStopVoicePath
+--              du Stand dans StandData
+-- "Erase"      effacer le temps : intouchable et à moitié invisible pendant
+--              EraseTime s, SpeedBoost optionnel
+-- "Buff" + Rewind = s : retour à la position d'il y a Rewind secondes
 --
 -- Animations du Stand : Point, Flick, Throw, Slam, Dash, Raise, ChargeBlast,
 --   Touch, Uppercut, Strike, Flurry, CounterStance, Pull, Plant, Channel,
@@ -81,15 +87,17 @@ return {
 			Duration = 0.5, HitDelay = 0.2, Anim = "Flick", PlayerAnim = "CmdPoint", Color = SILVER,
 			Count = 1, Speed = 180, Range = 100, Damage = 11, Knockback = 15, Size = 0.6,
 		},
-		IronGrip = {
-			Label = "Iron Grip", Key = "F", Cooldown = 11, Type = "Pull",
-			Duration = 0.7, HitDelay = 0.2, Anim = "Pull", PlayerAnim = "CmdPoint", Color = VIOLET,
-			Range = 18, Damage = 6, Stun = 1.2,
+		StellarFinger = {
+			Label = "Stellar Finger", Key = "F", Cooldown = 9, Type = "Strike",
+			Duration = 0.6, HitDelay = 0.22, Anim = "Point", PlayerAnim = "CmdPoint", Color = VIOLET,
+			-- le doigt s'allonge : portée longue, zone très fine
+			Damage = 13, Knockback = 20, Range = 18, BoxSize = Vector3.new(3, 3, 20),
 		},
-		OverdriveCounter = {
-			Label = "Overdrive Counter", Key = "G", Cooldown = 16, Type = "Counter",
-			Duration = 1.2, Anim = "CounterStance", PlayerAnim = "CmdBrace", Color = VIOLET,
-			CounterDamage = 16, CounterKnockback = 55, CounterStun = 0.8,
+		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
+		TimeStop = {
+			Label = "Frozen Instant", Key = "G", Cooldown = 35, Type = "TimeStop",
+			Duration = 2, PlayerAnim = "CmdSummon", Color = VIOLET,
+			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 	},
 
@@ -111,10 +119,11 @@ return {
 			Duration = 0.6, HitDelay = 0.22, Anim = "Throw", PlayerAnim = "CmdCast", Color = SILVER,
 			Count = 6, Spread = 40, Speed = 120, Range = 70, Damage = 2.5, Size = 0.4, Shape = "Blade",
 		},
-		FrozenSecond = {
-			Label = "Frozen Second", Key = "F", Cooldown = 18, Type = "Strike",
-			Duration = 0.7, HitDelay = 0.3, Anim = "Point", PlayerAnim = "CmdSummon", Color = GOLD,
-			Damage = 6, Stun = 2, Range = 16, BoxSize = Vector3.new(5, 6, 18),
+		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
+		TimeStop = {
+			Label = "World Halt", Key = "F", Cooldown = 40, Type = "TimeStop",
+			Duration = 3, PlayerAnim = "CmdSummon", Color = GOLD,
+			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 		EmperorsStep = {
 			Label = "Emperor's Step", Key = "G", Cooldown = 14, Type = "Teleport",
@@ -146,10 +155,11 @@ return {
 			Duration = 0.6, HitDelay = 0.1, Anim = "Dash", PlayerAnim = "CmdDash",
 			DashSpeed = 100, DashTime = 0.25, Damage = 14, Knockback = 40, BoxSize = Vector3.new(8, 7, 8),
 		},
-		BoneRattle = {
-			Label = "Bone Rattle", Key = "G", Cooldown = 16, Type = "Burst",
-			Duration = 0.9, HitDelay = 0.45, Anim = "Spin", PlayerAnim = "CmdBrace",
-			Offset = 0, Radius = 10, Damage = 16, Knockback = 40, Stun = 0.6,
+		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
+		TimeStop = {
+			Label = "Moment Seize", Key = "G", Cooldown = 38, Type = "TimeStop",
+			Duration = 2.5, PlayerAnim = "CmdSummon", Color = GOLD,
+			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 	},
 
@@ -176,10 +186,11 @@ return {
 			Duration = 0.7, HitDelay = 0.2, Anim = "Pull", PlayerAnim = "CmdPoint", Color = PINK,
 			Range = 20, Damage = 8, Stun = 1,
 		},
-		PatchworkWall = {
-			Label = "Patchwork Wall", Key = "G", Cooldown = 16, Type = "Zone",
-			Duration = 0.8, HitDelay = 0.35, Anim = "Plant", PlayerAnim = "CmdPlant", Color = PINK,
-			Offset = 5, Radius = 6, Lifetime = 3, TickRate = 0.5, Damage = 3, Slow = 0.4,
+		FusionLock = {
+			Label = "Fusion Lock", Key = "G", Cooldown = 14, Type = "Strike",
+			Duration = 0.6, HitDelay = 0.22, Anim = "Touch", PlayerAnim = "CmdPoint", Color = PINK,
+			-- la cible est "réparée" dans le décor : immobilisée
+			Damage = 8, Stun = 2.2, Range = 9, BoxSize = Vector3.new(6, 6, 9),
 		},
 	},
 
@@ -239,10 +250,11 @@ return {
 			Count = 1, Speed = 55, Range = 70, Damage = 4, Size = 0.7,
 			Explode = { Radius = 7, Damage = 12 }, Homing = 2.5, HomingRange = 25,
 		},
-		CleanSlate = {
-			Label = "Clean Slate", Key = "G", Cooldown = 28, Type = "Buff",
+		RewindHour = {
+			Label = "Rewind Hour", Key = "G", Cooldown = 28, Type = "Buff",
 			Duration = 0.9, HitDelay = 0.4, Anim = "Raise", PlayerAnim = "CmdSummon", Color = PINK,
-			Heal = 20,
+			-- retour à la position d'il y a 3 s, plus un petit soin
+			Rewind = 3, Heal = 12,
 		},
 	},
 
@@ -331,10 +343,11 @@ return {
 			Duration = 1.5, Anim = "CounterStance", PlayerAnim = "CmdBrace", Color = CRIMSON,
 			CounterDamage = 14, CounterKnockback = 35, CounterStun = 1,
 		},
-		PhantomChop = {
-			Label = "Phantom Chop", Key = "G", Cooldown = 12, Type = "Burst",
-			Duration = 0.8, HitDelay = 0.4, Anim = "Slam", PlayerAnim = "CmdPoint", Color = CRIMSON,
-			Offset = 4, Radius = 6, Damage = 15, Launch = 35,
+		ErasedTime = {
+			Label = "Erased Time", Key = "G", Cooldown = 24, Type = "Erase",
+			Duration = 0.8, Anim = "Channel", PlayerAnim = "CmdSummon", Color = CRIMSON,
+			-- intouchable et à moitié invisible, un peu plus rapide
+			EraseTime = 2.5, SpeedBoost = 1.3,
 		},
 	},
 

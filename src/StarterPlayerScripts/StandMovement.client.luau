@@ -272,7 +272,15 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	tryMobility()
 end)
 
-standFX.OnClientEvent:Connect(function(kind)
+standFX.OnClientEvent:Connect(function(kind, value)
+	if kind == "Rewind" and typeof(value) == "number" then
+		-- Retour en arrière (ex. Rewind Hour de Killer Queen)
+		local character, root, humanoid = parts()
+		if character then
+			MOVES.Recall({ Seconds = value }, character, root, humanoid)
+		end
+		return
+	end
 	if kind ~= "Mobility" then return end
 	local p = profile()
 	local character, root, humanoid = parts()

@@ -1518,7 +1518,7 @@ local function updateStand(stand, standDef, character, now)
 		-- Garde : le Stand se met juste devant le joueur
 		targetPos = hrp.Position + flat * 2.6 + Vector3.new(0, 1.2, 0)
 		smooth = 0.45
-	elseif moveDef and moveDef.Type then
+	elseif moveDef and moveDef.Type and moveDef.Type ~= "TimeStop" then
 		-- Attaques T / F / G : le Stand passe devant le joueur
 		local forward = moveDef.StandForward or 3.4
 		local lunge = math.sin(math.pi * math.clamp(t / math.max(moveDef.Duration or 0.6, 0.1), 0, 1)) * 0.8
