@@ -1710,6 +1710,7 @@ end
 local function canM1()
 	return localPlayer.Character ~= nil and not localPlayer:GetAttribute("Standless")
 		and not localPlayer:GetAttribute("Blocking")
+		and not localPlayer:GetAttribute("Hitstun") -- vient de prendre un coup
 end
 
 local function fireM1()

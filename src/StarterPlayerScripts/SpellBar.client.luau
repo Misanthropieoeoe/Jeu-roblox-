@@ -379,9 +379,15 @@ RunService.RenderStepped:Connect(function()
 		else
 			if ends then cooldownEnds[action] = nil end
 			slot.veil.Size = UDim2.fromScale(0, 1)
-			slot.status.Text = "PRÊT"
-			slot.status.TextColor3 = READY
 			slot.timer.Text = ""
+			if player:GetAttribute("Hitstun") and action ~= "Toggle" then
+				-- vient de prendre un coup : impossible d'attaquer un instant
+				slot.status.Text = "ÉTOURDI"
+				slot.status.TextColor3 = RED
+			else
+				slot.status.Text = "PRÊT"
+				slot.status.TextColor3 = READY
+			end
 		end
 	end
 end)

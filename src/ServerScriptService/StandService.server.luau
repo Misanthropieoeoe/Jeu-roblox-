@@ -926,6 +926,39 @@ end
 -- que le recul et les étourdissements ne s'appliquent pas.
 local guardHook = nil
 
+-- ==================== ÉTOURDISSEMENT À L'IMPACT ====================
+-- Un joueur qui prend un coup ne peut plus attaquer pendant un instant
+-- (selon le type de coup). La garde reste possible. Les coups bloqués ou
+-- parés ne comptent pas. L'attribut "Hitstun" du joueur sert à l'affichage.
+local HITSTUN = {
+	light = 0.6, -- M1 (un peu plus que le rythme du combo : le combo est garanti)
+	barrage = 0.35, -- renouvelé à chaque coup du barrage
+	heavy = 0.8,
+	final = 0.9,
+}
+local HITSTUN_DEFAULT = 0.5
+local hitstunUntil = {} -- [Player] = os.clock() de fin
+
+local function applyHitstun(player, kind)
+	local untilT = os.clock() + (HITSTUN[kind] or HITSTUN_DEFAULT)
+	if not hitstunUntil[player] or untilT > hitstunUntil[player] then
+		hitstunUntil[player] = untilT
+	end
+	if not player:GetAttribute("Hitstun") then
+		player:SetAttribute("Hitstun", true)
+	end
+end
+
+RunService.Heartbeat:Connect(function()
+	local now = os.clock()
+	for player, untilT in hitstunUntil do
+		if now >= untilT or not player.Parent then
+			hitstunUntil[player] = nil
+			if player.Parent then player:SetAttribute("Hitstun", nil) end
+		end
+	end
+end)
+
 local function dealDamage(targets, amount, caster, knockback, kind)
 	for _, target in targets do
 		target.guarded = nil
@@ -935,6 +968,10 @@ local function dealDamage(targets, amount, caster, knockback, kind)
 		end
 		if final > 0 then
 			target.humanoid:TakeDamage(final)
+			local victim = Players:GetPlayerFromCharacter(target.model)
+			if victim then
+				applyHitstun(victim, kind)
+			end
 		end
 		if knockback and not target.guarded and target.root and not target.root.Anchored then
 			target.root.AssemblyLinearVelocity = caster.HumanoidRootPart.CFrame.LookVector * knockback + Vector3.new(0, 20, 0)
@@ -2159,6 +2196,13 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		return
 	end
 	if blockState[player] then return end -- pas d'attaque pendant la garde
+
+	-- Pas d'attaque si on vient de prendre un coup, si on est étourdi par un
+	-- sort ou figé par un arrêt du temps
+	if hitstunUntil[player] and hitstunUntil[player] > os.clock() then return end
+	local myHumanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if myHumanoid and spellStuns[myHumanoid] then return end
+	if frozen[player] then return end
 
 	if actionName == "Toggle" then
 		local now = os.clock()
