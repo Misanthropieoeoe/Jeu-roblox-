@@ -74,18 +74,19 @@ local function refreshTabs()
 	local mine = player:GetAttribute("StandId")
 	for id, tab in pairs(tabButtons) do
 		local active = id == selected
-		tab.stroke.Color = active and C.Magenta or C.Line
-		tab.stroke.Thickness = active and 2.5 or 1.5
+		tab.stroke.Color = active and C.Magenta or (tab.legend and C.Legend or C.Line)
+		tab.stroke.Thickness = active and 2.5 or (tab.legend and 2 or 1.5)
+		if tab.legend then continue end
 		tab.mine.Visible = id == mine
 		tab.sub.Text = skinName(id, equippedSkin(id))
 	end
 end
 
+local LEGEND_TAB = "_Legendaires"
+
 local function refreshCards()
-	if not selected then return end
-	local current = equippedSkin(selected)
-	for skinId, card in pairs(skinCards) do
-		local on = skinId == current
+	for _, card in pairs(skinCards) do
+		local on = card.skinId == equippedSkin(card.standId)
 		card.stroke.Color = on and C.Gold or (card.legendary and C.Legend or C.Line)
 		card.stroke.Thickness = on and 3 or (card.legendary and 2 or 1.5)
 		card.badge.Visible = on
@@ -127,16 +128,18 @@ local function choose(standId, skinId)
 	end)
 end
 
-local function showStand(standId)
-	selected = standId
+-- Remplit la grille. entries = { { standId, skin } }, withStand = afficher
+-- le nom du Stand sur la carte (onglet Légendaires)
+local function fill(entries, withStand)
 	for _, child in grid:GetChildren() do
 		if child:IsA("GuiObject") then child:Destroy() end
 	end
 	table.clear(skinCards)
-	for order, skin in ipairs(StandSkins.List(standId)) do
+	for order, entry in ipairs(entries) do
+		local standId, skin = entry.standId, entry.skin
 		local legendary = skin.Rarity == "Legendaire"
 		local card, stroke = UITheme.Card(grid)
-		card.Name = skin.Id
+		card.Name = standId .. "_" .. skin.Id
 		card.LayoutOrder = order
 		if legendary then
 			UITheme.Gradient(card, Color3.fromRGB(255, 210, 140), Color3.fromRGB(150, 140, 170), 90)
@@ -145,7 +148,7 @@ local function showStand(standId)
 		local swatches = Instance.new("Frame")
 		swatches.BackgroundTransparency = 1
 		swatches.Position = UDim2.fromOffset(10, 10)
-		swatches.Size = UDim2.new(1, -20, 0, 52)
+		swatches.Size = UDim2.new(1, -20, 0, withStand and 40 or 52)
 		swatches.Parent = card
 		local swLayout = Instance.new("UIListLayout")
 		swLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -162,20 +165,27 @@ local function showStand(standId)
 			UITheme.Corner(sw, 6)
 		end
 
+		local nameY = withStand and 54 or 68
 		local name = UITheme.Label(card, skin.Name, 21, legendary and C.Legend or C.Text, UITheme.Title)
-		name.Position = UDim2.fromOffset(10, 68)
+		name.Position = UDim2.fromOffset(10, nameY)
 		name.Size = UDim2.new(1, -20, 0, 26)
 		name.TextTruncate = Enum.TextTruncate.AtEnd
+		if withStand then
+			local standLabel = UITheme.Label(card, StandData.Stands[standId].DisplayName, 12, C.Text, UITheme.Bold)
+			standLabel.Position = UDim2.fromOffset(10, 80)
+			standLabel.Size = UDim2.new(1, -20, 0, 16)
+			standLabel.TextTruncate = Enum.TextTruncate.AtEnd
+		end
 
 		local badge = UITheme.Label(card, "✔ ÉQUIPÉ", 12, C.Gold, UITheme.Bold)
-		badge.Position = UDim2.fromOffset(10, 100)
+		badge.Position = UDim2.fromOffset(10, 102)
 		badge.Size = UDim2.fromOffset(80, 16)
 		badge.Visible = false
 
 		if legendary then
 			local tag = UITheme.Label(card, "LÉGENDAIRE", 11, C.Night, UITheme.Bold)
 			tag.AnchorPoint = Vector2.new(1, 0)
-			tag.Position = UDim2.new(1, -8, 0, 98)
+			tag.Position = UDim2.new(1, -8, 0, 100)
 			tag.Size = UDim2.fromOffset(82, 20)
 			tag.TextXAlignment = Enum.TextXAlignment.Center
 			tag.BackgroundColor3 = C.Legend
@@ -186,11 +196,43 @@ local function showStand(standId)
 		card.Activated:Connect(function()
 			choose(standId, skin.Id)
 		end)
-		skinCards[skin.Id] = { stroke = stroke, badge = badge, legendary = legendary }
+		skinCards[card.Name] = { stroke = stroke, badge = badge, legendary = legendary, standId = standId, skinId = skin.Id }
 	end
 	grid.CanvasPosition = Vector2.zero
 	refreshTabs()
 	refreshCards()
+end
+
+local function showStand(standId)
+	selected = standId
+	if standId == LEGEND_TAB then
+		fill(StandSkins.Legendaries(), true)
+		return
+	end
+	local entries = {}
+	for _, skin in ipairs(StandSkins.List(standId)) do
+		table.insert(entries, { standId = standId, skin = skin })
+	end
+	fill(entries, false)
+end
+
+-- Onglet de tous les skins légendaires, tout en haut
+do
+	local button, stroke = UITheme.Card(tabs)
+	button.Name = LEGEND_TAB
+	button.LayoutOrder = 0
+	button.Size = UDim2.new(1, 0, 0, 50)
+	UITheme.Gradient(button, Color3.fromRGB(255, 205, 120), Color3.fromRGB(170, 130, 90), 90)
+	local name = UITheme.Label(button, "★ LÉGENDAIRES", 20, C.Legend, UITheme.Title)
+	name.Position = UDim2.fromOffset(10, 4)
+	name.Size = UDim2.new(1, -20, 0, 24)
+	local sub = UITheme.Label(button, "Changent le modèle du Stand", 11, C.Text, UITheme.Body)
+	sub.Position = UDim2.fromOffset(10, 28)
+	sub.Size = UDim2.new(1, -20, 0, 16)
+	button.Activated:Connect(function()
+		showStand(LEGEND_TAB)
+	end)
+	tabButtons[LEGEND_TAB] = { stroke = stroke, legend = true }
 end
 
 for order, id in ipairs(standIds) do

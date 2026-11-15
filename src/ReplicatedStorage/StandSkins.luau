@@ -150,6 +150,16 @@ function StandSkins.List(standId)
 	return list
 end
 
+-- Tous les skins légendaires : { { standId, skin }, ... }
+function StandSkins.Legendaries()
+	local list = {}
+	for standId, skin in pairs(LEGENDARY) do
+		table.insert(list, { standId = standId, skin = skin })
+	end
+	table.sort(list, function(a, b) return a.skin.Name < b.skin.Name end)
+	return list
+end
+
 function StandSkins.Get(standId, skinId)
 	if not skinId or skinId == StandSkins.DEFAULT then return CLASSIC end
 	for _, skin in StandSkins.List(standId) do
