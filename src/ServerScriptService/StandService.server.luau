@@ -3828,6 +3828,43 @@ local function spawnItem(kind)
 		end
 	end
 
+	-- Flèche Requiem : en surbrillance (visible à travers les murs) avec une
+	-- colonne de lumière qui monte vers le ciel, pour qu'on la repère de loin
+	if kind == "RequiemArrow" then
+		local glow = Instance.new("Highlight")
+		glow.Name = "RequiemHighlight"
+		glow.Adornee = model
+		glow.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		glow.FillColor = Color3.fromRGB(190, 120, 255)
+		glow.OutlineColor = Color3.fromRGB(255, 240, 255)
+		glow.FillTransparency = 0.55
+		glow.OutlineTransparency = 0
+		glow.Parent = model
+		TweenService:Create(glow, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			{ FillTransparency = 0.15 }):Play()
+
+		local pillar = Instance.new("Part")
+		pillar.Name = "RequiemPillar"
+		pillar.Shape = Enum.PartType.Cylinder
+		pillar.Size = Vector3.new(80, 1.6, 1.6)
+		pillar.CFrame = CFrame.new(spot + Vector3.new(0, 40, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		pillar.Anchored = true
+		pillar.CanCollide = false
+		pillar.CanQuery = false
+		pillar.CanTouch = false
+		pillar.CastShadow = false
+		pillar.Material = Enum.Material.Neon
+		pillar.Color = Color3.fromRGB(190, 120, 255)
+		pillar.Transparency = 0.55
+		pillar.Parent = itemFolder
+		TweenService:Create(pillar, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			{ Transparency = 0.8 }):Play()
+		-- la colonne disparaît avec la flèche (ramassée ou expirée)
+		model.AncestryChanged:Connect(function()
+			if not model.Parent and pillar.Parent then pillar:Destroy() end
+		end)
+	end
+
 	task.delay(ITEM_LIFETIME, function()
 		if model.Parent and not model:GetAttribute("Claimed") then
 			spinBases[model] = nil
