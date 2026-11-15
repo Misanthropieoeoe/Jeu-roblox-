@@ -928,7 +928,11 @@ local function giveStand(player)
 	clone:SetAttribute("Owner", player.UserId)
 	clone:SetAttribute("StandId", standId)
 	applyStandTheme(clone, stand)
-	StandSkins.Apply(clone, StandSkins.Get(standId, getSkinChoice(player, standId)))
+	-- un skin qui plante ne doit jamais empêcher l'invocation du Stand
+	local skinOk, skinErr = pcall(StandSkins.Apply, clone, StandSkins.Get(standId, getSkinChoice(player, standId)))
+	if not skinOk then
+		warn("[StandService] Skin non appliqué :", skinErr)
+	end
 	-- Cinematic deployment is replicated to all players, so the Stand rises and materializes
 	-- on every client. Any attacks are blocked until the animation finishes.
 	clone:SetAttribute("State", "Deploying")

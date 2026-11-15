@@ -168,7 +168,7 @@ end
 -- Couleur d'origine -> couleur du skin
 function StandSkins.Transform(skin, color)
 	if not skin or skin.Id == StandSkins.DEFAULT then return color end
-	local h, s, v = color:ToHSV()
+	local h, s, v = Color3.toHSV(color)
 	if s > 0.12 then -- les gris, noirs et blancs gardent leur teinte neutre
 		if skin.Hue then
 			h = skin.Hue
