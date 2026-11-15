@@ -17,5 +17,5 @@ return {
 	Zipper = "rbxassetid://113054516565882",
 	-- cercle des attaques "Zone" (assets/textures/zone.png) : mettre l'ID
 	-- une fois l'image importée dans Roblox
-	Zone = "",
+	Zone = "rbxassetid://128904679799878",
 }
