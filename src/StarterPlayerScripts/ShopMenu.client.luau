@@ -41,12 +41,12 @@ local function cash()
 end
 
 local cards = {}
-for _, item in ipairs(ItemCatalog.Items) do
+for _, item in ipairs(ItemCatalog.ShopItems) do
 	local qty = 1
 	local card = Instance.new("Frame")
 	card.Name = item.Id
 	card.LayoutOrder = item.Order
-	card.Size = UDim2.new(1 / #ItemCatalog.Items, -8, 1, 0)
+	card.Size = UDim2.new(1 / #ItemCatalog.ShopItems, -8, 1, 0)
 	card.BackgroundColor3 = C.Card
 	card.Parent = grid
 	UITheme.Corner(card, 14)
