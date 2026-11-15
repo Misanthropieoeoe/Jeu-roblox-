@@ -36,6 +36,9 @@
       "StandMovement": {
         "$path": "src/ReplicatedStorage/StandMovement.luau"
       },
+      "StandRarity": {
+        "$path": "src/ReplicatedStorage/StandRarity.luau"
+      },
       "StandSkinModels": {
         "$path": "src/ReplicatedStorage/StandSkinModels.luau"
       },

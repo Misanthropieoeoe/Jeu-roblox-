@@ -2615,20 +2615,23 @@ local toggleAt = {}
 
 -- Random stand pick for Stand Arrow pickups. Time-reality stands (The World,
 -- King Crimson, Made in Heaven) are rarer than the rest.
-local RARE_STANDS = { TheWorld = true, KingCrimson = true, MadeInHeaven = true }
+-- Chances de chaque Stand : ReplicatedStorage/StandRarity (panneau sur Claude)
+local StandRarity = require(ReplicatedStorage:WaitForChild("StandRarity"))
 
 local function pickRandomStand()
 	local pool = {}
 	local total = 0
 	for id, def in pairs(StandData.Stands) do
-		-- Stands marked ArrowObtainable = false (e.g. Gold Experience Requiem)
-		-- never come out of a Stand Arrow.
-		if def.ArrowObtainable ~= false then
-			local weight = RARE_STANDS[id] and 1 or 3
+		-- ArrowObtainable = false (ex. Gold Experience Requiem) ou
+		-- Obtainable = false dans StandRarity : jamais donné par une Flèche
+		local rarity = StandRarity[id] or { Weight = 3, Obtainable = true }
+		local weight = tonumber(rarity.Weight) or 0
+		if def.ArrowObtainable ~= false and rarity.Obtainable ~= false and weight > 0 then
 			table.insert(pool, { id = id, weight = weight })
 			total += weight
 		end
 	end
+	if #pool == 0 then return StandData.DefaultStand or "StarPlatinum" end
 	local roll = math.random() * total
 	for _, entry in ipairs(pool) do
 		roll -= entry.weight
