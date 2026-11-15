@@ -212,14 +212,54 @@ def double_jump():
     return save("double_jump", reverb(mix(air, pip), 0.5, 0.2), 0.6)
 
 
+def tick(level=1.0):
+    """petit clic de mécanisme d'horloge"""
+    click = env(mix(tone(0.05, 3200) * 0.6, tone(0.05, 4700) * 0.4, lowpass(noise(0.05), 9000)), 0.0003, 30)
+    return click * level
+
+
 def summon():
-    """arrêt du temps : souffle inversé, coup de gong grave, puis silence qui sonne"""
+    """arrêt du temps : souffle inversé, gong grave et cuivres, puis un
+    mécanisme qui ralentit (tic... tic...) jusqu'au silence qui résonne"""
     swell = reverse_swell(0.7, 7000) * 0.8
     gong_partials = [(55, 1.0), (82.5, 0.6), (131, 0.5), (196, 0.35), (277, 0.25)]
-    gong = env(mix(*[tone(2.2, f, f * 0.995) * a for f, a in gong_partials]), 0.003, 2.2)
-    stab = brass(1.6, [note("C2"), note("G2"), note("Eb3"), note("G3")], 0.005, 2.0, 1500) * 0.6
-    x = np.concatenate([swell, drive(mix(gong, stab), 1.8)])
+    gong = env(mix(*[tone(2.6, f, f * 0.995) * a for f, a in gong_partials]), 0.003, 2.0)
+    stab = brass(1.8, [note("C2"), note("G2"), note("Eb3"), note("G3")], 0.005, 1.8, 1500) * 0.6
+    body = drive(mix(gong, stab), 1.8)
+    # tics de plus en plus espacés et faibles, posés sur la résonance
+    ticks = np.zeros(len(body))
+    pos, gap = int(0.25 * RATE), 0.18
+    for k in range(6):
+        c = tick(0.5 * (0.8 ** k))
+        if pos + len(c) >= len(ticks):
+            break
+        ticks[pos: pos + len(c)] += c
+        pos += int(gap * RATE)
+        gap *= 1.35
+    x = np.concatenate([swell, body + ticks])
     return save("summon", reverb(x, 2.2, 0.4), 0.8)
+
+
+def time_resume():
+    """reprise du temps : aspiration à l'envers puis libération claire"""
+    suck = reverse_swell(0.6, 8000)
+    shimmer = env(mix(tone(1.0, note("G5"), note("D6")) * 0.3, tone(1.0, note("D6"), note("A6")) * 0.2), 0.003, 3.5)
+    rush = env(sweep_lowpass(noise(0.8), 6000, 600), 0.002, 3) * 0.7
+    thump = env(tone(0.4, 90, 45), 0.002, 6) * 0.6
+    x = np.concatenate([suck, mix(shimmer, rush, thump)])
+    return save("time_resume", reverb(x, 1.4, 0.3), 0.8)
+
+
+def stand_summon():
+    """apparition du Stand : aura qui monte, lame d'acier ("shing") et choc"""
+    rise = reverse_swell(0.45, 9000) * 0.7
+    aura = env(mix(*[tone(0.45, f, f * 1.5) * a for f, a in ((220, 0.4), (330, 0.3), (440, 0.2))]), 0.3, 0.5) * 0.4
+    pre = mix(rise, aura)
+    shing = env(mix(tone(1.2, 2093), tone(1.2, 3136) * 0.6, tone(1.2, 4186) * 0.35, tone(1.2, 2100) * 0.5), 0.0008, 4)
+    scrape = env(sweep_lowpass(noise(0.25), 9000, 3000), 0.001, 8) * 0.5
+    hit = drive(env(mix(tone(0.5, 110, 40), lowpass(noise(0.1), 4000) * 0.6), 0.001, 7), 2.5)
+    x = np.concatenate([pre, mix(shing * 0.6, scrape, hit)])
+    return save("stand_summon", reverb(x, 1.3, 0.3), 0.8)
 
 
 def menace():
@@ -229,7 +269,14 @@ def menace():
     drone = mix(tone(d, 41), tone(d, 41.6) * 0.8, tone(d, 61.7) * 0.5, lowpass(noise(d), 180) * 0.8)
     pulse = 0.55 + 0.45 * np.sin(2 * np.pi * 2.6 * tt) ** 2
     shape = np.minimum(1, tt / 0.4) * np.minimum(1, (d - tt) / 0.6)
-    return save("menace", reverb(drive(drone * pulse * shape, 1.6), 1.5, 0.3), 0.8)
+    # battement de cœur sourd (boum-boum) toutes les 0,8 s
+    heart = np.zeros(len(tt))
+    beat = env(tone(0.16, 70, 45), 0.004, 9)
+    for start in np.arange(0.2, d - 0.3, 0.8):
+        for offset, level in ((0.0, 1.0), (0.2, 0.7)):
+            i = int((start + offset) * RATE)
+            heart[i: i + len(beat)] += beat[: len(heart) - i] * level
+    return save("menace", reverb(drive(drone * pulse * shape + heart * 0.9, 1.6), 1.5, 0.3), 0.8)
 
 
 def coin():
@@ -253,6 +300,6 @@ def chest():
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     for f in (punch_hit, heavy_hit, impact, whoosh, projectile, block, parry, guard_break, double_jump, summon,
-              menace, coin, chest):
+              time_resume, stand_summon, menace, coin, chest):
         p = f()
         print(p, os.path.getsize(p) // 1024, "Ko")

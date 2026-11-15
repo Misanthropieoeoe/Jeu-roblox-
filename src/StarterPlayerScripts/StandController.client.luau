@@ -797,6 +797,10 @@ local function summonReveal(stand,standDef)
 	-- Summon shout rework: the verified Summon roar fires on the reveal impact,
 	-- then the "ORA!" quote lands just after it for a layered shout.
 	play3DSound(anchor,"SPV2_SummonRoar",resolveVoiceId(standId,"Summon") or standDef.SummonShoutId,1.25,1,14,65)
+	-- son d'apparition (SFX.StandSummon, si son ID est rempli)
+	if SFX.StandSummon ~= "" then
+		play3DSound(anchor,"SFX_StandSummon",SFX.StandSummon,.8,1,14,65)
+	end
 	task.delay(.35,function()
 		if anchor.Parent then
 			play3DSound(anchor,"SPV2_StandQuote",resolveVoiceId(standId,"Quote") or standDef.SummonQuoteId,1.1,1,14,65)
