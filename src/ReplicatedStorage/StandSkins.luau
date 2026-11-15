@@ -248,6 +248,10 @@ end
 function StandSkins.Apply(model, skin)
 	if not skin or skin.Id == StandSkins.DEFAULT then return end
 	model:SetAttribute("Skin", skin.Id)
+	-- couleur des sorts du Stand avec ce skin (SpellFX, ProjectileFX, serveur)
+	if skin.SpellColor or skin.Aura then
+		model:SetAttribute("SkinColor", skin.SpellColor or skin.Aura)
+	end
 	for _, obj in model:GetDescendants() do
 		if obj:IsA("BasePart") then
 			if obj.Name ~= "HumanoidRootPart" then
