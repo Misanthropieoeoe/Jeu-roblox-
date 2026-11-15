@@ -2099,11 +2099,34 @@ local function spellZone(player, standDef, move)
 	local color = spellColor(standDef, move)
 	local radius = move.Radius or 8
 	local ground = groundAt(player, hrp.Position + flatLook(hrp) * (move.Offset or 0))
+	local zoneTexture = require(ReplicatedStorage:WaitForChild("VFXTextures")).Zone
 	local disc = fxPart({
-		Shape = Enum.PartType.Cylinder, Color = color, Transparency = 0.8,
+		Shape = Enum.PartType.Cylinder, Color = color, Transparency = (zoneTexture ~= "" and 0.9 or 0.8),
 		Size = Vector3.new(0.3, radius * 2, radius * 2),
 		CFrame = CFrame.new(ground + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 	})
+	-- cercle dessiné au sol (texture "Zone"), qui tourne doucement
+	if zoneTexture ~= "" then
+		local plate = fxPart({
+			Transparency = 1,
+			Size = Vector3.new(radius * 2.2, 0.05, radius * 2.2),
+			CFrame = CFrame.new(ground + Vector3.new(0, 0.2, 0)),
+		})
+		local decal = Instance.new("Decal")
+		decal.Face = Enum.NormalId.Top
+		decal.Texture = zoneTexture
+		decal.Color3 = color
+		decal.Transparency = 0.15
+		decal.Parent = plate
+		local life = move.Lifetime or 3
+		TweenService:Create(plate, TweenInfo.new(life, Enum.EasingStyle.Linear), {
+			CFrame = plate.CFrame * CFrame.Angles(0, math.rad(170), 0),
+		}):Play()
+		task.delay(life, function()
+			TweenService:Create(decal, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+			game:GetService("Debris"):AddItem(plate, 0.35)
+		end)
+	end
 	impactFX(ground + Vector3.new(0, 1, 0), color, radius, 0.8)
 	task.spawn(function()
 		local endsAt = os.clock() + (move.Lifetime or 3)

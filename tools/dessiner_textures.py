@@ -235,6 +235,76 @@ def zipper():
     return finish(m, size, glow=1.5, name="zipper")
 
 
+# ─── 14. Cercle de zone (attaques "Zone" au sol, vu du dessus) ──────────────
+# Double anneau, graduations, étoile à 6 branches entrelacée, petits points
+# et langues de flamme qui dépassent du bord. Vu de dessus sur un Decal.
+def zone():
+    size = 1024
+    m = canvas(size)
+    d = ImageDraw.Draw(m)
+    n = size * SS
+    c = n / 2
+    R = n * 0.43
+
+    def circle(r, w, fill=255):
+        d.ellipse([c - r, c - r, c + r, c + r], outline=fill, width=int(w))
+
+    # langues de flamme au bord (24, longueurs variées)
+    for i in range(24):
+        a0 = i / 24 * 2 * math.pi
+        length = n * (0.035 + 0.025 * ((i * 7) % 5) / 4)
+        half = 2 * math.pi / 24 * 0.32
+        base_r = R + n * 0.005
+        tip = (c + math.cos(a0 + half * 0.4) * (base_r + length), c + math.sin(a0 + half * 0.4) * (base_r + length))
+        left = (c + math.cos(a0 - half) * base_r, c + math.sin(a0 - half) * base_r)
+        right = (c + math.cos(a0 + half) * base_r, c + math.sin(a0 + half) * base_r)
+        d.polygon([left, tip, right], fill=200)
+    # anneaux
+    circle(R, n * 0.012)
+    circle(R - n * 0.03, n * 0.005, 210)
+    circle(R * 0.62, n * 0.008)
+    circle(R * 0.58, n * 0.004, 190)
+    circle(R * 0.16, n * 0.006)
+    # graduations entre les deux grands anneaux
+    for i in range(72):
+        a0 = i / 72 * 2 * math.pi
+        big = i % 6 == 0
+        r1 = R - n * 0.03
+        r2 = R * 0.62 + (n * 0.0 if big else n * 0.06)
+        if not big:
+            r1, r2 = R - n * 0.035, R - n * 0.075
+        d.line([(c + math.cos(a0) * r1, c + math.sin(a0) * r1), (c + math.cos(a0) * r2, c + math.sin(a0) * r2)],
+               fill=230 if big else 160, width=int(n * (0.006 if big else 0.003)))
+    # petits ronds sur l'anneau intermédiaire
+    for i in range(12):
+        a0 = (i + 0.5) / 12 * 2 * math.pi
+        r = R * 0.79
+        x, y = c + math.cos(a0) * r, c + math.sin(a0) * r
+        rr = n * (0.012 if i % 2 == 0 else 0.007)
+        d.ellipse([x - rr, y - rr, x + rr, y + rr], fill=255)
+    # étoile à 6 branches : deux triangles
+    for k in range(2):
+        pts = []
+        for j in range(3):
+            a0 = -math.pi / 2 + k * math.pi / 3 + j * 2 * math.pi / 3
+            pts.append((c + math.cos(a0) * R * 0.58, c + math.sin(a0) * R * 0.58))
+        d.line(pts + [pts[0]], fill=235, width=int(n * 0.007))
+    # hexagone intérieur et rayons
+    hexa = [(c + math.cos(math.pi / 6 + j * math.pi / 3) * R * 0.3, c + math.sin(math.pi / 6 + j * math.pi / 3) * R * 0.3) for j in range(6)]
+    d.line(hexa + [hexa[0]], fill=200, width=int(n * 0.004))
+    for j in range(6):
+        a0 = -math.pi / 2 + j * math.pi / 3
+        d.line([(c + math.cos(a0) * R * 0.16, c + math.sin(a0) * R * 0.16), (c + math.cos(a0) * R * 0.58, c + math.sin(a0) * R * 0.58)],
+               fill=120, width=int(n * 0.003))
+    # léger fond lumineux à l'intérieur (la zone reste lisible au sol)
+    arr = np.asarray(m, np.float32)
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    dist = np.sqrt((x - c) ** 2 + (y - c) ** 2) / R
+    fill = np.clip(1 - dist, 0, 1) ** 0.5 * 45 * (dist < 1)
+    m = Image.fromarray(np.clip(np.maximum(arr, fill), 0, 255).astype(np.uint8))
+    return finish(m, size, glow=3, name="zone")
+
+
 # ─── Planche d'aperçu (couleurs de quelques Stands) ──────────────────────────
 def preview(paths):
     colors = [(170, 120, 255), (255, 200, 70), (255, 130, 200), (110, 255, 140), (255, 120, 40),
@@ -260,7 +330,7 @@ def preview(paths):
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    made = [f() for f in (glow, spark, impact, ring, slash, lightning, smoke, star, shard, flame, petal, gem, zipper)]
+    made = [f() for f in (glow, spark, impact, ring, slash, lightning, smoke, star, shard, flame, petal, gem, zipper, zone)]
     for p in made:
         print(p, os.path.getsize(p) // 1024, "Ko")
     print("aperçu :", preview(made))
