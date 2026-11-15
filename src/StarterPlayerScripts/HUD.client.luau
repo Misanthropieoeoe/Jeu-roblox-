@@ -97,6 +97,50 @@ task.spawn(function()
 	refreshCash(false)
 end)
 
+-- Temps depuis l'ouverture du serveur, au milieu sous la barre --------------
+local uptime = UITheme.Label(root, "", 13, C.Text, UITheme.Bold)
+uptime.Name = "ServerUptime"
+uptime.AnchorPoint = Vector2.new(0.5, 0)
+uptime.Position = UDim2.new(0.5, 0, 0, 56)
+uptime.Size = UDim2.fromOffset(0, 26)
+uptime.AutomaticSize = Enum.AutomaticSize.X
+uptime.TextXAlignment = Enum.TextXAlignment.Center
+uptime.BackgroundColor3 = C.Night
+uptime.BackgroundTransparency = 0.15
+UITheme.Corner(uptime, 13)
+UITheme.Stroke(uptime, C.Line, 1.35, 0.23)
+local uptimePad = Instance.new("UIPadding")
+uptimePad.PaddingLeft = UDim.new(0, 12)
+uptimePad.PaddingRight = UDim.new(0, 12)
+uptimePad.Parent = uptime
+
+local function formatDuration(seconds)
+	seconds = math.max(0, math.floor(seconds))
+	local d = seconds // 86400
+	local h = (seconds % 86400) // 3600
+	local m = (seconds % 3600) // 60
+	local s = seconds % 60
+	if d > 0 then
+		return string.format("%d j %02d h %02d min", d, h, m)
+	elseif h > 0 then
+		return string.format("%d h %02d min %02d s", h, m, s)
+	end
+	return string.format("%d min %02d s", m, s)
+end
+
+task.spawn(function()
+	while uptime.Parent do
+		local started = workspace:GetAttribute("ServerStartedAt")
+		if typeof(started) == "number" then
+			uptime.Text = "⏱  Serveur ouvert depuis " .. formatDuration(workspace:GetServerTimeNow() - started)
+			uptime.Visible = true
+		else
+			uptime.Visible = false
+		end
+		task.wait(1)
+	end
+end)
+
 -- "+30" qui jaillit de la pastille d'argent
 local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
 local function playSfx(name, volume)
