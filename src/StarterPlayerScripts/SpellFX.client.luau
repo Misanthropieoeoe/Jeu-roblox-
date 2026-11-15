@@ -317,6 +317,261 @@ function EFFECTS.Erase(ctx)
 	burst(ctx.root.Position, ctx.color, { count = 40, speed = 18, life = 0.5, size = 0.6 })
 end
 
+-- ─── Formes animées pour les signatures de Stand ────────────────────────────
+local rng = Random.new()
+
+local function shape(color, size, cframe, shapeKind)
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Size = size
+	if shapeKind == "Ball" then part.Shape = Enum.PartType.Ball end
+	part.CFrame = cframe
+	part.Parent = folder
+	return part
+end
+
+-- Petits morceaux projetés dans toutes les directions (éclats, gemmes, pétales)
+local function debris(position, color, opts)
+	opts = opts or {}
+	for _ = 1, opts.count or 10 do
+		local dir = rng:NextUnitVector()
+		if opts.upward then dir = Vector3.new(dir.X, math.abs(dir.Y) + 0.3, dir.Z).Unit end
+		local size = opts.size or Vector3.new(0.35, 0.35, 0.35)
+		local s = rng:NextNumber(0.7, 1.3)
+		local part = shape(opts.colors and opts.colors[rng:NextInteger(1, #opts.colors)] or color,
+			size * s, CFrame.new(position) * CFrame.Angles(rng:NextNumber(0, 6.3), rng:NextNumber(0, 6.3), rng:NextNumber(0, 6.3)),
+			opts.ball and "Ball" or nil)
+		local life = rng:NextNumber(0.35, 0.6) * (opts.life or 1)
+		local goal = CFrame.new(position + dir * rng:NextNumber(3, 7) * (opts.spread or 1))
+			* CFrame.Angles(rng:NextNumber(0, 12), rng:NextNumber(0, 12), rng:NextNumber(0, 12))
+		TweenService:Create(part, TweenInfo.new(life, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ CFrame = goal, Transparency = 1, Size = part.Size * 0.3 }):Play()
+		Debris:AddItem(part, life + 0.05)
+	end
+end
+
+-- Lames de lumière (coups d'épée, griffes, tranchants)
+local function slashes(position, color, count, length)
+	for i = 1, count or 2 do
+		local angle = rng:NextNumber(-0.9, 0.9) + (i - 1) * 1.2
+		local part = shape(color, Vector3.new(0.15, 0.6, length or 7),
+			CFrame.new(position) * CFrame.Angles(0, rng:NextNumber(0, 6.3), angle))
+		TweenService:Create(part, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = Vector3.new(0.05, 0.1, (length or 7) * 1.4), Transparency = 1 }):Play()
+		Debris:AddItem(part, 0.3)
+	end
+end
+
+-- Anneau de petites sphères qui tourne (halo, horloge)
+local function orbitRing(position, color, radius, count, time)
+	local parts = {}
+	for i = 1, count do
+		parts[i] = shape(color, Vector3.new(0.5, 0.5, 0.5), CFrame.new(position), "Ball")
+	end
+	local started = os.clock()
+	local connection
+	connection = game:GetService("RunService").RenderStepped:Connect(function()
+		local t = os.clock() - started
+		if t >= time then
+			connection:Disconnect()
+			for _, part in parts do part:Destroy() end
+			return
+		end
+		local fade = t / time
+		for i, part in parts do
+			local a = (i / count) * math.pi * 2 + t * 4
+			part.CFrame = CFrame.new(position + Vector3.new(math.cos(a), 0, math.sin(a)) * radius * (0.6 + fade * 0.6))
+			part.Transparency = fade
+		end
+	end)
+end
+
+-- Traits de vitesse le long d'une direction
+local function speedLines(position, direction, color, count)
+	for _ = 1, count or 6 do
+		local offset = Vector3.new(rng:NextNumber(-2, 2), rng:NextNumber(-2, 2), rng:NextNumber(-2, 2))
+		local start = position + offset
+		local part = shape(color, Vector3.new(0.08, 0.08, rng:NextNumber(3, 6)), CFrame.lookAt(start, start + direction))
+		TweenService:Create(part, TweenInfo.new(0.3), { CFrame = part.CFrame - direction * 6, Transparency = 1 }):Play()
+		Debris:AddItem(part, 0.35)
+	end
+end
+
+-- Fermeture éclair lumineuse entre deux points (maillons qui apparaissent)
+local function zipper(from, to, color)
+	local length = (to - from).Magnitude
+	local steps = math.clamp(math.floor(length / 0.8), 3, 30)
+	for i = 0, steps do
+		task.delay(i * 0.015, function()
+			local pos = from:Lerp(to, i / steps)
+			local side = (i % 2 == 0) and 0.3 or -0.3
+			local part = shape(color, Vector3.new(0.5, 0.15, 0.3), CFrame.lookAt(pos, to) * CFrame.new(side, 0, 0))
+			TweenService:Create(part, TweenInfo.new(0.5), { Transparency = 1 }):Play()
+			Debris:AddItem(part, 0.55)
+		end)
+	end
+end
+
+-- "ゴゴゴ" qui flottent autour du Stand (garde, contre, arrêt du temps)
+local menacing = setmetatable({}, { __mode = "k" })
+local function startMenacing(stand, color, isActive)
+	if menacing[stand] then return end
+	menacing[stand] = true
+	task.spawn(function()
+		while stand.Parent and isActive() do
+			local base = stand.PrimaryPart and stand.PrimaryPart.Position
+			if base then
+				local anchor = anchorAt(base + Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(0, 2), rng:NextNumber(-3, 3)), 1.3)
+				local gui = Instance.new("BillboardGui")
+				gui.Size = UDim2.fromOffset(46, 46)
+				gui.LightInfluence = 0
+				gui.MaxDistance = 90
+				gui.Parent = anchor
+				local label = Instance.new("TextLabel")
+				label.BackgroundTransparency = 1
+				label.Size = UDim2.fromScale(1, 1)
+				label.Font = Enum.Font.GothamBlack
+				label.Text = "ゴ"
+				label.TextScaled = true
+				label.TextColor3 = color
+				label.TextStrokeColor3 = Color3.new(0, 0, 0)
+				label.TextStrokeTransparency = 0
+				label.Rotation = rng:NextNumber(-20, 20)
+				label.Parent = gui
+				TweenService:Create(anchor, TweenInfo.new(1.2), { CFrame = anchor.CFrame + Vector3.new(0, 2.5, 0) }):Play()
+				TweenService:Create(label, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+					{ TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+			end
+			task.wait(0.22)
+		end
+		menacing[stand] = nil
+	end)
+end
+
+-- ─── Signatures visuelles de chaque Stand ───────────────────────────────────
+-- Appelées en plus des effets du type d'attaque : au lancement ("start") et
+-- au moment de l'impact ("impact"). `dir` = direction du joueur.
+local function rubble(pos, color, n)
+	debris(pos, color, { count = n or 10, size = Vector3.new(0.5, 0.5, 0.5) })
+end
+
+local SIGNATURES = {
+	-- étoiles violettes et onde de choc
+	StarPlatinum = function(ctx, phase, pos)
+		if phase == "impact" then
+			debris(pos, ctx.color, { count = 10, ball = true, size = Vector3.new(0.3, 0.3, 0.3) })
+			ring(pos, Color3.fromRGB(230, 210, 255), 10, 0.3)
+		end
+	end,
+	-- anneaux d'horloge dorés et éclats de lames
+	TheWorld = function(ctx, phase, pos)
+		if phase == "start" then
+			orbitRing(pos, ctx.color, 4, 12, 0.6)
+		else
+			slashes(pos, Color3.fromRGB(255, 240, 180), 2, 6)
+			debris(pos, ctx.color, { count = 8 })
+		end
+	end,
+	-- éclats rouges et dorés, brutaux
+	TheWorldAU = function(ctx, phase, pos)
+		if phase == "impact" then
+			debris(pos, ctx.color, { count = 14, colors = { Color3.fromRGB(255, 200, 70), Color3.fromRGB(200, 30, 30) }, spread = 1.3 })
+			slashes(pos, Color3.fromRGB(220, 40, 40), 1, 8)
+		end
+	end,
+	-- éclats de verre et diamants roses
+	CrazyDiamond = function(ctx, phase, pos)
+		if phase == "impact" then
+			debris(pos, ctx.color, { count = 14, size = Vector3.new(0.12, 0.6, 0.45),
+				colors = { Color3.fromRGB(255, 150, 210), Color3.fromRGB(190, 235, 255), Color3.fromRGB(255, 255, 255) } })
+		else
+			debris(pos, Color3.fromRGB(190, 235, 255), { count = 6, size = Vector3.new(0.4, 0.4, 0.4), spread = 0.6 })
+		end
+	end,
+	-- lames de rapière argentées
+	SilverChariot = function(ctx, phase, pos)
+		slashes(pos, Color3.fromRGB(235, 240, 255), phase == "impact" and 3 or 1, 7)
+	end,
+	-- explosions roses : flammes et fumée
+	KillerQueen = function(ctx, phase, pos)
+		if phase == "impact" then
+			burst(pos, Color3.fromRGB(255, 140, 60), { count = 30, texture = FLAME, speed = 14, life = 0.5, size = 1.4 })
+			burst(pos, Color3.fromRGB(80, 60, 60), { count = 10, texture = SMOKE, speed = 8, life = 1, size = 3.5, light = 0 })
+			debris(pos, Color3.fromRGB(255, 130, 200), { count = 6, ball = true })
+		end
+	end,
+	-- pétales et feuilles qui s'envolent
+	GoldExperience = function(ctx, phase, pos)
+		debris(pos, ctx.color, { count = phase == "impact" and 14 or 6, upward = true, size = Vector3.new(0.5, 0.08, 0.35), life = 1.6,
+			colors = { Color3.fromRGB(120, 255, 140), Color3.fromRGB(255, 220, 90), Color3.fromRGB(255, 160, 210) } })
+	end,
+	-- halo doré et pétales
+	GoldExperienceRequiem = function(ctx, phase, pos)
+		if phase == "start" then
+			orbitRing(pos + Vector3.new(0, 3, 0), Color3.fromRGB(255, 230, 120), 2, 10, 0.8)
+		else
+			debris(pos, ctx.color, { count = 12, upward = true, size = Vector3.new(0.5, 0.08, 0.35), life = 1.4 })
+			ring(pos, Color3.fromRGB(255, 240, 170), 9, 0.35)
+		end
+	end,
+	-- distorsion : fragments rouges et noirs qui "sautent"
+	KingCrimson = function(ctx, phase, pos)
+		debris(pos, ctx.color, { count = phase == "impact" and 12 or 8, size = Vector3.new(0.6, 0.6, 0.08),
+			colors = { Color3.fromRGB(220, 30, 60), Color3.fromRGB(20, 0, 5), Color3.fromRGB(255, 120, 140) }, spread = 1.2 })
+	end,
+	-- gemmes émeraude
+	HierophantGreen = function(ctx, phase, pos)
+		debris(pos, ctx.color, { count = phase == "impact" and 12 or 6, size = Vector3.new(0.45, 0.45, 0.45),
+			colors = { Color3.fromRGB(60, 230, 120), Color3.fromRGB(150, 255, 190) } })
+	end,
+	-- flammes partout
+	MagiciansRed = function(ctx, phase, pos)
+		burst(pos, Color3.fromRGB(255, 120, 40), { count = phase == "impact" and 35 or 15, texture = FLAME,
+			speed = 10, life = 0.6, size = 1.6, accel = Vector3.new(0, 10, 0) })
+	end,
+	-- fermetures éclair lumineuses
+	StickyFingers = function(ctx, phase, pos)
+		local from = ctx.root and ctx.root.Position or pos
+		if phase == "impact" then
+			zipper(pos + Vector3.new(0, 2, 0), pos - Vector3.new(0, 2, 0), Color3.fromRGB(150, 200, 255))
+		else
+			zipper(from, from + ctx.dir * 5, Color3.fromRGB(150, 200, 255))
+		end
+	end,
+	-- traits de vitesse blancs
+	MadeInHeaven = function(ctx, phase, pos)
+		speedLines(pos, ctx.dir, Color3.fromRGB(220, 255, 255), phase == "impact" and 10 or 6)
+	end,
+}
+
+local function signature(ctx, phase, pos)
+	local fn = SIGNATURES[ctx.standId]
+	if fn and pos then
+		pcall(fn, ctx, phase, pos)
+	end
+end
+
+-- Où se produit "l'impact" de chaque type d'attaque
+local function impactPoint(ctx)
+	local move = ctx.move
+	local t = move.Type
+	if t == "Burst" or t == "Mine" or t == "Zone" then
+		return ctx.ground(move.Offset or 0) + Vector3.new(0, 1, 0)
+	elseif t == "Strike" or t == "Pull" then
+		return ctx.front(move.Range and math.min(move.Range * 0.5, 6) or 4)
+	elseif t == "Projectile" then
+		return (ctx.handR or ctx.torso) and (ctx.handR or ctx.torso).Position
+	else
+		return ctx.root and ctx.root.Position
+	end
+end
+
 -- ─── Déclenchement ─────────────────────────────────────────────────────────
 local function playFor(stand)
 	local state = stand:GetAttribute("State")
@@ -360,7 +615,33 @@ local function playFor(stand)
 		local result = workspace:Raycast(from, Vector3.new(0, -30, 0), params)
 		return result and result.Position or (from - Vector3.new(0, 6, 0))
 	end
+	ctx.standId = stand:GetAttribute("StandId")
+	ctx.dir = flat()
 	EFFECTS[move.Type](ctx)
+
+	-- Signature du Stand : au lancement…
+	signature(ctx, "start", ctx.torso and ctx.torso.Position)
+	-- …et à l'impact (plusieurs fois pendant une rafale)
+	if move.Type == "Flurry" then
+		task.spawn(function()
+			local endsAt = os.clock() + (move.Duration or 2)
+			while os.clock() < endsAt and stand.Parent and stand:GetAttribute("State") == state do
+				signature(ctx, "impact", ctx.front(4))
+				task.wait(0.3)
+			end
+		end)
+	elseif move.Type ~= "TimeStop" and move.Type ~= "Erase" then
+		task.delay(move.HitDelay or 0.25, function()
+			signature(ctx, "impact", impactPoint(ctx))
+		end)
+	end
+
+	-- "ゴゴゴ" pendant un contre ou un arrêt du temps
+	if move.Type == "Counter" or move.Type == "TimeStop" then
+		startMenacing(stand, color, function()
+			return stand:GetAttribute("State") == state
+		end)
+	end
 end
 
 local function watch(stand)
@@ -371,6 +652,14 @@ local function watch(stand)
 		if not stand:GetAttribute("Owner") then return end
 	end
 	stand:GetAttributeChangedSignal("State"):Connect(function()
+		if stand:GetAttribute("State") == "Block" then
+			local def = StandData.GetStand(stand:GetAttribute("StandId") or "")
+			local color = (def and def.Theme and def.Theme.Aura1) or DEFAULT_COLOR
+			startMenacing(stand, color, function()
+				return stand:GetAttribute("State") == "Block"
+			end)
+			return
+		end
 		playFor(stand)
 	end)
 end
