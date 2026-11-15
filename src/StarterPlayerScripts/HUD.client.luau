@@ -262,6 +262,54 @@ menuButton(4, "Emotes", "🕺", "EMOTES", "H", C.Pink)
 -- ADMIN : argent, objets, skins et changement de Stand (AdminMenu)
 local standsButton = menuButton(5, "Admin", "🛠", "ADMIN", "L", C.Purple)
 
+-- STATS : petit bouton qui affiche / cache le tableau des stats du Stand
+-- (StandStatHUD, caché au départ ; la touche M fait la même chose)
+local statsButton = Instance.new("TextButton")
+statsButton.Name = "Stats"
+statsButton.LayoutOrder = 6
+statsButton.Size = UDim2.fromOffset(42, 42)
+statsButton.AutoButtonColor = false
+statsButton.Font = UITheme.Body
+statsButton.Text = "📊"
+statsButton.TextSize = 18
+statsButton.TextColor3 = C.Text
+statsButton.BackgroundColor3 = C.Panel
+statsButton.BackgroundTransparency = 0.1
+statsButton.Parent = rail
+UITheme.Corner(statsButton, 10)
+local statsStroke = UITheme.Stroke(statsButton, C.Gold, 1.35, 0.23)
+UITheme.Gradient(statsButton, Color3.new(1, 1, 1), Color3.fromRGB(150, 140, 175), 95)
+local function statsGui()
+	return player:WaitForChild("PlayerGui"):FindFirstChild("StandStatHUD")
+end
+local function refreshStats()
+	local gui = statsGui()
+	local open = gui ~= nil and gui.Enabled
+	statsStroke.Transparency = open and 0 or 0.23
+	statsStroke.Thickness = open and 2 or 1.35
+end
+statsButton.Activated:Connect(function()
+	local gui = statsGui()
+	if gui then
+		gui.Enabled = not gui.Enabled
+		refreshStats()
+	end
+end)
+statsButton.MouseEnter:Connect(function()
+	TweenService:Create(statsButton, TweenInfo.new(0.13), { BackgroundColor3 = C.CardHover }):Play()
+end)
+statsButton.MouseLeave:Connect(function()
+	TweenService:Create(statsButton, TweenInfo.new(0.17), { BackgroundColor3 = C.Panel }):Play()
+end)
+-- suit aussi la touche M
+task.spawn(function()
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("StandStatHUD", 30)
+	if gui then
+		gui:GetPropertyChangedSignal("Enabled"):Connect(refreshStats)
+		refreshStats()
+	end
+end)
+
 -- bouton allumé quand sa fenêtre est ouverte
 UITheme.WindowChanged:Connect(function(name, open)
 	local entry = menuButtons[name]
