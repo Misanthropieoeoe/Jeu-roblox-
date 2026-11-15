@@ -259,10 +259,11 @@ StandStrikes.Stands = {
 			{ R = { pitch = 88, swing = 5, elbow = 10 }, L = { pitch = -25, abduct = 45, elbow = 50 }, twist = 22, lean = 6, lunge = 0.7,
 				legR = { hip = 40, knee = 30 }, legL = { hip = -25, knee = 8 } }
 		),
+		-- estoc bas (plus de taillade : Silver Chariot ne fait que piquer)
 		LightL = light(
-			{ R = { pitch = 85, abduct = 65, swing = -40, elbow = 20 }, L = { pitch = -15, abduct = 40, elbow = 60 }, twist = -25, lean = 4 },
-			{ R = { pitch = 85, abduct = 20, swing = 75, elbow = 10 }, L = { pitch = -20, abduct = 45, elbow = 55 }, twist = 30, lean = 8, lunge = 0.4 },
-			{ R = { pitch = 80, abduct = 15, swing = 85, elbow = 15 }, L = { pitch = -20, abduct = 45, elbow = 55 }, twist = 32, lean = 6, lunge = 0.3 }
+			{ R = { pitch = 40, abduct = 8, elbow = 95, wrist = -15 }, L = { pitch = 110, abduct = 50, elbow = 95 }, twist = -25, drop = 0.25 },
+			{ R = { pitch = 70, abduct = 2, swing = 4, elbow = 0, wrist = 5 }, L = { pitch = 115, abduct = 55, elbow = 90 }, twist = 28, lean = 20, lunge = 0.9, drop = 0.5 },
+			{ R = { pitch = 68, abduct = 2, swing = 4, elbow = 6 }, L = { pitch = 112, abduct = 55, elbow = 92 }, twist = 24, lean = 17, lunge = 0.75, drop = 0.45 }
 		),
 		Finisher = finisher(
 			{ R = { pitch = 50, abduct = 5, swing = -10, elbow = 130, wrist = -15 }, L = { pitch = -20, abduct = 45, elbow = 55 }, twist = -40, lunge = -0.4, drop = 0.15,
@@ -907,6 +908,44 @@ local GESTURES = {
 			legR = { hip = -20, knee = 20 }, legL = { hip = -35, knee = 30 } },
 	},
 	-- Postures tenues
+	-- ─── Escrime (Silver Chariot) : estocs à la rapière, main gauche levée
+	-- derrière comme un escrimeur ───────────────────────────────────────────
+	-- Coup droit : fente classique, bras tendu, jambe avant fléchie
+	coupDroit = {
+		W = { R = { pitch = 75, abduct = 4, swing = -6, elbow = 70, wrist = -10 }, L = { pitch = 115, abduct = 55, elbow = 95 },
+			twist = -35, lunge = -0.15, legR = { hip = 15, knee = 20 }, legL = { hip = -10, knee = 15 } },
+		I = { R = { pitch = 91, abduct = 2, swing = 4, elbow = 0, wrist = 0 }, L = { pitch = 120, abduct = 60, elbow = 85 },
+			twist = 30, lean = 12, lunge = 1.25, drop = 0.3, legR = { hip = 70, knee = 70 }, legL = { hip = -35, knee = 5 } },
+		F = { R = { pitch = 89, abduct = 2, swing = 4, elbow = 6 }, L = { pitch = 118, abduct = 60, elbow = 88 },
+			twist = 26, lean = 10, lunge = 1.05, drop = 0.25, legR = { hip = 62, knee = 62 }, legL = { hip = -30, knee = 6 } },
+	},
+	-- Flèche : course-attaque, tout le corps penché en avant derrière la pointe
+	fleche = {
+		W = { R = { pitch = 70, abduct = 6, elbow = 80, wrist = -15 }, L = { pitch = -30, abduct = 35, elbow = 40 },
+			twist = -25, lean = 18, drop = 0.2, legR = { hip = 30, knee = 45 }, legL = { hip = -15, knee = 30 } },
+		I = { R = { pitch = 98, abduct = 2, swing = 3, elbow = 0 }, L = { pitch = -45, abduct = 30, elbow = 15 },
+			twist = 22, lean = 38, lunge = 1.6, drop = 0.1, legR = { hip = -30, knee = 15 }, legL = { hip = 50, knee = 60 } },
+		F = { R = { pitch = 95, abduct = 2, swing = 3, elbow = 5 }, L = { pitch = -40, abduct = 30, elbow = 20 },
+			twist = 18, lean = 32, lunge = 1.4, legR = { hip = -25, knee = 15 }, legL = { hip = 45, knee = 55 } },
+	},
+	-- Estoc bas : sous la garde, vers le ventre
+	lowThrust = {
+		W = { R = { pitch = 40, abduct = 8, elbow = 95, wrist = -15 }, L = { pitch = 110, abduct = 50, elbow = 95 },
+			twist = -25, drop = 0.25, legR = { hip = 25, knee = 40 }, legL = { hip = -10, knee = 25 } },
+		I = { R = { pitch = 70, abduct = 2, swing = 4, elbow = 0, wrist = 5 }, L = { pitch = 115, abduct = 55, elbow = 90 },
+			twist = 28, lean = 20, lunge = 0.9, drop = 0.55, legR = { hip = 65, knee = 80 }, legL = { hip = -25, knee = 20 } },
+		F = { R = { pitch = 68, abduct = 2, swing = 4, elbow = 6 }, L = { pitch = 112, abduct = 55, elbow = 92 },
+			twist = 24, lean = 17, lunge = 0.75, drop = 0.5, legR = { hip = 60, knee = 75 }, legL = { hip = -22, knee = 20 } },
+	},
+	-- Estoc lancé : la pointe part comme un trait de lumière, poignet cassé
+	snapThrust = {
+		W = { R = { pitch = 85, abduct = 10, swing = -20, elbow = 120, wrist = -35 }, L = { pitch = 115, abduct = 55, elbow = 95 },
+			twist = -40, lean = -4, legR = { hip = 5, knee = 15 }, legL = { hip = -5, knee = 15 } },
+		I = { R = { pitch = 93, abduct = 2, swing = 6, elbow = 0, wrist = 20 }, L = { pitch = 120, abduct = 60, elbow = 85 },
+			twist = 35, lean = 10, lunge = 0.7, legR = { hip = 40, knee = 35 }, legL = { hip = -25, knee = 8 } },
+		F = { R = { pitch = 90, abduct = 2, swing = 6, elbow = 5, wrist = 15 }, L = { pitch = 118, abduct = 60, elbow = 88 },
+			twist = 30, lean = 8, lunge = 0.6, legR = { hip = 35, knee = 30 }, legL = { hip = -22, knee = 8 } },
+	},
 	parry = { hold = { R = { pitch = 80, abduct = 5, swing = 30, elbow = 30, wrist = 20 }, L = { pitch = 110, abduct = 30, elbow = 90 }, twist = -20, lean = 4,
 		legR = { hip = 35, knee = 30 }, legL = { hip = -20, knee = 10 } } },
 	crossArms = { hold = { R = { pitch = 85, swing = 70, elbow = 100 }, L = { pitch = 80, swing = 70, elbow = 105 }, lean = -10, headPitch = 15 } },
@@ -945,8 +984,9 @@ local KITS = {
 		Moves = { SkullCrusher = "hammer", ShrapnelFan = "sidearm", PredatorLunge = "dashLunge" } },
 	CrazyDiamond = { Light1 = "jab", Light2 = "cross:L", Light3 = "elbow", Finisher = "cross",
 		Moves = { RebuildSmash = "cross", Mend = "sky", ShardRecall = "yank", FusionLock = "palm" } },
-	SilverChariot = { Light1 = "thrust", Light2 = "sidearm", Light3 = "backfist", Finisher = "thrust",
-		Moves = { PiercingArc = "thrust", AfterimageFeint = "spin", BladeVolley = "sidearm", Riposte = "parry" } },
+	-- Silver Chariot : que des estocs (la rapière pique, elle ne taille plus)
+	SilverChariot = { Light1 = "thrust", Light2 = "lowThrust", Light3 = "snapThrust", Finisher = "coupDroit",
+		Moves = { Fleche = "fleche", CoupDroit = "coupDroit", EstocEclair = "snapThrust", ContreRiposte = "parry" } },
 	KillerQueen = { Light1 = "jab", Light2 = "palm:L", Light3 = "backfist", Finisher = "palm",
 		Moves = { PrimedPalm = "palm", ProximityCharge = "plant", FuseCoin = "flick", RewindHour = "meditate" } },
 	GoldExperience = { Light1 = "jab", Light2 = "kickFront:L", Light3 = "hook", Finisher = "doublePalm",

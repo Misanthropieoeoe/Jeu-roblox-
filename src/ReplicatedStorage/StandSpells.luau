@@ -197,30 +197,36 @@ return {
 	},
 
 	-- ─── Silver Chariot : vitesse et escrime ─────────────────────────────────
+	-- Silver Chariot : escrimeur, uniquement des coups d'estoc à la rapière
 	SilverChariot = {
-		ThousandNeedles = {
-			Label = "Thousand Needles", Key = "E", Cooldown = 15, Type = "Flurry",
+		-- E : pluie d'estocs très rapides, puis une fente finale qui repousse
+		RafaleEstocs = {
+			Label = "Rafale d'Estocs", Key = "E", Cooldown = 15, Type = "Flurry",
 			Duration = 1.8, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = SILVER,
-			TickRate = 0.08, Damage = 0.6, Range = 10, BoxSize = Vector3.new(6, 6, 11),
-			FinalDamage = 4, FinalKnockback = 35,
+			TickRate = 0.08, Damage = 0.6, Range = 11, BoxSize = Vector3.new(4, 6, 12),
+			FinalDamage = 5, FinalKnockback = 40,
 		},
-		PiercingArc = {
-			Label = "Piercing Arc", Key = "R", Cooldown = 10, Type = "Strike",
+		-- R : coup droit, fente très allongée qui pique loin et en ligne
+		CoupDroit = {
+			Label = "Coup Droit", Key = "R", Cooldown = 10, Type = "Strike",
 			Duration = 0.6, HitDelay = 0.25, Anim = "Point", PlayerAnim = "CmdPoint", Color = SILVER,
-			Damage = 14, Knockback = 30, Range = 14, BoxSize = Vector3.new(4, 5, 16),
+			Damage = 15, Knockback = 30, Range = 16, BoxSize = Vector3.new(3, 5, 18),
 		},
-		AfterimageFeint = {
-			Label = "Afterimage Feint", Key = "T", Cooldown = 50, Type = "Buff",
-			Duration = 0.7, HitDelay = 0.3, Anim = "Spin", PlayerAnim = "CmdSummon", Color = SILVER,
-			SpeedBoost = 1.75, BuffTime = 5,
+		-- T : flèche, course-attaque : le Stand fonce pointe en avant
+		Fleche = {
+			Label = "Flèche", Key = "T", Cooldown = 12, Type = "Dash",
+			Duration = 0.55, HitDelay = 0.1, Anim = "Point", PlayerAnim = "CmdDash", Color = SILVER,
+			DashSpeed = 115, DashTime = 0.25, Damage = 13, Knockback = 35,
 		},
-		BladeVolley = {
-			Label = "Blade Volley", Key = "F", Cooldown = 12, Type = "Projectile",
-			Duration = 0.55, HitDelay = 0.22, Anim = "Throw", PlayerAnim = "CmdCast", Color = SILVER,
-			Count = 3, Spread = 10, Speed = 140, Range = 80, Damage = 4.5, Size = 0.5, Shape = "Blade",
+		-- F : estoc éclair, la pointe projette un trait d'acier qui traverse
+		EstocEclair = {
+			Label = "Estoc Éclair", Key = "F", Cooldown = 12, Type = "Projectile",
+			Duration = 0.5, HitDelay = 0.2, Anim = "Flick", PlayerAnim = "CmdPoint", Color = SILVER,
+			Count = 1, Speed = 200, Range = 90, Damage = 12, Size = 0.4, Shape = "Blade",
 		},
-		Riposte = {
-			Label = "Riposte", Key = "G", Cooldown = 25, Type = "Counter",
+		-- G : contre-riposte, garde haute puis estoc en retour si on est touché
+		ContreRiposte = {
+			Label = "Contre-Riposte", Key = "G", Cooldown = 25, Type = "Counter",
 			Duration = 1.0, Anim = "CounterStance", PlayerAnim = "CmdBrace", Color = SILVER,
 			CounterDamage = 20, CounterKnockback = 40, CounterStun = 1.5,
 		},
