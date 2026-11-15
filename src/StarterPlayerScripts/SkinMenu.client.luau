@@ -432,7 +432,17 @@ local function randomEntry()
 	return list[math.random(#list)]
 end
 
+local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
 local function spin(data)
+	local chestId = SFX.Get("Chest")
+	if chestId ~= "" then
+		local sound = Instance.new("Sound")
+		sound.SoundId = chestId
+		sound.Volume = 0.6
+		sound.Parent = game:GetService("SoundService")
+		sound:Play()
+		sound.Ended:Once(function() sound:Destroy() end)
+	end
 	spinning = true
 	refreshBox()
 	reelHint.Visible = false

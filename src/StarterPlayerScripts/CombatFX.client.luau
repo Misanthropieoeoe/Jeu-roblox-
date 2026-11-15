@@ -580,6 +580,24 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+local SFX = require(game:GetService("ReplicatedStorage"):WaitForChild("SFX"))
+
+-- Son 3D court à une position (seulement si son ID est rempli dans SFX)
+local function playSfxAt(name, position, volume)
+	local id = SFX.Get(name)
+	if id == "" or typeof(position) ~= "Vector3" then return end
+	local anchor = Instance.new("Attachment")
+	anchor.WorldPosition = position
+	anchor.Parent = workspace.Terrain
+	local sound = Instance.new("Sound")
+	sound.SoundId = id
+	sound.Volume = volume or 0.8
+	sound.RollOffMaxDistance = 120
+	sound.Parent = anchor
+	sound:Play()
+	game:GetService("Debris"):AddItem(anchor, 3)
+end
+
 standFX.OnClientEvent:Connect(function(kind, moveKind, position, amount)
 	if kind == "RequiemAwaken" then
 		if typeof(moveKind) == "Vector3" then
@@ -600,6 +618,11 @@ standFX.OnClientEvent:Connect(function(kind, moveKind, position, amount)
 
 	sparkBurst(position, style.sparks)
 	damageNumber(position, amount, style)
+	if moveKind == "heavy" or moveKind == "final" then
+		playSfxAt("HeavyHit", position, 0.9)
+	elseif moveKind == "light" then
+		playSfxAt("PunchHit", position, 0.7)
+	end
 	shakePower = math.max(shakePower, style.shake)
 
 	combo += 1

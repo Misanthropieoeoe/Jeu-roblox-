@@ -25,6 +25,9 @@
       "PlayerPoses": {
         "$path": "src/ReplicatedStorage/PlayerPoses.luau"
       },
+      "SFX": {
+        "$path": "src/ReplicatedStorage/SFX.luau"
+      },
       "StandData": {
         "$path": "src/ReplicatedStorage/StandData.luau",
         "$attributes": {

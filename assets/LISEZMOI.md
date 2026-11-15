@@ -25,3 +25,25 @@ Importées dans Roblox (Gestionnaire de contenus) ; leurs ID sont dans
 
 Pour modifier une texture : la redessiner, la réimporter, puis remplacer son
 ID dans `TEXTURES`.
+
+## Sons (assets/sons/)
+
+Effets sonores originaux fabriqués par `tools/generer_sons.py`. À importer dans
+Roblox (Gestionnaire d'assets → Audio), puis mettre chaque ID dans
+`src/ReplicatedStorage/SFX.luau`. Tant qu'un ID est vide, le jeu garde l'ancien
+son de Roblox (ou reste silencieux pour les nouveaux sons).
+
+| fichier | nom dans SFX | quand |
+|---|---|---|
+| punch_hit.wav | PunchHit | coups de poing, barrage |
+| heavy_hit.wav | HeavyHit | gros coups, coup final |
+| impact.wav | Impact | impact des sorts |
+| whoosh.wav | Whoosh | saut du Stand, mouvements rapides |
+| projectile.wav | Projectile | tir de projectile |
+| block.wav | Block | coup bloqué en garde |
+| parry.wav | Parry | parade parfaite |
+| guard_break.wav | GuardBreak | garde brisée |
+| double_jump.wav | DoubleJump | double saut |
+| summon.wav | Summon | éclat de l'arrêt du temps |
+| coin.wav | Coin | argent ramassé |
+| chest.wav | Chest | ouverture d'un coffre de skins |

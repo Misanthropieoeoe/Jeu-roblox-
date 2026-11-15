@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
 local StandSkins = require(ReplicatedStorage:WaitForChild("StandSkins"))
+local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
 local HttpService = game:GetService("HttpService")
 local Inventory = require(script.Parent:WaitForChild("Inventory"))
 
@@ -703,7 +704,7 @@ local function setupTemplate(template)
 		light.Range = 12
 		light.Parent = torso
 
-		local punchId = "rbxasset://sounds/swordslash.wav"
+		local punchId = SFX.Get("PunchHit", "rbxasset://sounds/swordslash.wav")
 		local hitSound = Instance.new("Sound")
 		hitSound.Name = "BarrageHit"
 		hitSound.SoundId = punchId
@@ -1126,7 +1127,7 @@ local function impactFX(position, color, maxSize, soundSpeed)
 	light.Parent = ball
 
 	local sound = Instance.new("Sound")
-	sound.SoundId = "rbxasset://sounds/collide.wav"
+	sound.SoundId = SFX.Get("Impact", "rbxasset://sounds/collide.wav")
 	sound.Volume = 0.7
 	sound.PlaybackSpeed = soundSpeed or 1
 	sound.RollOffMaxDistance = 120
@@ -2502,7 +2503,7 @@ guardHook = function(target, caster, amount, kind)
 		end
 		state.started = -math.huge -- une seule parade parfaite par garde
 		impactFX(root.Position, GOLD, 12, 1.5)
-		guardSound(root.Position, "rbxasset://sounds/electronicpingshort.wav", 1.4)
+		guardSound(root.Position, SFX.Get("Parry", "rbxasset://sounds/electronicpingshort.wav"), SFX.Parry ~= "" and 1 or 1.4)
 		floatingText(root.Position, "PARRY!", GOLD)
 		return 0
 	end
@@ -2518,6 +2519,7 @@ guardHook = function(target, caster, amount, kind)
 	-- un barrage)
 	if os.clock() - (blockFxAt[defender] or 0) > 0.15 then
 		blockFxAt[defender] = os.clock()
+		if SFX.Block ~= "" and root then guardSound(root.Position, SFX.Block, 1) end
 		impactFX(root.Position + toAttacker.Unit * 1.5, Color3.fromRGB(210, 215, 235), 4, 1.8)
 	end
 	if drainsGuard then
@@ -2530,7 +2532,7 @@ guardHook = function(target, caster, amount, kind)
 		stunTargets({ target }, GUARD_BREAK_STUN)
 		target.guarded = "block" -- pas de recul en plus
 		impactFX(root.Position, Color3.fromRGB(255, 70, 60), 10, 0.6)
-		guardSound(root.Position, "rbxasset://sounds/glassbreak.wav", 1)
+		guardSound(root.Position, SFX.Get("GuardBreak", "rbxasset://sounds/glassbreak.wav"), 1)
 		floatingText(root.Position, "GUARD BREAK!", Color3.fromRGB(255, 80, 70))
 	end
 	return amount * BLOCK_DAMAGE_TAKEN
@@ -2923,7 +2925,7 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		-- owns the cooldown, the stand FX and the audit print.
 		pulseGlow(stand)
 		local whoosh = Instance.new("Sound")
-		whoosh.SoundId = "rbxasset://sounds/swordslash.wav"
+		whoosh.SoundId = SFX.Get("Whoosh", "rbxasset://sounds/swordslash.wav")
 		whoosh.Volume = 0.7
 		whoosh.PlaybackSpeed = 0.75
 		whoosh.RollOffMaxDistance = 90

@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
 
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
 local StandStrikes = require(ReplicatedStorage:WaitForChild("StandStrikes"))
@@ -761,7 +762,7 @@ local function summonStart(stand,character,standDef)
 	light.Brightness=4
 	light.Parent=core
 	TweenService:Create(light,TweenInfo.new(.69),{Brightness=0}):Play()
-	play3DSound(anchor,"SPV2_ChargeWhoosh","rbxasset://sounds/swordslash.wav",.55,.62)
+	play3DSound(anchor,"SPV2_ChargeWhoosh",SFX.Get("Whoosh","rbxasset://sounds/swordslash.wav"),.55,.62)
 	if stand:GetAttribute("Owner")==localPlayer.UserId then
 		localCasterPose(character,standDef.SummonDuration or 2.05)
 	end
@@ -1872,7 +1873,7 @@ local function playTimeStopVoice()
 	local sting = Instance.new("Sound")
 	sting.Name = "TimeStopSting"
 	sting:SetAttribute("TimeStopVoice", true)
-	sting.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+	sting.SoundId = SFX.Get("Summon", "rbxasset://sounds/electronicpingshort.wav")
 	sting.PlaybackSpeed = 0.45
 	sting.Volume = 0.8
 	sting.Parent = SoundService

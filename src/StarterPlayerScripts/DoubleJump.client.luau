@@ -27,7 +27,7 @@ local HOLD_GAP = 0.12
 -- Son du double saut. Par défaut : le son de saut intégré à Roblox, joué plus
 -- aigu. Pour un autre son, mettre un ID de la boutique, par exemple
 -- "rbxassetid://123456789" (il doit être public ou t'appartenir).
-local SOUND_ID = "rbxasset://sounds/action_jump.mp3"
+local SOUND_ID = require(game:GetService("ReplicatedStorage"):WaitForChild("SFX")).Get("DoubleJump", "rbxasset://sounds/action_jump.mp3")
 local SOUND_VOLUME = 0.6
 local SOUND_PITCH = 1.35 -- 1 = normal, plus haut = plus aigu
 -------------------------------------------------------------------------------
