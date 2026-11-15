@@ -1077,8 +1077,14 @@ RunService.Heartbeat:Connect(function()
 end)
 
 local function dealDamage(targets, amount, caster, knockback, kind)
+	local attacker = caster and Players:GetPlayerFromCharacter(caster)
 	for _, target in targets do
 		target.guarded = nil
+		-- dernier joueur qui a touché la cible (récompense du coup fatal)
+		if attacker and target.humanoid then
+			target.humanoid:SetAttribute("LastAttackerId", attacker.UserId)
+			target.humanoid:SetAttribute("LastAttackedAt", os.clock())
+		end
 		local final = amount
 		if guardHook then
 			final = guardHook(target, caster, amount, kind)
@@ -2821,6 +2827,29 @@ local function applyDefense(player)
 	humanoid.Health = math.max(1, maxHealth * ratio)
 end
 
+local rewardKill
+-- Coup fatal : le joueur qui tue récupère 80 % de ses PV max
+local KILL_HEAL = 0.8
+local KILL_CREDIT_TIME = 10 -- s : le dernier coup doit dater de moins de 10 s
+rewardKill = function(victim, humanoid)
+	local killerId = humanoid:GetAttribute("LastAttackerId")
+	local at = humanoid:GetAttribute("LastAttackedAt")
+	if not killerId or not at or os.clock() - at > KILL_CREDIT_TIME then return end
+	local killer = Players:GetPlayerByUserId(killerId)
+	if not killer or killer == victim then return end
+	local character = killer.Character
+	local killerHumanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not killerHumanoid or killerHumanoid.Health <= 0 then return end
+	local before = killerHumanoid.Health
+	killerHumanoid.Health = math.min(killerHumanoid.MaxHealth, before + killerHumanoid.MaxHealth * KILL_HEAL)
+	local healed = killerHumanoid.Health - before
+	if healed > 0 and root then
+		standFX:FireAllClients("Healed", root.Position, healed)
+	end
+	print("[StandService]", killer.Name, "a éliminé", victim.Name, "et récupère", math.floor(healed), "PV")
+end
+
 local function watchDefense(player)
 	player:GetAttributeChangedSignal("StandId"):Connect(function() applyDefense(player) end)
 	player:GetAttributeChangedSignal("Standless"):Connect(function() applyDefense(player) end)
@@ -2839,11 +2868,20 @@ local function watchDefense(player)
 		noRegen(character)
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if humanoid then
+			humanoid.Died:Connect(function()
+				rewardKill(player, humanoid)
+			end)
 			applyDefense(player)
 			humanoid.Health = humanoid.MaxHealth -- réapparition : vie pleine
 		end
 	end)
-	if player.Character then noRegen(player.Character) end
+	if player.Character then
+		noRegen(player.Character)
+		local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Died:Connect(function() rewardKill(player, humanoid) end)
+		end
+	end
 	task.defer(applyDefense, player)
 end
 Players.PlayerAdded:Connect(watchDefense)
