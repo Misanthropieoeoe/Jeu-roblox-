@@ -5,7 +5,11 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local GripUtil = require(ReplicatedStorage:WaitForChild("GripUtil"))
 
-local CASH_PER_STACK = 500
+local ItemCatalog = require(ReplicatedStorage:WaitForChild("ItemCatalog"))
+-- L'argent ramassé au sol va directement dans l'argent du joueur (+30).
+-- Il est sauvegardé par Inventory.
+local CASH_PER_STACK = ItemCatalog.MoneyPickup
+require(script.Parent:WaitForChild("Inventory"))
 local SPAWN_INTERVAL = 60 -- a new stack drops every minute
 local MAX_STACKS = 6 -- cap so the map never floods
 local STACK_LIFETIME = 240
@@ -217,14 +221,15 @@ local function onItemTouched(item, hit)
 	local character = hit and hit.Parent
 	local player = Players:GetPlayerFromCharacter(character)
 	if not player then return end
-	local backpack = player:FindFirstChild("Backpack")
-	if not backpack then return end
+	local leaderstats = player:FindFirstChild("leaderstats")
+	local cash = leaderstats and leaderstats:FindFirstChild("Cash")
+	if not cash then return end
 	item:SetAttribute("Claimed", true)
 	spinBases[item] = nil
 
-	buildMoneyTool().Parent = backpack
-	moneyEvent:FireClient(player, "PickedUp", CASH_PER_STACK)
-	print("[MoneyItems]", player.Name, "collected a Stack of Money")
+	cash.Value += CASH_PER_STACK
+	moneyEvent:FireClient(player, "Gained", CASH_PER_STACK, cash.Value)
+	print("[MoneyItems]", player.Name, "ramasse +" .. CASH_PER_STACK, "(total " .. cash.Value .. ")")
 
 	consumeItem(item)
 end

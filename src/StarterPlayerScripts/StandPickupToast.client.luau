@@ -759,8 +759,12 @@ closeBtn.Activated:Connect(closeConfirm)
 localPlayer.CharacterRemoving:Connect(closeConfirm)
 
 -- Watch the player's inventory for the item tools and wire activation.
+local watchedTools = setmetatable({}, { __mode = "k" })
 local function watchTool(tool)
 	if not tool:IsA("Tool") then return end
+	-- un outil passe du sac à la main : ne le brancher qu'une fois
+	if watchedTools[tool] then return end
+	watchedTools[tool] = true
 	if tool.Name == "StandArrow" then
 		tool.Activated:Connect(function()
 			if not localPlayer:GetAttribute("Standless") then

@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Inventory = require(script.Parent:WaitForChild("Inventory"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local tradeRemote = remotes:FindFirstChild("ItemTrade")
@@ -34,19 +35,12 @@ local function backpackOf(player)
 	return player:FindFirstChild("Backpack")
 end
 
--- Tradable tool counts across Backpack + character.
+-- Objets échangeables : inventaire + objets en main (voir Inventory).
 local function inventoryCounts(player)
 	local counts = {}
-	local function scan(container)
-		if not container then return end
-		for _, child in container:GetChildren() do
-			if child:IsA("Tool") and TRADABLE[child.Name] then
-				counts[child.Name] = (counts[child.Name] or 0) + 1
-			end
-		end
+	for kind, n in Inventory.Counts(player) do
+		if TRADABLE[kind] then counts[kind] = n end
 	end
-	scan(backpackOf(player))
-	scan(player.Character)
 	return counts
 end
 
@@ -130,32 +124,22 @@ local function commitTrade(session)
 		end
 	end
 
-	-- Collect the exact Tool instances first, then move them, so each side
-	-- hands over exactly what was shown. Nothing is destroyed: an item whose
-	-- destination is missing simply stays where it is.
-	local outgoing = { [a] = {}, [b] = {} }
-	for _, player in { a, b } do
-		for kind, count in session.offers[player] do
-			if count > 0 then
-				outgoing[player][kind] = takeTools(player, kind, count)
-			end
-		end
-	end
+	-- Les objets passent d'un inventaire à l'autre (Inventory). Un objet
+	-- n'est donné que s'il a bien été retiré à son propriétaire.
 	local gave = { [a] = {}, [b] = {} }
 	local received = { [a] = {}, [b] = {} }
 	for _, player in { a, b } do
 		local partner = otherOf(session, player)
-		local dest = backpackOf(partner)
-		for kind, tools in outgoing[player] do
-			gave[player][kind] = #tools
-			if dest and #tools > 0 then
-				for _, tool in tools do
-					tool.Parent = dest
-				end
-				received[partner][kind] = (received[partner][kind] or 0) + #tools
+		for kind, count in session.offers[player] do
+			if count > 0 and partner.Parent and Inventory.Remove(player, kind, count) then
+				Inventory.Add(partner, kind, count)
+				gave[player][kind] = count
+				received[partner][kind] = (received[partner][kind] or 0) + count
 			end
 		end
 	end
+	task.spawn(Inventory.Save, a)
+	task.spawn(Inventory.Save, b)
 
 	clearSession(session)
 	for _, player in session.players do

@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
 local StandSkins = require(ReplicatedStorage:WaitForChild("StandSkins"))
 local HttpService = game:GetService("HttpService")
+local Inventory = require(script.Parent:WaitForChild("Inventory"))
 
 -- Verified anime barrage SFX: full ORA ORA ORA voice clip sourced from the
 -- community asset "Star Platinum The World (with new sound)" (100% upvoted).
@@ -3440,13 +3441,22 @@ local function buildRequiemArrowTool()
 	return tool
 end
 
+-- Inventaire : les objets ramassés vont dans l'inventaire (Inventory), qui
+-- crée l'outil quand le joueur le prend en main.
+local ITEM_ID = { Arrow = "StandArrow", RequiemArrow = "RequiemArrow", Rokakaka = "Rokakaka" }
+Inventory.SetToolBuilder(function(itemId)
+	if itemId == "StandArrow" then
+		return buildArrowTool()
+	elseif itemId == "RequiemArrow" then
+		return buildRequiemArrowTool()
+	elseif itemId == "Rokakaka" then
+		return buildRokakakaTool()
+	end
+	return nil
+end)
+
 local function giveItemTool(player, kind)
-	local backpack = player:FindFirstChild("Backpack")
-	if not backpack then return end
-	local tool = kind == "Arrow" and buildArrowTool()
-		or kind == "RequiemArrow" and buildRequiemArrowTool()
-		or buildRokakakaTool()
-	tool.Parent = backpack
+	Inventory.Add(player, ITEM_ID[kind] or kind, 1)
 end
 
 local function prepareItemParts(model)

@@ -57,6 +57,7 @@ local function showToast(text, color)
 end
 
 moneyEvent.OnClientEvent:Connect(function(actionName, amount, total)
+	-- "Gained" (argent ramassé, +30) est affiché par le HUD (HUD.client.luau)
 	if actionName == "PickedUp" then
 		showToast("Picked up a Stack of Money - use it to bank $" .. tostring(amount), Color3.fromRGB(140, 255, 150))
 	elseif actionName == "Used" then

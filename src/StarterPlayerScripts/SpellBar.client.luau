@@ -20,18 +20,21 @@ local standFX = remotes:WaitForChild("StandFX")
 
 local player = Players.LocalPlayer
 
--- Style (repris du HUD des stats) -------------------------------------------
-local FONT = Enum.Font.FredokaOne
-local BG = Color3.fromRGB(44, 44, 50)
-local KEY_BG = Color3.fromRGB(66, 66, 72)
-local TEXT = Color3.fromRGB(255, 255, 255)
-local MUTED = Color3.fromRGB(190, 190, 200)
-local RED = Color3.fromRGB(198, 42, 42)
-local RED_DARK = Color3.fromRGB(126, 20, 20)
-local GOLD = Color3.fromRGB(255, 200, 80)
-local READY = Color3.fromRGB(120, 220, 120)
+-- Style (UITheme, commun à toutes les interfaces) ---------------------------
+local UITheme = require(ReplicatedStorage:WaitForChild("UITheme"))
+local C = UITheme.Colors
+local FONT_TITLE = UITheme.Title
+local FONT_BOLD = UITheme.Bold
+local BG = C.Night
+local CARD = C.Panel
+local TEXT = C.Text
+local MUTED = C.Muted
+local RED = C.Red
+local LINE = C.Line
+local GOLD = C.Gold
+local READY = C.Green
 
-local SLOT_W, SLOT_H, GAP = 200, 46, 8
+local SLOT_W, SLOT_H, GAP = 214, 44, 6
 ------------------------------------------------------------------------------
 
 -- Ordre d'affichage des touches. Chaque attaque du Stand équipé est placée
@@ -47,7 +50,7 @@ local barrageActive = false
 -- l'arrête et on supprime sa barre (sinon deux barres se superposent et
 -- chaque clic lance l'attaque deux fois). Les copies à jour ont l'attribut
 -- SpellBarVersion ; on garde la plus récente.
-local SPELLBAR_VERSION = 2
+local SPELLBAR_VERSION = 3
 local playerGui = player:WaitForChild("PlayerGui")
 
 local function isOutdated(other)
@@ -89,7 +92,7 @@ gui.Parent = playerGui
 local column = Instance.new("Frame")
 column.Name = "Column"
 column.AnchorPoint = Vector2.new(1, 0.5)
-column.Position = UDim2.new(1, -12, 0.45, 0)
+column.Position = UDim2.new(1, -12, 0.6, 0)
 column.Size = UDim2.fromOffset(SLOT_W, 0)
 column.AutomaticSize = Enum.AutomaticSize.Y
 column.BackgroundTransparency = 1
@@ -114,107 +117,99 @@ if workspace.CurrentCamera then
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
 end
 
-local function addStroke(parent, color, thickness)
-	local s = Instance.new("UIStroke")
-	s.Color = color
-	s.Thickness = thickness
-	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	s.Parent = parent
-	return s
-end
-
-local function addTextStroke(label)
-	local s = Instance.new("UIStroke")
-	s.Color = Color3.new(0, 0, 0)
-	s.Thickness = 1.5
-	s.Parent = label
-end
-
-local function corner(parent, radius)
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, radius)
-	c.Parent = parent
-end
-
-local function newLabel(parent, text, size, color)
-	local l = Instance.new("TextLabel")
-	l.BackgroundTransparency = 1
-	l.Font = FONT
-	l.Text = text
-	l.TextSize = size
-	l.TextColor3 = color
-	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.Parent = parent
-	addTextStroke(l)
-	return l
-end
-
 local slots = {} -- [actionName] = slot
+
+-- Couleur d'accent de la case selon la touche
+local KEY_ACCENT = {
+	Q = C.Muted, M1 = C.Text, E = C.Gold, R = C.Magenta, T = Color3.fromRGB(110, 170, 255),
+	F = C.Legend, G = C.Red, Z = C.Green, X = Color3.fromRGB(150, 200, 255),
+}
 
 -- Crée une case. `action` = nom envoyé au serveur ("Barrage", "LightPunch"…)
 local function makeSlot(order, action, keyText, name)
+	local accent = KEY_ACCENT[keyText] or GOLD
 	local button = Instance.new("TextButton")
 	button.Name = action
 	button.LayoutOrder = order
 	button.Size = UDim2.fromOffset(SLOT_W, SLOT_H)
-	button.BackgroundColor3 = BG
-	button.BackgroundTransparency = 0.1
+	button.BackgroundColor3 = CARD
+	button.BackgroundTransparency = 0.08
 	button.AutoButtonColor = false
 	button.Text = ""
 	button.ClipsDescendants = true
 	button.Parent = column
-	corner(button, 8)
-	local stroke = addStroke(button, RED_DARK, 2)
+	UITheme.Corner(button, 10)
+	local stroke = UITheme.Stroke(button, LINE, 1.5)
+	UITheme.Gradient(button, Color3.new(1, 1, 1), Color3.fromRGB(150, 140, 175), 0)
+
+	-- liseré coloré à gauche
+	local edge = Instance.new("Frame")
+	edge.BackgroundColor3 = accent
+	edge.BorderSizePixel = 0
+	edge.Size = UDim2.new(0, 4, 1, 0)
+	edge.ZIndex = 2
+	edge.Parent = button
 
 	-- Voile de recharge qui se vide de gauche à droite
 	local veil = Instance.new("Frame")
 	veil.Name = "Cooldown"
-	veil.BackgroundColor3 = Color3.new(0, 0, 0)
-	veil.BackgroundTransparency = 0.45
+	veil.BackgroundColor3 = BG
+	veil.BackgroundTransparency = 0.3
 	veil.BorderSizePixel = 0
 	veil.Size = UDim2.fromScale(0, 1)
 	veil.ZIndex = 3
 	veil.Parent = button
 
+	-- barre de progression fine en bas
+	local bar = Instance.new("Frame")
+	bar.BackgroundColor3 = accent
+	bar.BorderSizePixel = 0
+	bar.AnchorPoint = Vector2.new(0, 1)
+	bar.Position = UDim2.fromScale(0, 1)
+	bar.Size = UDim2.new(1, 0, 0, 2)
+	bar.ZIndex = 5
+	bar.Parent = button
+
 	local key = Instance.new("TextLabel")
 	key.Name = "Key"
 	key.AnchorPoint = Vector2.new(0, 0.5)
-	key.Position = UDim2.new(0, 7, 0.5, 0)
-	key.Size = UDim2.fromOffset(SLOT_H - 14, SLOT_H - 14)
-	key.BackgroundColor3 = KEY_BG
-	key.Font = FONT
+	key.Position = UDim2.new(0, 10, 0.5, 0)
+	key.Size = UDim2.fromOffset(30, 30)
+	key.BackgroundColor3 = BG
+	key.Font = FONT_BOLD
 	key.Text = keyText
-	key.TextSize = keyText:len() > 1 and 14 or 18
-	key.TextColor3 = TEXT
-	key.ZIndex = 2
+	key.TextSize = keyText:len() > 1 and 12 or 16
+	key.TextColor3 = accent
+	key.ZIndex = 4
 	key.Parent = button
-	corner(key, 6)
-	addStroke(key, RED, 1.5)
-	addTextStroke(key)
+	UITheme.Corner(key, 8)
+	UITheme.Stroke(key, accent, 1.5)
 
-	local title = newLabel(button, name, 16, TEXT)
-	title.Position = UDim2.fromOffset(SLOT_H, 4)
-	title.Size = UDim2.new(1, -SLOT_H - 8, 0, 22)
+	local title = UITheme.Label(button, name, 18, TEXT, FONT_TITLE)
+	title.Position = UDim2.fromOffset(48, 3)
+	title.Size = UDim2.new(1, -100, 0, 22)
 	title.TextTruncate = Enum.TextTruncate.AtEnd
-	title.ZIndex = 2
+	title.ZIndex = 4
 
-	local status = newLabel(button, "PRÊT", 13, READY)
-	status.Position = UDim2.fromOffset(SLOT_H, 24)
-	status.Size = UDim2.new(1, -SLOT_H - 8, 0, 16)
-	status.ZIndex = 2
+	local status = UITheme.Label(button, "PRÊT", 10, READY, FONT_BOLD)
+	status.Position = UDim2.fromOffset(49, 25)
+	status.Size = UDim2.new(1, -100, 0, 14)
+	status.ZIndex = 4
 
-	local timer = newLabel(button, "", 20, TEXT)
+	local timer = UITheme.Label(button, "", 20, TEXT, FONT_TITLE)
 	timer.AnchorPoint = Vector2.new(1, 0.5)
 	timer.Position = UDim2.new(1, -10, 0.5, 0)
-	timer.Size = UDim2.fromOffset(50, 24)
+	timer.Size = UDim2.fromOffset(50, 26)
 	timer.TextXAlignment = Enum.TextXAlignment.Right
-	timer.ZIndex = 4
+	timer.ZIndex = 5
 
 	local slot = {
 		action = action,
 		button = button,
 		stroke = stroke,
 		veil = veil,
+		bar = bar,
+		accent = accent,
 		status = status,
 		timer = timer,
 		cooldown = 0, -- durée totale de la dernière recharge
@@ -239,8 +234,9 @@ end
 
 local function flash(slot)
 	if not slot then return end
-	slot.stroke.Color = GOLD
-	TweenService:Create(slot.stroke, TweenInfo.new(0.35), { Color = RED_DARK }):Play()
+	slot.stroke.Color = slot.accent
+	slot.stroke.Thickness = 3
+	TweenService:Create(slot.stroke, TweenInfo.new(0.35), { Color = LINE, Thickness = 1.5 }):Play()
 end
 
 local function clearSlots()
@@ -349,12 +345,17 @@ for _, child in workspace:GetChildren() do
 end
 
 -- Rafraîchissement de l'affichage
+local function setVeil(slot, fraction)
+	slot.veil.Size = UDim2.fromScale(fraction, 1)
+	slot.bar.Size = UDim2.new(1 - fraction, 0, 0, 2)
+end
+
 local GUARD_MAX = 60 -- même valeur que GUARD_MAX dans StandService
 
 local function renderGuard(slot)
 	local guard = player:GetAttribute("Guard") or GUARD_MAX
 	local missing = math.clamp(1 - guard / GUARD_MAX, 0, 1)
-	slot.veil.Size = UDim2.fromScale(missing, 1)
+	setVeil(slot, missing)
 	slot.timer.Text = string.format("%d%%", math.floor(guard / GUARD_MAX * 100 + 0.5))
 	if player:GetAttribute("Blocking") then
 		slot.status.Text = "EN GARDE"
@@ -382,20 +383,20 @@ RunService.RenderStepped:Connect(function()
 		local ends = cooldownEnds[action]
 		local remaining = ends and (ends - now) or 0
 		if action == "Barrage" and barrageActive then
-			slot.veil.Size = UDim2.fromScale(0, 1)
+			setVeil(slot, 0)
 			slot.status.Text = "ACTIF"
 			slot.status.TextColor3 = GOLD
 			slot.timer.Text = ""
 		elseif remaining > 0 then
 			local total = math.max(slot.cooldown, remaining)
-			slot.veil.Size = UDim2.fromScale(remaining / total, 1)
+			setVeil(slot, remaining / total)
 			slot.status.Text = "RECHARGE"
 			slot.status.TextColor3 = MUTED
 			slot.timer.Text = remaining >= 10 and string.format("%d", math.ceil(remaining))
 				or string.format("%.1f", remaining)
 		else
 			if ends then cooldownEnds[action] = nil end
-			slot.veil.Size = UDim2.fromScale(0, 1)
+			setVeil(slot, 0)
 			slot.timer.Text = ""
 			if action == "Mobility" and (slot.maxCharges or 1) > 1 then
 				-- charges restantes (ex. x2 pour Silver Chariot)
@@ -424,7 +425,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 				-- encore en recharge : petite secousse rouge
 				local slot = slots[action]
 				slot.stroke.Color = RED
-				TweenService:Create(slot.stroke, TweenInfo.new(0.3), { Color = RED_DARK }):Play()
+				TweenService:Create(slot.stroke, TweenInfo.new(0.3), { Color = LINE }):Play()
 			end
 		end
 	end

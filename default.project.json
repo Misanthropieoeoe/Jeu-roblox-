@@ -19,6 +19,9 @@
           }
         }
       },
+      "ItemCatalog": {
+        "$path": "src/ReplicatedStorage/ItemCatalog.luau"
+      },
       "PlayerPoses": {
         "$path": "src/ReplicatedStorage/PlayerPoses.luau"
       },
@@ -44,6 +47,9 @@
       },
       "StandStrikes": {
         "$path": "src/ReplicatedStorage/StandStrikes.luau"
+      },
+      "UITheme": {
+        "$path": "src/ReplicatedStorage/UITheme.luau"
       },
       "VFXTextures": {
         "$path": "src/ReplicatedStorage/VFXTextures.luau"
@@ -260,6 +266,9 @@
           }
         }
       },
+      "Inventory": {
+        "$path": "src/ServerScriptService/Inventory.luau"
+      },
       "MapBuilder": {
         "$path": "src/ServerScriptService/MapBuilder.server.luau",
         "$attributes": {
@@ -328,8 +337,14 @@
         "Guard": {
           "$path": "src/StarterPlayerScripts/Guard.client.luau"
         },
+        "HUD": {
+          "$path": "src/StarterPlayerScripts/HUD.client.luau"
+        },
         "HitReactions": {
           "$path": "src/StarterPlayerScripts/HitReactions.client.luau"
+        },
+        "InventoryMenu": {
+          "$path": "src/StarterPlayerScripts/InventoryMenu.client.luau"
         },
         "JoJoLoadingScreen": {
           "$path": "src/StarterPlayerScripts/JoJoLoadingScreen.client.luau",
@@ -338,6 +353,9 @@
               "String": "AMrI4DbrAMrI"
             }
           }
+        },
+        "Leaderboard": {
+          "$path": "src/StarterPlayerScripts/Leaderboard.client.luau"
         },
         "MoneyToasts": {
           "$path": "src/StarterPlayerScripts/MoneyToasts.client.luau",
@@ -357,6 +375,9 @@
               "String": "eqKtWHdLeqKt"
             }
           }
+        },
+        "ShopMenu": {
+          "$path": "src/StarterPlayerScripts/ShopMenu.client.luau"
         },
         "SkinMenu": {
           "$path": "src/StarterPlayerScripts/SkinMenu.client.luau"
