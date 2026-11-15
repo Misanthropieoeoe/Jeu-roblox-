@@ -16,11 +16,39 @@ local Debris = game:GetService("Debris")
 
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
 
+-- Textures dessinées pour le jeu (assets/textures/*.png dans le dépôt).
+-- Une fois importées dans Roblox (Fenêtre → Gestionnaire d'assets →
+-- Importer), mettre leur ID ici, ex. "rbxassetid://123456789".
+-- Tant qu'un ID est vide, la texture intégrée de Roblox est utilisée.
+local TEXTURES = {
+	Glow = "",
+	Spark = "",
+	Impact = "",
+	Ring = "",
+	Slash = "",
+	Lightning = "",
+	Smoke = "",
+	Star = "",
+	Shard = "",
+	Flame = "",
+	Petal = "",
+	Gem = "",
+	Zipper = "",
+}
+local function tex(name, fallback)
+	local id = TEXTURES[name]
+	if id and id ~= "" then return id end
+	return fallback
+end
+local function hasTex(name)
+	return TEXTURES[name] ~= nil and TEXTURES[name] ~= ""
+end
+
 -- Réglages -----------------------------------------------------------------
 local MAX_DISTANCE = 220 -- pas d'effets pour les Stands trop loin de la caméra
 local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
-local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
-local FLAME = "rbxasset://textures/particles/fire_main.dds"
+local SMOKE = tex("Smoke", "rbxasset://textures/particles/smoke_main.dds")
+local FLAME = tex("Flame", "rbxasset://textures/particles/fire_main.dds")
 local DEFAULT_COLOR = Color3.fromRGB(170, 120, 255)
 ------------------------------------------------------------------------------
 
@@ -106,6 +134,30 @@ end
 
 -- Anneau qui s'agrandit au sol
 local function ring(position, color, size, time)
+	if hasTex("Ring") then
+		-- onde de choc dessinée, posée à plat
+		local part = Instance.new("Part")
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Transparency = 1
+		part.Size = Vector3.new(1, 0.05, 1)
+		part.CFrame = CFrame.new(position)
+		part.Parent = folder
+		for _, face in ipairs({ Enum.NormalId.Top, Enum.NormalId.Bottom }) do
+			local decal = Instance.new("Decal")
+			decal.Texture = TEXTURES.Ring
+			decal.Face = face
+			decal.Color3 = color
+			decal.Parent = part
+			TweenService:Create(decal, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Transparency = 1 }):Play()
+		end
+		TweenService:Create(part, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = Vector3.new(size, 0.05, size) }):Play()
+		Debris:AddItem(part, time + 0.1)
+		return
+	end
 	local part = Instance.new("Part")
 	part.Anchored = true
 	part.CanCollide = false
@@ -166,9 +218,12 @@ local function impact(position, color, power)
 	power = power or 1
 	flash(position, color, 5 * power, 14 * power, 0.25)
 	-- éclair central (une grosse particule très courte)
-	burst(position, lighter(color, 0.5), { count = 2, speed = 0, life = 0.08, size = 3.5 * power, spread = 0 })
+	burst(position, lighter(color, 0.5), { count = 2, speed = 0, life = hasTex("Impact") and 0.12 or 0.08,
+		size = (hasTex("Impact") and 5 or 3.5) * power, spread = 0, texture = tex("Impact", SPARKLE) })
+	burst(position, color, { count = 1, speed = 0, life = 0.3, size = 6 * power, spread = 0, texture = tex("Glow", SPARKLE), light = 0.8 })
 	-- étincelles étirées
-	burst(position, color, { count = math.floor(28 * power), speed = 38 * power, life = 0.22, size = 0.35, streak = 3, drag = 4 })
+	burst(position, color, { count = math.floor(28 * power), speed = 38 * power, life = 0.22,
+		size = hasTex("Spark") and 0.8 or 0.35, streak = hasTex("Spark") and 1.5 or 3, drag = 4, texture = tex("Spark", SPARKLE) })
 	-- éclats plus lents
 	burst(position, lighter(color, 0.2), { count = math.floor(16 * power), speed = 14, life = 0.45, size = 0.5 })
 	-- fumée
@@ -640,10 +695,32 @@ local SIGNATURES = {
 	end,
 }
 
+-- Particules dessinées propres à chaque Stand (si la texture est importée)
+local SIGNATURE_TEXTURES = {
+	StarPlatinum = { "Star", 8, 0.9 },
+	TheWorld = { "Slash", 2, 3.5 },
+	TheWorldAU = { "Slash", 2, 3.5 },
+	CrazyDiamond = { "Shard", 10, 0.9 },
+	SilverChariot = { "Slash", 3, 3.2 },
+	KillerQueen = { "Impact", 2, 3 },
+	GoldExperience = { "Petal", 10, 0.8 },
+	GoldExperienceRequiem = { "Petal", 10, 0.8 },
+	KingCrimson = { "Lightning", 3, 2.5 },
+	HierophantGreen = { "Gem", 10, 0.9 },
+	MagiciansRed = { "Flame", 12, 1.6 },
+	StickyFingers = { "Zipper", 3, 1.8 },
+	MadeInHeaven = { "Spark", 14, 1.2 },
+}
+
 local function signature(ctx, phase, pos)
 	local fn = SIGNATURES[ctx.standId]
 	if fn and pos then
 		pcall(fn, ctx, phase, pos)
+	end
+	local drawn = SIGNATURE_TEXTURES[ctx.standId]
+	if drawn and pos and phase == "impact" and hasTex(drawn[1]) then
+		burst(pos, ctx.color, { count = drawn[2], texture = TEXTURES[drawn[1]], size = drawn[3],
+			speed = 12, life = 0.45, drag = 3, light = 0.9 })
 	end
 end
 
