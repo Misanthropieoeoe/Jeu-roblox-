@@ -367,6 +367,9 @@ localPlayer:GetAttributeChangedSignal("Standless"):Connect(refresh)
 localPlayer:GetAttributeChangedSignal("StandId"):Connect(refresh)
 refresh()
 
+-- Caché au départ : il faut appuyer sur M pour l'afficher.
+screenGui.Enabled = false
+
 -- M toggles the HUD.
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
