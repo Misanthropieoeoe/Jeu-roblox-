@@ -4,6 +4,8 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
+local StandSkins = require(ReplicatedStorage:WaitForChild("StandSkins"))
+local HttpService = game:GetService("HttpService")
 
 -- Verified anime barrage SFX: full ORA ORA ORA voice clip sourced from the
 -- community asset "Star Platinum The World (with new sound)" (100% upvoted).
@@ -832,6 +834,33 @@ local function buildFace(stand)
 	print("[StandService] Battle face built:", stand.Name)
 end
 
+-- ==================== SKINS ====================
+-- Le skin choisi pour chaque Stand est gardé sur le joueur (attribut
+-- "StandSkins", texte JSON {[standId] = skinId}) pour que l'onglet SKINS
+-- l'affiche, et sauvegardé avec le Stand (saveStandData).
+local function getSkinTable(player)
+	local raw = player:GetAttribute("StandSkins")
+	if type(raw) ~= "string" or raw == "" then return {} end
+	local ok, data = pcall(HttpService.JSONDecode, HttpService, raw)
+	return (ok and type(data) == "table") and data or {}
+end
+
+local function setSkinTable(player, data)
+	local clean = {}
+	for standId, skinId in pairs(data) do
+		if type(standId) == "string" and type(skinId) == "string"
+			and StandData.GetStand(standId) and StandSkins.IsValid(standId, skinId)
+			and skinId ~= StandSkins.DEFAULT then
+			clean[standId] = skinId
+		end
+	end
+	player:SetAttribute("StandSkins", HttpService:JSONEncode(clean))
+end
+
+local function getSkinChoice(player, standId)
+	return getSkinTable(player)[standId]
+end
+
 local function removeStand(player)
 	-- V8: cancelling a barrage also restores movement and invalidates its
 	-- running task. The previous implementation only cleared a boolean,
@@ -893,6 +922,7 @@ local function giveStand(player)
 	clone:SetAttribute("Owner", player.UserId)
 	clone:SetAttribute("StandId", standId)
 	applyStandTheme(clone, stand)
+	StandSkins.Apply(clone, StandSkins.Get(standId, getSkinChoice(player, standId)))
 	-- Cinematic deployment is replicated to all players, so the Stand rises and materializes
 	-- on every client. Any attacks are blocked until the animation finishes.
 	clone:SetAttribute("State", "Deploying")
@@ -2618,6 +2648,7 @@ local function saveStandData(player)
 	local data = player:GetAttribute("Standless")
 		and { Standless = true }
 		or { StandId = player:GetAttribute("StandId") }
+	data.Skins = getSkinTable(player)
 	local ok, err = pcall(function()
 		standStore:SetAsync("Stand_" .. player.UserId, data)
 	end)
@@ -2638,6 +2669,9 @@ local function loadStandData(player)
 		return
 	end
 	if type(data) ~= "table" then return end
+	if type(data.Skins) == "table" then
+		setSkinTable(player, data.Skins)
+	end
 	if data.Standless then
 		player:SetAttribute("Standless", true)
 	elseif typeof(data.StandId) == "string" and StandData.GetStand(data.StandId) then
@@ -2687,6 +2721,7 @@ for _, player in Players:GetPlayers() do
 	markStandAdmin(player)
 end
 local chooseStandAt = {}
+local chooseSkinAt = {}
 Players.PlayerRemoving:Connect(function(player)
 	chooseStandAt[player.UserId] = nil
 end)
@@ -2718,6 +2753,32 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		giveStand(player)
 		saveStandData(player)
 		print("[StandService]", player.Name, "chose", def.DisplayName)
+		return
+	end
+
+	if actionName == "ChooseSkin" then
+		local nowSkin = os.clock()
+		if (chooseSkinAt[player.UserId] or 0) + CHOOSE_STAND_COOLDOWN > nowSkin then return end
+		chooseSkinAt[player.UserId] = nowSkin
+		local args = { ... }
+		local standId, skinId = tostring(args[1]), tostring(args[2])
+		if not StandData.GetStand(standId) or not StandSkins.IsValid(standId, skinId) then
+			warn("[StandService] ChooseSkin refusé :", standId, skinId)
+			return
+		end
+		local skins = getSkinTable(player)
+		if (skins[standId] or StandSkins.DEFAULT) == skinId then return end
+		skins[standId] = skinId
+		setSkinTable(player, skins)
+		-- Stand sorti : on le réinvoque avec son nouveau skin
+		local current = workspace:FindFirstChild(player.Name .. "Stand")
+		if current and player:GetAttribute("StandId") == standId
+			and not player:GetAttribute("Standless") then
+			removeStand(player)
+			giveStand(player)
+		end
+		saveStandData(player)
+		print("[StandService]", player.Name, "skin", standId, "=", skinId)
 		return
 	end
 

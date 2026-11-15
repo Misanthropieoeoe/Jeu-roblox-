@@ -33,6 +33,9 @@
       "StandMovement": {
         "$path": "src/ReplicatedStorage/StandMovement.luau"
       },
+      "StandSkins": {
+        "$path": "src/ReplicatedStorage/StandSkins.luau"
+      },
       "StandSpells": {
         "$path": "src/ReplicatedStorage/StandSpells.luau"
       },
@@ -351,6 +354,9 @@
               "String": "eqKtWHdLeqKt"
             }
           }
+        },
+        "SkinMenu": {
+          "$path": "src/StarterPlayerScripts/SkinMenu.client.luau"
         },
         "SpellBar": {
           "$path": "src/StarterPlayerScripts/SpellBar.client.luau"
