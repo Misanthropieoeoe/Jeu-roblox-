@@ -80,7 +80,11 @@ local function refreshMapInfo()
 	return true
 end
 
-local function findGroundSpot()
+-- Endroit au hasard sur toute la carte (MapSpots) ; repli près des spawns
+local MapSpots = require(script.Parent:WaitForChild("MapSpots"))
+local function findGroundSpot(others)
+	local spot = MapSpots.Random(others)
+	if spot then return spot end
 	if not refreshMapInfo() or #spawnPoints == 0 then return nil end
 	local start = math.random(#spawnPoints)
 	for i = 0, #spawnPoints - 1 do
@@ -262,7 +266,7 @@ end
 
 -- ==================== SPAWN LOOP: one stack every minute ====================
 local function spawnMoney()
-	local spot = findGroundSpot()
+	local spot = findGroundSpot(moneyFolder:GetChildren())
 	if not spot then return end
 	local model = buildMoneyItem()
 	local baseCF = CFrame.new(spot + Vector3.new(0, 1.4, 0))

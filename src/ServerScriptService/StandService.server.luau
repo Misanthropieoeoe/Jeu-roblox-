@@ -3333,9 +3333,12 @@ local function refreshMapInfo()
 	return true
 end
 
--- Spot near one of the fixed spawn points (reject rooftops: must be near
--- floor level). Tries each point once per call before giving up.
-local function findGroundSpot()
+-- Endroit au hasard sur toute la carte (MapSpots), loin des autres objets.
+-- Repli : près d'un des points d'apparition, comme avant.
+local MapSpots = require(script.Parent:WaitForChild("MapSpots"))
+local function findGroundSpot(others)
+	local spot = MapSpots.Random(others)
+	if spot then return spot end
 	if not refreshMapInfo() or #spawnPoints == 0 then return nil end
 	local start = math.random(#spawnPoints)
 	for i = 0, #spawnPoints - 1 do
@@ -3694,7 +3697,7 @@ standAction.OnServerEvent:Connect(function(player, actionName)
 end)
 
 local function spawnItem(kind)
-	local spot = findGroundSpot()
+	local spot = findGroundSpot(itemFolder:GetChildren())
 	if not spot then return end
 	local model = kind == "Arrow" and buildArrowItem()
 		or kind == "RequiemArrow" and buildRequiemArrowItem()

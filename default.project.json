@@ -301,6 +301,9 @@
           }
         }
       },
+      "MapSpots": {
+        "$path": "src/ServerScriptService/MapSpots.luau"
+      },
       "MoneyService": {
         "$path": "src/ServerScriptService/MoneyService.server.luau",
         "$attributes": {
