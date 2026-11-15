@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimationController = require(ReplicatedStorage:WaitForChild("AnimationController"))
-local ANIMATION = "RequiemArrowStab"
+local ANIMATION = "PlayerStabRequiem" -- animation originale (PlayerPoses.Clips)
 
 local function play()
 	-- The Requiem Arrow only answers Gold Experience (server re-verifies).

@@ -108,7 +108,9 @@ end
 -- d'origine sont en R6 et ne bougeaient rien sur un squelette R15).
 -- Star Platinum garde toutes ses animations d'origine ; les autres Time Stop
 -- gardent la pose "ZA WARUDO" codée plus bas.
-local KEEP_ORIGINAL_STRIKES = { StarPlatinum = true }
+-- Toutes les animations des Stands sont maintenant originales (StandStrikes),
+-- Star Platinum compris. Mettre un Stand ici lui rend ses anciens clips.
+local KEEP_ORIGINAL_STRIKES = {}
 
 -- Prédiction du M1 (voir la section M1 plus bas) : le coup est joué tout de
 -- suite sur notre écran, sans attendre la réponse du serveur.
@@ -121,6 +123,9 @@ local STATE_TO_STRIKE = {
 	TimeStop = "TimeStop",
 	Heal = "Heal",
 	Block = "Block",
+	Idle = "Idle", -- attente propre à chaque Stand
+	Pose = "Pose", -- pose iconique après l'invocation
+	Deploying = "Summon", -- invocation (se termine dans la pose du Stand)
 }
 -- Effets visuels existants (bras fantômes du barrage, traînées, yeux enragés,
 -- effets du coup lourd) pour le moveset : une rafale s'affiche comme un
@@ -145,9 +150,6 @@ local function getStrikeClip(stand, rig, state)
 	local standId = stand:GetAttribute("StandId")
 	if not standId then return nil end
 	local kind = STATE_TO_STRIKE[state]
-	if not kind and (state == "Idle" or state == "Pose") and rig.joints.UpperTorso then
-		kind = "Idle" -- les Stands R15 n'ont pas de pose d'attente codée
-	end
 	if kind and KEEP_ORIGINAL_STRIKES[standId] and ORIGINAL_KINDS[kind] then return nil end
 	if not kind then
 		-- Attaques T / F / G (StandSpells) : animation nommée par move.Anim

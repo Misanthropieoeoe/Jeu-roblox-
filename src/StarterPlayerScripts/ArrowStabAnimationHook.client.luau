@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimationController = require(ReplicatedStorage:WaitForChild("AnimationController"))
-local ANIMATION = "ArrowStab"
+local ANIMATION = "PlayerStabArrow" -- animation originale (PlayerPoses.Clips)
 
 local function play()
 	AnimationController.Play(ANIMATION)

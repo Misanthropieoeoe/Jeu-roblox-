@@ -82,6 +82,30 @@
         "DoubleJump": {
           "$path": "src/ReplicatedStorage/Animations/DoubleJump.luau"
         },
+        "PlayerHitHeavy": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerHitHeavy.luau"
+        },
+        "PlayerHitLight": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerHitLight.luau"
+        },
+        "PlayerIdle": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerIdle.luau"
+        },
+        "PlayerJump": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerJump.luau"
+        },
+        "PlayerKnockdown": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerKnockdown.luau"
+        },
+        "PlayerLand": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerLand.luau"
+        },
+        "PlayerStabArrow": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerStabArrow.luau"
+        },
+        "PlayerStabRequiem": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerStabRequiem.luau"
+        },
         "RequiemArrowStab": {
           "$path": "src/ReplicatedStorage/Animations/RequiemArrowStab.luau",
           "$attributes": {
@@ -291,6 +315,9 @@
         },
         "Guard": {
           "$path": "src/StarterPlayerScripts/Guard.client.luau"
+        },
+        "HitReactions": {
+          "$path": "src/StarterPlayerScripts/HitReactions.client.luau"
         },
         "JoJoLoadingScreen": {
           "$path": "src/StarterPlayerScripts/JoJoLoadingScreen.client.luau",

@@ -475,6 +475,130 @@ StandStrikes.Stands = {
 	},
 }
 
+-- ─── Personnalité de chaque Stand : pose iconique, attente, invocation ──────
+-- Pose : tenue après l'invocation (état "Pose"). Attente : version détendue
+-- de la pose qui "respire" (état "Idle"). Invocation : le Stand se déploie
+-- (accroupi, bras croisés -> s'ouvre) et finit dans sa pose.
+
+-- Version détendue d'une pose (angles réduits)
+local function relaxed(pose, k)
+	local o = {}
+	for key, v in pairs(pose) do
+		if type(v) == "number" then
+			o[key] = v * k
+		elseif type(v) == "table" then
+			local c = {}
+			for kk, vv in pairs(v) do c[kk] = vv * k end
+			o[key] = c
+		end
+	end
+	return o
+end
+
+local function breathe(pose)
+	local a = relaxed(pose, 0.7)
+	local b = relaxed(pose, 0.76)
+	b.drop = (b.drop or 0) - 0.06
+	b.headPitch = (b.headPitch or 0) + 2
+	return {
+		duration = 2.8,
+		loop = true,
+		keys = {
+			{ 0, a },
+			{ 1.4, b, "inout" },
+			{ 2.8, a, "inout" },
+		},
+	}
+end
+
+local POSES = {
+	-- Star Platinum : doigt pointé vers l'adversaire, poing sur la hanche
+	StarPlatinum = { R = { pitch = 75, abduct = 5, swing = 10, elbow = 0 }, L = { pitch = -15, abduct = 35, elbow = 105 },
+		twist = 15, lean = -6, headPitch = 8 },
+	-- The World : bras croisés, menton levé, arrogant
+	TheWorld = { R = { pitch = 85, swing = 70, elbow = 100 }, L = { pitch = 80, swing = 70, elbow = 105 },
+		twist = 15, lean = -12, headPitch = 18 },
+	-- The World AU : penché comme un prédateur, une griffe tendue
+	TheWorldAU = { R = { pitch = 80, abduct = 15, swing = 10, elbow = 30, wrist = 40 }, L = { pitch = -25, abduct = 30, elbow = 50 },
+		twist = 20, lean = 25, drop = 0.3, headPitch = 10, legR = { hip = 25, knee = 40 }, legL = { hip = -10, knee = 25 } },
+	-- Crazy Diamond : poing levé sur le côté, l'autre en garde
+	CrazyDiamond = { R = { pitch = 80, abduct = 70, elbow = 110 }, L = { pitch = 60, abduct = 15, swing = 20, elbow = 110 },
+		twist = -15, lean = 4, headPitch = 4 },
+	-- Silver Chariot : en garde d'escrimeur, rapière tendue
+	SilverChariot = { R = { pitch = 92, elbow = 0 }, L = { pitch = 120, abduct = 30, elbow = 90 },
+		twist = -25, lean = 4, legR = { hip = 40, knee = 30 }, legL = { hip = -25, knee = 10 } },
+	-- Killer Queen : main levée paume vers le ciel, l'autre derrière le dos
+	KillerQueen = { R = { pitch = 100, swing = 40, elbow = 120, wrist = 40 }, L = { pitch = -30, abduct = 10, swing = -30, elbow = 80 },
+		twist = 10, lean = -4, headYaw = 15 },
+	-- Gold Experience : bras ouverts, paumes vers le haut
+	GoldExperience = { R = { pitch = 30, abduct = 45, elbow = 20, wrist = -20 }, L = { pitch = 30, abduct = 45, elbow = 20, wrist = -20 },
+		lean = -4, headPitch = 10 },
+	-- GER : un bras vers le ciel, l'autre vers le sol, en lévitation
+	GoldExperienceRequiem = { R = { pitch = 165, abduct = 10, elbow = 10 }, L = { pitch = -10, abduct = 30, elbow = 10 },
+		lean = -6, headPitch = 20, drop = -0.25 },
+	-- King Crimson : bras croisés bas, penché en avant, menaçant
+	KingCrimson = { R = { pitch = 45, swing = 60, elbow = 70 }, L = { pitch = 45, swing = 60, elbow = 75 },
+		lean = 12, headPitch = -10, twist = 5 },
+	-- Hierophant Green : mains levées devant, doigts écartés
+	HierophantGreen = { R = { pitch = 110, abduct = 30, swing = 25, elbow = 30, wrist = 30 }, L = { pitch = 110, abduct = 30, swing = 25, elbow = 30, wrist = 30 },
+		lean = -8, headPitch = 6 },
+	-- Magician's Red : bras écartés comme des ailes
+	MagiciansRed = { R = { pitch = 20, abduct = 85, elbow = 30 }, L = { pitch = 20, abduct = 85, elbow = 30 },
+		lean = -10, headPitch = 15 },
+	-- Sticky Fingers : poing bas en avant, bras en travers de la poitrine
+	StickyFingers = { R = { pitch = 70, abduct = 5, elbow = 40 }, L = { pitch = 85, swing = 60, elbow = 90 },
+		twist = 20, lean = 4 },
+	-- Made in Heaven : penché, bras en arrière, prêt à foncer
+	MadeInHeaven = { R = { pitch = -40, abduct = 15, elbow = 20 }, L = { pitch = -40, abduct = 20, elbow = 20 },
+		lean = 20, headPitch = 10, drop = 0.2, legR = { hip = 30, knee = 40 }, legL = { hip = -10, knee = 30 } },
+}
+local DEFAULT_POSE = { R = GUARD.R, L = GUARD.L, lean = 4 }
+
+-- Invocation : accroupi bras croisés, se relève, s'ouvre, finit en pose
+local function makeSummon(pose)
+	return {
+		duration = 1.25,
+		keys = {
+			{ 0, { R = { pitch = 60, swing = 50, elbow = 120 }, L = { pitch = 60, swing = 50, elbow = 120 },
+				lean = 40, drop = 1.5, headPitch = -20, legR = { hip = 60, knee = 90 }, legL = { hip = 60, knee = 90 } } },
+			{ 0.45, { R = { pitch = 50, swing = 40, elbow = 110 }, L = { pitch = 50, swing = 40, elbow = 110 },
+				lean = 15, drop = 0.6, legR = { hip = 25, knee = 40 }, legL = { hip = 25, knee = 40 } }, "inout" },
+			{ 0.8, { R = { pitch = 40, abduct = 85, elbow = 10 }, L = { pitch = 40, abduct = 85, elbow = 10 },
+				lean = -12, headPitch = 15, drop = -0.2 }, "out" },
+			{ 1.25, pose, "inout" },
+		},
+	}
+end
+
+for standId, pose in pairs(POSES) do
+	StandStrikes.Stands[standId] = StandStrikes.Stands[standId] or {}
+	local def = StandStrikes.Stands[standId]
+	def.Pose = def.Pose or hold(pose, 0.35)
+	def.Idle = def.Idle or breathe(pose)
+	def.Summon = def.Summon or makeSummon(pose)
+end
+
+-- Star Platinum : ses propres coups (remplacent les clips d'origine)
+local SP = StandStrikes.Stands.StarPlatinum
+SP.LightR = light(
+	{ R = { pitch = 40, abduct = 15, elbow = 125 }, L = GUARD_ARM, twist = -20, lean = 4 },
+	{ R = { pitch = 93, abduct = 3, swing = 10, elbow = 0 }, L = { pitch = 55, abduct = 15, elbow = 115 }, twist = 32, lean = 12, lunge = 0.55 },
+	{ R = { pitch = 88, abduct = 3, swing = 10, elbow = 15 }, L = GUARD_ARM, twist = 26, lean = 9, lunge = 0.4 }
+)
+SP.Heavy = finisher(
+	{ R = { pitch = 30, abduct = 35, swing = -20, elbow = 135 }, L = GUARD_ARM, twist = -45, lean = -4, drop = 0.15 },
+	{ R = { pitch = 94, abduct = 3, swing = 10, elbow = 0 }, L = { pitch = 20, abduct = 25, elbow = 95 }, twist = 48, lean = 20, lunge = 1.2 },
+	{ R = { pitch = 90, abduct = 3, swing = 10, elbow = 6 }, L = { pitch = 20, abduct = 25, elbow = 95 }, twist = 42, lean = 16, lunge = 1.0 }
+)
+
+-- Arrêts du temps : poses de commandement
+SP.TimeStop = hold({ R = { pitch = 90, abduct = 10, elbow = 5, wrist = 60 }, L = { pitch = -20, abduct = 30, elbow = 100 },
+	twist = 15, lean = -8, headPitch = 12 }, 0.4)
+StandStrikes.Stands.TheWorld.TimeStop = hold({ R = { pitch = 60, abduct = 80, elbow = 10 }, L = { pitch = 60, abduct = 80, elbow = 10 },
+	lean = -18, headPitch = 25 }, 0.45)
+StandStrikes.Stands.TheWorldAU.TimeStop = hold({ R = { pitch = 165, abduct = 10, elbow = 60 }, L = { pitch = 30, abduct = 40, elbow = 90 },
+	lean = -10, headPitch = 22, twist = -10 }, 0.4)
+
 -- ─── Animations des attaques T / F / G (StandSpells) ───────────────────────
 -- Communes à tous les Stands. Un Stand peut avoir sa propre version en
 -- ajoutant une entrée du même nom dans StandStrikes.Stands[id].
@@ -665,6 +789,10 @@ function StandStrikes.Get(standId, kind)
 		return def.Barrage or DEFAULT_BARRAGE
 	elseif kind == "Idle" then
 		return def.Idle or DEFAULT_IDLE
+	elseif kind == "Pose" then
+		return def.Pose or hold(DEFAULT_POSE, 0.35)
+	elseif kind == "Summon" then
+		return def.Summon or makeSummon(DEFAULT_POSE)
 	elseif kind == "TimeStop" then
 		return def.TimeStop
 	elseif kind == "Heal" then

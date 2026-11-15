@@ -187,6 +187,15 @@ function AnimationExecutor:PlayFromTable(animTable, options)
 
 		local segmentDuration = tEnd - tStart
 		local alpha = (segmentDuration > 0) and (clipTime - tStart) / segmentDuration or 0
+		-- Courbe optionnelle du trajet vers la clé tEnd (PlayerPoses.Clips)
+		local ease = animTable.Easings and animTable.Easings[tEnd]
+		if ease == "out" then
+			alpha = 1 - (1 - alpha) ^ 3
+		elseif ease == "in" then
+			alpha = alpha ^ 3
+		elseif ease == "inout" then
+			alpha = alpha * alpha * (3 - 2 * alpha)
+		end
 		-- Blend in from the pose the joints had at Play; wall time, so a loop
 		-- wrapping clipTime does not restart the blend.
 		local fadeIn = math.min(1, elapsed / FADE_IN)
@@ -289,6 +298,10 @@ function AnimationController.SetClipSpeed(animationName, playbackRate, extraTors
 end
 
 function AnimationController.CurrentAnimation()
+	-- Un clip non bouclé qui s'est terminé tout seul n'est plus "en cours"
+	if executor and not executor.IsPlaying then
+		currentAnimationName = nil
+	end
 	return currentAnimationName
 end
 

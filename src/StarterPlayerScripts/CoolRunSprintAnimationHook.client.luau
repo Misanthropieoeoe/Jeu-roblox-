@@ -16,8 +16,19 @@ local SPRINT = "Run"
 -- (Run est déjà penchée de 9°, ceci s'ajoute quand on va plus vite que 16.)
 local SPRINT_LEAN = 4
 local WALK = "Walk"
-local JUMP = "Sprint Jump"
-local LAND = "Sprint Land"
+-- Saut, atterrissage et attente : animations originales (PlayerPoses.Clips)
+local JUMP = "PlayerJump"
+local LAND = "PlayerLand"
+local IDLE = "PlayerIdle"
+
+-- Animations à ne jamais interrompre (garde, poses d'attaque, coups reçus,
+-- Flèches). La pose d'attente, la marche et la course, elles, se remplacent.
+local function isProtected(name)
+	if not name then return false end
+	return name == "Block" or string.sub(name, 1, 3) == "Cmd"
+		or string.sub(name, 1, 9) == "PlayerHit" or name == "PlayerKnockdown"
+		or string.sub(name, 1, 10) == "PlayerStab"
+end
 
 -- Reference speed the clip was authored for; sprint (24) plays ~1.5x faster.
 local REFERENCE_SPEED = 16
@@ -53,7 +64,7 @@ local function hookCharacter(character)
 		-- En garde (Guard.client.luau) ou en pleine attaque du Stand
 		-- (SpellGestures, poses Cmd*) : on ne remplace pas l'animation
 		local current = AnimationController.CurrentAnimation()
-		if current == "Block" or (current and string.sub(current, 1, 3) == "Cmd") then
+		if isProtected(current) then
 			stoppedSince = nil
 			return
 		end
@@ -84,9 +95,11 @@ local function hookCharacter(character)
 			-- end the cycle once the character has clearly stopped.
 			stoppedSince = stoppedSince or os.clock()
 			local current = AnimationController.CurrentAnimation()
-			if (current == SPRINT or current == WALK)
-				and os.clock() - stoppedSince > STOP_DELAY then
-				AnimationController.Stop(current)
+			if os.clock() - stoppedSince > STOP_DELAY then
+				-- à l'arrêt : pose d'attente originale (main sur la hanche)
+				if current == SPRINT or current == WALK or current == nil then
+					AnimationController.Play(IDLE)
+				end
 			end
 		end
 	end)
