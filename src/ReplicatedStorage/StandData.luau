@@ -819,6 +819,28 @@ StandData.StatGrades = {
 	MadeInHeaven = { Power = "B", Durability = "A", Speed = "A+" },
 }
 
+-- PV et armure selon la Durabilité du Stand. Un joueur sans Stand a 100 PV
+-- et 0 d'armure. Armor = part des dégâts reçus annulée (0.20 = -20 %).
+StandData.BaseHealth = 100
+StandData.DurabilityBonus = {
+	["A+"] = { Health = 60, Armor = 0.22 },
+	A = { Health = 50, Armor = 0.20 },
+	B = { Health = 35, Armor = 0.15 },
+	C = { Health = 20, Armor = 0.10 },
+	D = { Health = 10, Armor = 0.05 },
+	E = { Health = 0, Armor = 0 },
+}
+
+-- PV max et armure d'un joueur selon son Stand (nil = sans Stand)
+function StandData.DefenseFor(standId)
+	local grades = standId and StandData.StatGrades[standId]
+	local bonus = grades and StandData.DurabilityBonus[grades.Durability] or nil
+	if not bonus then
+		return StandData.BaseHealth, 0
+	end
+	return StandData.BaseHealth + bonus.Health, bonus.Armor
+end
+
 -- M1 light punch: a quick jab shared by every stand. Two move entries —
 -- LightPunchR / LightPunchL — let the server alternate hands on every click
 -- while the client binds both visual states to the same gameplay move.

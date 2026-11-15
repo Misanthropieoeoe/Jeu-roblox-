@@ -1083,9 +1083,13 @@ local function dealDamage(targets, amount, caster, knockback, kind)
 		if guardHook then
 			final = guardHook(target, caster, amount, kind)
 		end
+		local victim = Players:GetPlayerFromCharacter(target.model)
+		-- armure du joueur touché (Durabilité de son Stand)
+		if final > 0 and victim then
+			final *= 1 - math.clamp(victim:GetAttribute("Armor") or 0, 0, 0.9)
+		end
 		if final > 0 then
 			target.humanoid:TakeDamage(final)
-			local victim = Players:GetPlayerFromCharacter(target.model)
 			if victim then
 				applyHitstun(victim, kind)
 				if kind == "light" then
@@ -1476,6 +1480,9 @@ local function releaseTimeStopDamage(key)
 	if not pending or pending.total <= 0 then return end
 	local humanoid, root = pending.humanoid, pending.root
 	if not humanoid or not humanoid.Parent or humanoid.Health <= 0 then return end
+	if typeof(key) == "Instance" and key:IsA("Player") then
+		pending.total *= 1 - math.clamp(key:GetAttribute("Armor") or 0, 0, 0.9)
+	end
 	humanoid:TakeDamage(pending.total)
 	local position = root and root.Parent and root.Position or humanoid.Parent:GetPivot().Position
 	-- un seul gros chiffre de dégâts + réaction de coup lourd
@@ -2796,6 +2803,41 @@ Players.PlayerAdded:Connect(markStandAdmin)
 for _, player in Players:GetPlayers() do
 	markStandAdmin(player)
 end
+-- ==================== PV ET ARMURE (Durabilité) ====================
+-- Sans Stand : 100 PV, 0 armure. Avec un Stand : bonus selon sa Durabilité
+-- (StandData.DurabilityBonus). Recalculé quand le Stand change et à chaque
+-- réapparition ; le pourcentage de vie actuel est gardé.
+local function applyDefense(player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local standId = not player:GetAttribute("Standless") and player:GetAttribute("StandId") or nil
+	local maxHealth, armor = StandData.DefenseFor(standId)
+	player:SetAttribute("Armor", armor)
+	player:SetAttribute("MaxHP", maxHealth)
+	if not humanoid or humanoid.Health <= 0 then return end
+	if humanoid.MaxHealth == maxHealth then return end
+	local ratio = humanoid.MaxHealth > 0 and humanoid.Health / humanoid.MaxHealth or 1
+	humanoid.MaxHealth = maxHealth
+	humanoid.Health = math.max(1, maxHealth * ratio)
+end
+
+local function watchDefense(player)
+	player:GetAttributeChangedSignal("StandId"):Connect(function() applyDefense(player) end)
+	player:GetAttributeChangedSignal("Standless"):Connect(function() applyDefense(player) end)
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if humanoid then
+			applyDefense(player)
+			humanoid.Health = humanoid.MaxHealth -- réapparition : vie pleine
+		end
+	end)
+	task.defer(applyDefense, player)
+end
+Players.PlayerAdded:Connect(watchDefense)
+for _, player in Players:GetPlayers() do
+	watchDefense(player)
+end
+
 local chooseStandAt = {}
 local chooseSkinAt = {}
 Players.PlayerRemoving:Connect(function(player)
