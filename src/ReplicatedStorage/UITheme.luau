@@ -231,14 +231,16 @@ function UITheme.Close(name)
 	end
 end
 
+-- Renvoie false si la fenêtre n'existe pas (script pas encore chargé)
 function UITheme.Toggle(name)
 	local w = windows[name]
-	if not w then return end
+	if not w then return false end
 	if w.isOpen() then
 		UITheme.Close(name)
 	else
 		UITheme.Open(name)
 	end
+	return true
 end
 
 function UITheme.IsOpen(name)

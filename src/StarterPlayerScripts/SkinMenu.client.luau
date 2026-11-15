@@ -230,7 +230,12 @@ UITheme.WindowChanged:Connect(function(name, open)
 	if name == "Skins" and open then
 		win.status.Text = ""
 		local mine = player:GetAttribute("StandId")
-		showStand((mine and StandData.Stands[mine]) and mine or selected or standIds[1])
+		local ok, err = pcall(showStand, (mine and StandData.Stands[mine]) and mine or selected or standIds[1])
+		if not ok then
+			warn("[SkinMenu] Erreur à l'ouverture :", err)
+			win.status.Text = "Erreur d'affichage des skins (voir Output)."
+			win.status.TextColor3 = C.Red
+		end
 	end
 end)
 

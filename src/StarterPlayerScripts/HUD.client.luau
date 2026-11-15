@@ -15,16 +15,21 @@ local moneyEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Money
 local player = Players.LocalPlayer
 local gui, root = UITheme.Screen("GameHUD", 6)
 
-local RAIL_X, RAIL_Y = 12, 10
+-- Barre en haut au centre : en haut à gauche, la fenêtre du chat de Roblox
+-- passait par-dessus et prenait les clics.
+local BUTTON_W = 134
 
 local rail = Instance.new("Frame")
 rail.Name = "Rail"
 rail.BackgroundTransparency = 1
-rail.Position = UDim2.fromOffset(RAIL_X, RAIL_Y)
-rail.Size = UDim2.fromOffset(176, 0)
-rail.AutomaticSize = Enum.AutomaticSize.Y
+rail.AnchorPoint = Vector2.new(0.5, 0)
+rail.Position = UDim2.new(0.5, 0, 0, 8)
+rail.Size = UDim2.fromOffset(0, 42)
+rail.AutomaticSize = Enum.AutomaticSize.X
 rail.Parent = root
 local railLayout = Instance.new("UIListLayout")
+railLayout.FillDirection = Enum.FillDirection.Horizontal
+railLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 railLayout.Padding = UDim.new(0, 6)
 railLayout.SortOrder = Enum.SortOrder.LayoutOrder
 railLayout.Parent = rail
@@ -33,7 +38,7 @@ railLayout.Parent = rail
 local cashPill = Instance.new("Frame")
 cashPill.Name = "Cash"
 cashPill.LayoutOrder = 0
-cashPill.Size = UDim2.fromOffset(176, 40)
+cashPill.Size = UDim2.fromOffset(160, 40)
 cashPill.BackgroundColor3 = C.Night
 cashPill.BackgroundTransparency = 0.1
 cashPill.Parent = rail
@@ -92,17 +97,18 @@ end)
 
 -- "+30" qui jaillit de la pastille d'argent
 local function popGain(amount)
-	local pop = UITheme.Label(root, "+" .. tostring(amount), 26, C.Money, UITheme.Title)
-	pop.AnchorPoint = Vector2.new(0, 0.5)
-	pop.Position = UDim2.fromOffset(RAIL_X + 182, RAIL_Y + 20)
+	local pop = UITheme.Label(cashPill, "+" .. tostring(amount), 28, C.Money, UITheme.Title)
+	pop.AnchorPoint = Vector2.new(0.5, 0)
+	pop.Position = UDim2.new(0.5, 0, 1, 2)
 	pop.Size = UDim2.fromOffset(90, 30)
+	pop.TextXAlignment = Enum.TextXAlignment.Center
 	pop.ZIndex = 10
 	local scale = Instance.new("UIScale")
 	scale.Scale = 0.4
 	scale.Parent = pop
 	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.15 }):Play()
 	TweenService:Create(pop, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Position = UDim2.fromOffset(RAIL_X + 182, RAIL_Y - 4),
+		Position = UDim2.new(0.5, 0, 1, 26),
 	}):Play()
 	task.delay(0.55, function()
 		TweenService:Create(pop, TweenInfo.new(0.55), { TextTransparency = 1 }):Play()
@@ -130,7 +136,7 @@ local function menuButton(order, window, icon, text, key, accent)
 	local button = Instance.new("TextButton")
 	button.Name = window
 	button.LayoutOrder = order
-	button.Size = UDim2.fromOffset(176, 42)
+	button.Size = UDim2.fromOffset(BUTTON_W, 42)
 	button.AutoButtonColor = false
 	button.Text = ""
 	button.BackgroundColor3 = C.Panel
@@ -148,9 +154,9 @@ local function menuButton(order, window, icon, text, key, accent)
 	badge.BackgroundTransparency = 0.25
 	UITheme.Corner(badge, 8)
 
-	local label = UITheme.Label(button, text, 22, C.Text, UITheme.Title)
-	label.Position = UDim2.fromOffset(44, 0)
-	label.Size = UDim2.new(1, -80, 1, 0)
+	local label = UITheme.Label(button, text, 19, C.Text, UITheme.Title)
+	label.Position = UDim2.fromOffset(42, 0)
+	label.Size = UDim2.new(1, -46, 1, 0)
 
 	local keyLabel = UITheme.Label(button, key, 12, C.Muted, UITheme.Bold)
 	keyLabel.AnchorPoint = Vector2.new(1, 0.5)
@@ -160,6 +166,12 @@ local function menuButton(order, window, icon, text, key, accent)
 	keyLabel.BackgroundColor3 = C.Night
 	keyLabel.BackgroundTransparency = 0.3
 	UITheme.Corner(keyLabel, 6)
+	-- la touche s'affiche en petit sous l'icône (place réduite dans la barre)
+	keyLabel.AnchorPoint = Vector2.new(0, 1)
+	keyLabel.Position = UDim2.fromOffset(26, 40)
+	keyLabel.Size = UDim2.fromOffset(14, 14)
+	keyLabel.TextSize = 9
+	keyLabel.ZIndex = 3
 	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
 		keyLabel.Visible = false
 	end
@@ -171,7 +183,10 @@ local function menuButton(order, window, icon, text, key, accent)
 		TweenService:Create(button, TweenInfo.new(0.12), { BackgroundColor3 = C.Panel }):Play()
 	end)
 	button.Activated:Connect(function()
-		UITheme.Toggle(window)
+		if not UITheme.Toggle(window) then
+			warn("[HUD] Fenêtre pas chargée :", window)
+			UITheme.Toast("Chargement de " .. text .. "…", C.Muted)
+		end
 	end)
 	menuButtons[window] = { button = button, stroke = stroke, accent = accent }
 	return button
