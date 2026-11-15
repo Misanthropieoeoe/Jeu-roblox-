@@ -44,7 +44,9 @@ son de Roblox (ou reste silencieux pour les nouveaux sons).
 | parry.wav | Parry | parade parfaite |
 | guard_break.wav | GuardBreak | garde brisée |
 | double_jump.wav | DoubleJump | double saut |
-| summon.wav | Summon | éclat de l'arrêt du temps |
+| summon.wav | Summon | arrêt du temps (gong, cuivres, tic... tic...) |
+| time_resume.wav | TimeResume | le temps reprend |
+| stand_summon.wav | StandSummon | apparition du Stand |
 | menace.wav | Menace | grondement ゴゴゴ des emotes |
 | coin.wav | Coin | argent ramassé |
 | chest.wav | Chest | ouverture d'un coffre de skins |

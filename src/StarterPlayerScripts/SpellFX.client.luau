@@ -10,6 +10,7 @@
 -- Stand (bras fantômes, traînées, yeux) : voir fxState dans StandController.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
@@ -306,6 +307,16 @@ local function timeStopFX(position, color, duration)
 	cc.Parent = Lighting
 	TweenService:Create(cc, TweenInfo.new(0.4), { Saturation = -0.85, Contrast = 0.15 }):Play()
 	task.delay(math.max(duration - 0.3, 0.1), function()
+		-- le temps reprend (SFX.TimeResume, si son ID est rempli)
+		local resumeId = SFX.Get("TimeResume")
+		if resumeId ~= "" then
+			local sound = Instance.new("Sound")
+			sound.SoundId = resumeId
+			sound.Volume = 0.8
+			sound.Parent = game:GetService("SoundService")
+			sound:Play()
+			sound.Ended:Once(function() sound:Destroy() end)
+		end
 		local fade = TweenService:Create(cc, TweenInfo.new(0.3), { Saturation = 0, Contrast = 0 })
 		fade:Play()
 		fade.Completed:Once(function() cc:Destroy() end)
