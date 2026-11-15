@@ -24,6 +24,13 @@ local function ensureCash(player)
 		leaderstats.Name = "leaderstats"
 		leaderstats.Parent = player
 	end
+	-- éliminations de la session (tableau des scores), comptées par StandService
+	if not leaderstats:FindFirstChild("Kills") then
+		local kills = Instance.new("IntValue")
+		kills.Name = "Kills"
+		kills.Value = 0
+		kills.Parent = leaderstats
+	end
 	if not leaderstats:FindFirstChild("Cash") then
 		local cash = Instance.new("IntValue")
 		cash.Name = "Cash"
