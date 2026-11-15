@@ -804,7 +804,7 @@ StandData.Stands = {
 -- Letter grades for the StandStatHUD board (JoJo stat-chart style), keyed by
 -- stand id. Kept separate from the stand defs so they stay presentation-only.
 StandData.StatGrades = {
-	StarPlatinum = { Power = "A", Durability = "D", Speed = "A" },
+	StarPlatinum = { Power = "A", Durability = "C", Speed = "A" },
 	TheWorld = { Power = "A", Durability = "B", Speed = "A" },
 	TheWorldAU = { Power = "A", Durability = "A", Speed = "A" },
 	CrazyDiamond = { Power = "A", Durability = "C", Speed = "B" },
