@@ -9,7 +9,7 @@
 --   Val      multiplicateur de luminosité   ValAdd  ajout de luminosité
 --   Aura     couleur de l'aura, de la lueur et du contour
 --   Material matière forcée sur toutes les pièces (facultatif)
---   Rarity   "Legendaire" pour les skins légendaires
+--   Rarity   "Legendaire" ou "Mythique" (le rang au-dessus, très rare)
 --   Model    recette de StandSkinModels : ajoute des pièces au modèle
 --            (couronne, ailes, halo, cape…) ; Preview = couleurs d'aperçu
 -- Le premier skin de chaque Stand est "Classique" : le Stand tel quel.
@@ -76,6 +76,13 @@ for _, skin in LEGENDARY do
 	skin.Rarity = "Legendaire"
 end
 
+-- Skins MYTHIQUES : un modèle unique, au-dessus des légendaires
+local MYTHIC = {
+	TheWorldAU = { Id = "ArpenteurNeant", Name = "Arpenteur du Néant", Model = "ArpenteurNeant", Rarity = "Mythique",
+		Hue = 0.75, Sat = 0.3, Val = 0.3, Aura = rgb(150, 90, 255),
+		Preview = { rgb(18, 14, 30), rgb(140, 70, 255), rgb(90, 230, 255), rgb(190, 190, 215) } },
+}
+
 -- Skins propres à chaque Stand
 local SIGNATURE = {
 	StarPlatinum = {
@@ -138,6 +145,9 @@ local CLASSIC = { Id = "Classique", Name = "Classique" }
 -- Liste des skins d'un Stand, dans l'ordre d'affichage
 function StandSkins.List(standId)
 	local list = { CLASSIC }
+	if MYTHIC[standId] then
+		table.insert(list, MYTHIC[standId])
+	end
 	if LEGENDARY[standId] then
 		table.insert(list, LEGENDARY[standId])
 	end
@@ -157,6 +167,15 @@ function StandSkins.Legendaries()
 		table.insert(list, { standId = standId, skin = skin })
 	end
 	table.sort(list, function(a, b) return a.skin.Name < b.skin.Name end)
+	-- les mythiques en premier
+	local mythics = {}
+	for standId, skin in pairs(MYTHIC) do
+		table.insert(mythics, { standId = standId, skin = skin })
+	end
+	table.sort(mythics, function(a, b) return a.skin.Name < b.skin.Name end)
+	for i, entry in ipairs(mythics) do
+		table.insert(list, i, entry)
+	end
 	return list
 end
 
