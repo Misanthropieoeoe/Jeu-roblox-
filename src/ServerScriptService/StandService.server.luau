@@ -1944,6 +1944,9 @@ local function spellTeleport(player, standDef, move)
 	if best then
 		local behind = best.root.CFrame * CFrame.new(0, 0, 3.5)
 		character:PivotTo(CFrame.lookAt(behind.Position, best.root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, behind.Position.Y, 0)))
+		-- verrouillage : le client tourne le joueur et recentre la caméra sur
+		-- la cible jusqu'au coup (TeleportLock.client.luau)
+		standFX:FireClient(player, "LockOn", best.root, (move.HitDelay or 0.3) + 0.25)
 	end
 	task.delay(math.max(0.05, (move.HitDelay or 0.3) - 0.1), function()
 		if hrp.Parent then

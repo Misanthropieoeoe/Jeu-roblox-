@@ -628,7 +628,8 @@ standFX.OnClientEvent:Connect(function(kind, moveKind, position, amount)
 	combo += 1
 	lastHitAt = os.clock()
 	updateChip()
-	chip.Visible = true
+	-- compteur de coups masqué (demandé) : on garde le calcul, pas l'affichage
+	chip.Visible = false
 	chipScale.Scale = 1.14
 	TweenService:Create(chipScale, TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 end)

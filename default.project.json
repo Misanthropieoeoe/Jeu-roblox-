@@ -460,6 +460,9 @@
             }
           }
         },
+        "TeleportLock": {
+          "$path": "src/StarterPlayerScripts/TeleportLock.client.luau"
+        },
         "TradeUI": {
           "$path": "src/StarterPlayerScripts/TradeUI.client.luau",
           "$attributes": {
