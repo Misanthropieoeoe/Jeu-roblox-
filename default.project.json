@@ -97,6 +97,30 @@
         "DoubleJump": {
           "$path": "src/ReplicatedStorage/Animations/DoubleJump.luau"
         },
+        "EmoteDefi": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteDefi.luau"
+        },
+        "EmoteGrace": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteGrace.luau"
+        },
+        "EmoteImperiale": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteImperiale.luau"
+        },
+        "EmoteMasque": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteMasque.luau"
+        },
+        "EmoteMenace": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteMenace.luau"
+        },
+        "EmoteRevers": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteRevers.luau"
+        },
+        "EmoteSalut": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteSalut.luau"
+        },
+        "EmoteTorsade": {
+          "$path": "src/ReplicatedStorage/Animations/EmoteTorsade.luau"
+        },
         "PlayerHitHeavy": {
           "$path": "src/ReplicatedStorage/Animations/PlayerHitHeavy.luau"
         },
@@ -333,6 +357,9 @@
         },
         "DoubleJump": {
           "$path": "src/StarterPlayerScripts/DoubleJump.client.luau"
+        },
+        "EmoteMenu": {
+          "$path": "src/StarterPlayerScripts/EmoteMenu.client.luau"
         },
         "Guard": {
           "$path": "src/StarterPlayerScripts/Guard.client.luau"

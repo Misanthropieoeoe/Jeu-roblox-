@@ -27,7 +27,7 @@ end)
 
 local _, root = UITheme.Screen("Leaderboard", 4)
 
-local WIDTH = 270
+local WIDTH = 240
 local ROW_H = 30
 local MAX_ROWS = 6
 
