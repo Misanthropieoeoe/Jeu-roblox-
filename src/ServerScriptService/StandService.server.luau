@@ -1529,8 +1529,16 @@ local spellFolder = Instance.new("Folder")
 spellFolder.Name = "StandSpellFX"
 spellFolder.Parent = workspace
 
-local function spellColor(standDef, move)
-	return move.Color or (standDef and standDef.Theme and standDef.Theme.Aura1) or SPELL_DEFAULT_COLOR
+-- Couleur d'un sort : celle du skin équipé s'il en a une (attribut
+-- SkinColor du Stand, voir StandSkins.Apply), sinon celle de l'attaque.
+local function skinColorOf(player)
+	local stand = player and workspace:FindFirstChild(player.Name .. "Stand")
+	local c = stand and stand:GetAttribute("SkinColor")
+	return typeof(c) == "Color3" and c or nil
+end
+
+local function spellColor(standDef, move, player)
+	return skinColorOf(player) or move.Color or (standDef and standDef.Theme and standDef.Theme.Aura1) or SPELL_DEFAULT_COLOR
 end
 
 -- Cibles dans une sphère (joueurs et mannequins, jamais le lanceur ni un Stand)
@@ -1658,7 +1666,7 @@ local function spellStrike(player, standDef, move, origin)
 	local character = player.Character
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	local range = move.Range or 10
 	local targets = getTargets(player, origin or hrp.CFrame, move.BoxSize or Vector3.new(7, 7, range), range)
 	dealDamage(targets, move.Damage or 0, character, move.Knockback, "heavy")
@@ -1712,7 +1720,7 @@ local function targetFromPart(player, part)
 end
 
 local function spawnProjectile(player, standDef, move, origin, direction)
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	local size = move.Size or 0.6
 	local radius = math.max(size / 2, 0.3) + 0.5 -- un peu de marge pour toucher
 	local speed = move.Speed or 100
@@ -1728,6 +1736,7 @@ local function spawnProjectile(player, standDef, move, origin, direction)
 	standFX:FireAllClients("Projectile", id, origin, direction, speed, maxRange, {
 		Size = size, Shape = move.Shape or "Ball", Color = color,
 		StandId = player:GetAttribute("StandId"), Move = move.Label, Homing = move.Homing ~= nil,
+		Skinned = skinColorOf(player) ~= nil,
 	})
 	local lastSync = 0
 
@@ -1858,7 +1867,7 @@ local function spellBuff(player, standDef, move)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not hrp or humanoid.Health <= 0 then return end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	if move.Heal then
 		local before = humanoid.Health
 		humanoid.Health = math.min(humanoid.MaxHealth, before + move.Heal)
@@ -1891,7 +1900,7 @@ local function spellDash(player, standDef, move)
 	local dashTime = move.DashTime or 0.25
 	standFX:FireClient(player, "SpellDash", move.DashSpeed or 80, dashTime)
 	local hitModels = {}
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	local checks = math.max(2, math.ceil(dashTime / 0.06))
 	for i = 1, checks do
 		task.delay(i * dashTime / checks + 0.03, function()
@@ -1927,7 +1936,7 @@ local function spellTeleport(player, standDef, move)
 			end
 		end
 	end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	impactFX(hrp.Position, color, 6, 1.6)
 	if best then
 		local behind = best.root.CFrame * CFrame.new(0, 0, 3.5)
@@ -1977,7 +1986,7 @@ local function spellFlurry(player, stand, standDef, move, actionName)
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not hrp or not humanoid then return end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	task.spawn(function()
 		local tick = move.TickRate or 0.1
 		local endsAt = os.clock() + (move.Duration or 2) - 0.2
@@ -2016,7 +2025,7 @@ local function spellCounter(player, standDef, move)
 	counterState[player] = { untilT = os.clock() + (move.Duration or 1), move = move, standDef = standDef }
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if hrp then
-		impactFX(hrp.Position, spellColor(standDef, move), 5, 1.8)
+		impactFX(hrp.Position, spellColor(standDef, move, player), 5, 1.8)
 	end
 end
 
@@ -2025,7 +2034,7 @@ local function spellPull(player, standDef, move, aim)
 	local character = player.Character
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	local flat = flatLook(hrp)
 	local origin = hrp.Position + flat * 2 + Vector3.new(0, 1.3, 0)
 	local dir = aimDirection(origin, flat, aim)
@@ -2096,7 +2105,7 @@ local function spellZone(player, standDef, move)
 	local character = player.Character
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	local radius = move.Radius or 8
 	local ground = groundAt(player, hrp.Position + flatLook(hrp) * (move.Offset or 0))
 	local zoneTexture = require(ReplicatedStorage:WaitForChild("VFXTextures")).Zone
@@ -2151,7 +2160,7 @@ local function spellMine(player, standDef, move)
 	local character = player.Character
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	local color = spellColor(standDef, move)
+	local color = spellColor(standDef, move, player)
 	local key = move.Label or "Mine"
 	activeMines[player] = activeMines[player] or {}
 	local old = activeMines[player][key]
@@ -2196,7 +2205,7 @@ local function spellErase(player, standDef, move)
 	local duration = move.EraseTime or 2.5
 	erasedUntil[player] = os.clock() + duration
 	player:SetAttribute("Erased", true)
-	impactFX(hrp.Position, spellColor(standDef, move), 8, 0.6)
+	impactFX(hrp.Position, spellColor(standDef, move, player), 8, 0.6)
 
 	-- à moitié invisible pour tout le monde
 	local saved = {}
@@ -2218,7 +2227,7 @@ local function spellErase(player, standDef, move)
 			if d.Parent then d.Transparency = t end
 		end
 		if boosted then restoreWalkSpeed(humanoid, boosted, base) end
-		if hrp.Parent then impactFX(hrp.Position, spellColor(standDef, move), 8, 0.6) end
+		if hrp.Parent then impactFX(hrp.Position, spellColor(standDef, move, player), 8, 0.6) end
 	end)
 end
 
@@ -2263,7 +2272,7 @@ local function runSpell(player, stand, standDef, move, aim, actionName)
 				local flat = Vector3.new(look.X, 0, look.Z)
 				flat = flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
 				local center = hrp.Position + flat * (move.Offset or 0)
-				spellBurstAt(player, center, move.Radius or 10, move.Damage, move.Knockback, move.Launch, move.Stun, spellColor(standDef, move))
+				spellBurstAt(player, center, move.Radius or 10, move.Damage, move.Knockback, move.Launch, move.Stun, spellColor(standDef, move, player))
 			end
 		elseif kind == "Buff" then
 			spellBuff(player, standDef, move)
@@ -2458,8 +2467,8 @@ guardHook = function(target, caster, amount, kind)
 				end)
 			end
 			local pos = target.root and target.root.Position or attackerRoot.Position
-			impactFX(pos, spellColor(counter.standDef, move), 12, 1.3)
-			floatingText(pos, "COUNTER!", spellColor(counter.standDef, move))
+			impactFX(pos, spellColor(counter.standDef, move, defender), 12, 1.3)
+			floatingText(pos, "COUNTER!", spellColor(counter.standDef, move, defender))
 		end
 		return 0
 	end
