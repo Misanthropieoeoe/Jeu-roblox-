@@ -322,6 +322,9 @@
         "SpellBar": {
           "$path": "src/StarterPlayerScripts/SpellBar.client.luau"
         },
+        "SpellFX": {
+          "$path": "src/StarterPlayerScripts/SpellFX.client.luau"
+        },
         "SpellGestures": {
           "$path": "src/StarterPlayerScripts/SpellGestures.client.luau"
         },

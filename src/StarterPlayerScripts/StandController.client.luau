@@ -118,6 +118,21 @@ local STATE_TO_STRIKE = {
 	Heal = "Heal",
 	Block = "Block",
 }
+-- Effets visuels existants (bras fantômes du barrage, traînées, yeux enragés,
+-- effets du coup lourd) pour le moveset : une rafale s'affiche comme un
+-- barrage, une attaque R comme un coup lourd, un arrêt du temps / Erased
+-- Time comme un arrêt du temps.
+local OFFENSIVE_TYPES = { Strike = true, Dash = true, Teleport = true, Burst = true, Pull = true }
+local function fxState(stand, state)
+	local def = StandData.GetStand(stand:GetAttribute("StandId") or "")
+	local move = def and def.Moves and def.Moves[state]
+	if not move or not move.Type then return state end
+	if move.Type == "Flurry" then return "Barrage" end
+	if move.Type == "TimeStop" or move.Type == "Erase" then return "TimeStop" end
+	if move.Key == "R" and OFFENSIVE_TYPES[move.Type] then return "HeavyPunch" end
+	return state
+end
+
 -- Animations que Star Platinum garde d'origine (les autres, comme la garde
 -- ou les attaques T / F / G, viennent de StandStrikes pour tout le monde).
 local ORIGINAL_KINDS = { LightR = true, LightL = true, Heavy = true, Barrage = true, TimeStop = true, Heal = true, Idle = true }
@@ -1014,7 +1029,8 @@ local function animateStand(stand, state, t, now)
 			rig.lastShout = -1
 		end
 	end
-	local trailsOn = state == "Barrage" or state == "HeavyPunch"
+	local visual = fxState(stand, state)
+	local trailsOn = visual == "Barrage" or visual == "HeavyPunch"
 	for _, trail in rig.trails do
 		trail.Enabled = trailsOn
 	end
@@ -1029,7 +1045,7 @@ local function animateStand(stand, state, t, now)
 	if rig.glow and state ~= "Deploying" then
 		rig.glow.Brightness = rage and 2.8 or 1.2
 	end
-	applyEyeFX(rig, state)
+	applyEyeFX(rig, visual)
 	stand:SetAttribute("VisualState", state)
 	stand:SetAttribute("AttackClipActive", desired ~= nil)
 end
@@ -1571,8 +1587,9 @@ local function updateStand(stand, standDef, character, now)
 	local rig = getRig(stand)
 	rig.summonDuration = summonDuration
 	animateStand(stand, state, t, now)
-	updateBarrageVisuals(stand, state, t, now)
-	updateHeavyPunchVisuals(stand, state, t, character)
+	local visual = fxState(stand, state)
+	updateBarrageVisuals(stand, visual, t, now)
+	updateHeavyPunchVisuals(stand, visual, t, character)
 end
 
 RunService.PreSimulation:Connect(function()
