@@ -7,17 +7,17 @@
 --   Obtainable  false = la Flèche ne donne jamais ce Stand
 --               (ex. Gold Experience Requiem, qui vient de la Flèche Requiem).
 return {
-	StarPlatinum = { Weight = 3, Obtainable = true },
-	TheWorld = { Weight = 1, Obtainable = true },
-	TheWorldAU = { Weight = 3, Obtainable = true },
-	CrazyDiamond = { Weight = 3, Obtainable = true },
-	SilverChariot = { Weight = 3, Obtainable = true },
-	KillerQueen = { Weight = 3, Obtainable = true },
-	GoldExperience = { Weight = 3, Obtainable = true },
+	StarPlatinum = { Weight = 10, Obtainable = true },
+	TheWorld = { Weight = 2, Obtainable = true },
+	TheWorldAU = { Weight = 1, Obtainable = true },
+	CrazyDiamond = { Weight = 2, Obtainable = true },
+	SilverChariot = { Weight = 7, Obtainable = true },
+	KillerQueen = { Weight = 1, Obtainable = true },
+	GoldExperience = { Weight = 7, Obtainable = true },
 	GoldExperienceRequiem = { Weight = 0, Obtainable = false },
 	KingCrimson = { Weight = 1, Obtainable = true },
-	HierophantGreen = { Weight = 3, Obtainable = true },
-	MagiciansRed = { Weight = 3, Obtainable = true },
-	StickyFingers = { Weight = 3, Obtainable = true },
-	MadeInHeaven = { Weight = 1, Obtainable = true },
+	HierophantGreen = { Weight = 10, Obtainable = true },
+	MagiciansRed = { Weight = 10, Obtainable = true },
+	StickyFingers = { Weight = 10, Obtainable = true },
+	MadeInHeaven = { Weight = 1, Obtainable = false },
 }
