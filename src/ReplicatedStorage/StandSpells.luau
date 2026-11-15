@@ -45,7 +45,9 @@
 --              (par tick), Slow (immobilise à chaque tick, s)
 -- "Mine"       piège posé devant : Offset, Radius (explosion),
 --              TriggerRadius, ArmTime, Lifetime, Damage, Knockback, Launch, Stun
--- "TimeStop"   arrêt du temps (l'attaque doit s'appeler TimeStop) : Duration,
+-- "TimeStop"   arrêt du temps (l'attaque doit s'appeler TimeStop) : Duration
+--              (temps figé), PoseTime (durée de la pose, ensuite le lanceur
+--              peut attaquer pendant que les autres restent figés),
 --              TimeStopOffset, TimeStopSmoothness ; voix : TimeStopVoicePath
 --              du Stand dans StandData
 -- "Erase"      effacer le temps : intouchable et à moitié invisible pendant
@@ -95,8 +97,8 @@ return {
 		},
 		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
 		TimeStop = {
-			Label = "Frozen Instant", Key = "G", Cooldown = 35, Type = "TimeStop",
-			Duration = 2, PlayerAnim = "CmdSummon", Color = VIOLET,
+			Label = "Frozen Instant", Key = "G", Cooldown = 95, Type = "TimeStop",
+			Duration = 4, PlayerAnim = "CmdSummon", Color = VIOLET,
 			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 	},
@@ -121,8 +123,8 @@ return {
 		},
 		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
 		TimeStop = {
-			Label = "World Halt", Key = "F", Cooldown = 40, Type = "TimeStop",
-			Duration = 3, PlayerAnim = "CmdSummon", Color = GOLD,
+			Label = "World Halt", Key = "F", Cooldown = 100, Type = "TimeStop",
+			Duration = 5, PlayerAnim = "CmdSummon", Color = GOLD,
 			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 		EmperorsStep = {
@@ -157,8 +159,8 @@ return {
 		},
 		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
 		TimeStop = {
-			Label = "Moment Seize", Key = "G", Cooldown = 38, Type = "TimeStop",
-			Duration = 2.5, PlayerAnim = "CmdSummon", Color = GOLD,
+			Label = "Moment Seize", Key = "G", Cooldown = 98, Type = "TimeStop",
+			Duration = 4.5, PlayerAnim = "CmdSummon", Color = GOLD,
 			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 	},

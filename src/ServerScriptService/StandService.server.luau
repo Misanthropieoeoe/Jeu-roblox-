@@ -2940,7 +2940,10 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 		end)
 	elseif actionName == "TimeStop" then
 		runTimeStop(player, stand, move)
-		task.delay(move.Duration, function()
+		-- Le Stand ne tient la pose que le temps de l'animation : ensuite le
+		-- lanceur peut attaquer, pendant que les autres restent figés pour
+		-- toute la durée (move.Duration, gérée par runTimeStop).
+		task.delay(move.PoseTime or 0.7, function()
 			if stand.Parent and stand:GetAttribute("State") == "TimeStop" then
 				stand:SetAttribute("State", "Idle")
 				stand:SetAttribute("StateStarted", workspace:GetServerTimeNow())
