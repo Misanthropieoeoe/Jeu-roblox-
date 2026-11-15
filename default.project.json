@@ -351,6 +351,9 @@
             }
           }
         },
+        "ChatAnnounce": {
+          "$path": "src/StarterPlayerScripts/ChatAnnounce.client.luau"
+        },
         "CombatFX": {
           "$path": "src/StarterPlayerScripts/CombatFX.client.luau",
           "$attributes": {
