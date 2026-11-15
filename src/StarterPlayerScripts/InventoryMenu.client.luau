@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
 local UITheme = require(ReplicatedStorage:WaitForChild("UITheme"))
+if not UITheme.Guard(script) then return end
 local ItemCatalog = require(ReplicatedStorage:WaitForChild("ItemCatalog"))
 local C = UITheme.Colors
 local remotes = ReplicatedStorage:WaitForChild("Remotes")

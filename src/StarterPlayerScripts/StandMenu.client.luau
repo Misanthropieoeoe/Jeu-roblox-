@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UITheme = require(ReplicatedStorage:WaitForChild("UITheme"))
+if not UITheme.Guard(script) then return end
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
 local C = UITheme.Colors
 local standAction = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("StandAction")

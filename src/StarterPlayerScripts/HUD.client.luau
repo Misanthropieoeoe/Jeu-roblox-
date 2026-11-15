@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local UITheme = require(ReplicatedStorage:WaitForChild("UITheme"))
+if not UITheme.Guard(script) then return end
 local C = UITheme.Colors
 local moneyEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MoneyEvent")
 
