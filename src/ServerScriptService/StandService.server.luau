@@ -2824,13 +2824,26 @@ end
 local function watchDefense(player)
 	player:GetAttributeChangedSignal("StandId"):Connect(function() applyDefense(player) end)
 	player:GetAttributeChangedSignal("Standless"):Connect(function() applyDefense(player) end)
+	-- Pas de régénération passive : on supprime le script "Health" que Roblox
+	-- met dans chaque personnage (il redonne 1 % de vie par seconde).
+	local function noRegen(character)
+		local function strip(child)
+			if child.Name == "Health" and child:IsA("Script") then
+				child:Destroy()
+			end
+		end
+		for _, child in character:GetChildren() do strip(child) end
+		character.ChildAdded:Connect(strip)
+	end
 	player.CharacterAdded:Connect(function(character)
+		noRegen(character)
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if humanoid then
 			applyDefense(player)
 			humanoid.Health = humanoid.MaxHealth -- réapparition : vie pleine
 		end
 	end)
+	if player.Character then noRegen(player.Character) end
 	task.defer(applyDefense, player)
 end
 Players.PlayerAdded:Connect(watchDefense)
