@@ -1851,7 +1851,9 @@ local function spellProjectiles(player, stand, standDef, move, aim)
 	-- Départ : là où le Stand se trouve à l'écran pendant un sort (devant le
 	-- joueur, cf. StandController). Le Stand côté serveur, lui, ne bouge pas.
 	local origin = hrp.Position + flat * 3.4 + Vector3.new(0, 1.3, 0)
-	local center = aimDirection(origin, flat, aim)
+	-- Les projectiles partent toujours droit devant le joueur (là où il
+	-- regarde), plus vers la souris.
+	local center = flat
 	local count = move.Count or 1
 	local spread = math.rad(move.Spread or 0)
 	for i = 1, count do
