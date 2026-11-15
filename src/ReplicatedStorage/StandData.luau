@@ -890,20 +890,6 @@ for standId, moves in pairs(extraSpells) do
 	end
 end
 
--- Silver Chariot : son moveset d'estocs (StandSpells) est verrouillé. Un
--- script ajouté dans Studio (hors GitHub) remplaçait ses attaques par
--- d'autres (Armor Off, Rapier Launch, Lunge Pierce) et faisait disparaître
--- E et R : on fige sa définition pour que personne ne puisse plus la changer
--- après le chargement.
-local LOCKED_STANDS = { SilverChariot = true }
-for standId in pairs(LOCKED_STANDS) do
-	local def = StandData.Stands[standId]
-	if def and def.Moves and not table.isfrozen(def.Moves) then
-		table.freeze(def.Moves)
-		table.freeze(def)
-	end
-end
-
 function StandData.GetStand(standId)
 	return StandData.Stands[standId]
 end
