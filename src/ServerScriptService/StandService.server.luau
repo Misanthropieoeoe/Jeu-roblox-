@@ -2827,6 +2827,8 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 
 		local hand = (m1Combo[uid] % 2 == 1) and "R" or "L"
 		local punchStarted = workspace:GetServerTimeNow()
+		-- numéro du coup (1, 2, 3) : chaque coup du combo a son animation
+		stand:SetAttribute("ComboHit", m1Combo[uid])
 		stand:SetAttribute("State", "LightPunch" .. hand)
 		stand:SetAttribute("StateStarted", punchStarted)
 		-- Stand cry on every M1 jab: a short one-shot of the stand's barrage

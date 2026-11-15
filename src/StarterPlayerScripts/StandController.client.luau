@@ -116,9 +116,6 @@ local KEEP_ORIGINAL_STRIKES = {}
 -- suite sur notre écran, sans attendre la réponse du serveur.
 local m1Prediction = nil -- { state, started (heure serveur), expires (os.clock) }
 local STATE_TO_STRIKE = {
-	LightPunchR = "LightR",
-	LightPunchL = "LightL",
-	HeavyPunch = "Heavy",
 	Barrage = "Barrage",
 	TimeStop = "TimeStop",
 	Heal = "Heal",
@@ -150,20 +147,29 @@ local function getStrikeClip(stand, rig, state)
 	local standId = stand:GetAttribute("StandId")
 	if not standId then return nil end
 	local kind = STATE_TO_STRIKE[state]
+	local move = nil
+	if state == "LightPunchR" or state == "LightPunchL" then
+		-- 3 coups M1 différents : numéro du coup (prédit pour notre Stand)
+		local hit = rig.comboHit or (state == "LightPunchR" and 1 or 2)
+		kind = "Light" .. tostring(math.clamp(hit, 1, 3))
+	elseif state == "HeavyPunch" then
+		kind = "Finisher" -- coup final du combo (et coup du contre)
+	end
 	if kind and KEEP_ORIGINAL_STRIKES[standId] and ORIGINAL_KINDS[kind] then return nil end
 	if not kind then
-		-- Attaques T / F / G (StandSpells) : animation nommée par move.Anim
+		-- Attaques E / R / T / F / G (StandSpells) : animation propre à
+		-- chaque attaque, calée sur son timing
 		local def = StandData.GetStand(standId)
-		local move = def and def.Moves and def.Moves[state]
-		if move and move.Type and move.Anim then
-			kind = "Anim:" .. move.Anim
+		move = def and def.Moves and def.Moves[state]
+		if move and move.Type then
+			kind = move.Type == "Flurry" and "Anim:Flurry" or ("Move:" .. state)
 		end
 	end
 	if not kind then return nil end
 	rig.strikeClips = rig.strikeClips or {}
 	local cached = rig.strikeClips[kind]
 	if cached == nil then
-		local clip = StandStrikes.Compile(standId, kind, rig.joints)
+		local clip = StandStrikes.Compile(standId, kind, rig.joints, move)
 		cached = clip and compileClip(clip) or false
 		if cached then cached.key = "Strike:" .. standId .. ":" .. kind end
 		rig.strikeClips[kind] = cached
@@ -1493,14 +1499,18 @@ local function updateStand(stand, standDef, character, now)
 	-- Notre propre Stand : on joue le M1 prédit en attendant le serveur, puis
 	-- on garde l'heure de départ prédite quand il confirme (pas de saut en
 	-- arrière dans l'animation).
+	local comboHit = stand:GetAttribute("ComboHit")
 	if m1Prediction and os.clock() < m1Prediction.expires
 		and stand:GetAttribute("Owner") == localPlayer.UserId then
 		if state == m1Prediction.state then
 			started = math.min(started, m1Prediction.started)
+			comboHit = m1Prediction.comboHit
 		elseif started < m1Prediction.started - 0.02 then
 			state, started = m1Prediction.state, m1Prediction.started
+			comboHit = m1Prediction.comboHit
 		end
 	end
+	getRig(stand).comboHit = comboHit
 	local t = now - started
 	local summonDuration = standDef.SummonDuration or 1.25
 	-- V9: hard visual cutoff from BOTH the absolute server deadline and
@@ -1790,7 +1800,7 @@ local function fireM1()
 	else
 		state = (predictedCombo % 2 == 1) and "LightPunchR" or "LightPunchL"
 	end
-	m1Prediction = { state = state, started = workspace:GetServerTimeNow(), expires = now + 0.6 }
+	m1Prediction = { state = state, started = workspace:GetServerTimeNow(), expires = now + 0.6, comboHit = predictedCombo }
 	lastM1 = now
 	m1BufferedAt = nil
 	standAction:FireServer("LightPunch")

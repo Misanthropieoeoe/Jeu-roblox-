@@ -766,8 +766,278 @@ local function mirrorStrike(strike)
 	return { duration = strike.duration, keys = keys }
 end
 
+-- ─── Kits de combat originaux : un par Stand ───────────────────────────────
+-- Chaque Stand a un STYLE (posture qui teinte tous ses gestes) et un KIT :
+-- 3 coups M1 différents + coup final, et une animation par sort (par nom
+-- d'attaque de StandSpells). Les animations sont construites à partir de
+-- GESTES de base (côté droit ; "L" = version miroir pour la main gauche).
+
+-- Gestes : { W = armement, I = impact, F = suite } ou { hold = posture }
+local GESTURES = {
+	jab = {
+		W = { R = { pitch = 45, abduct = 15, elbow = 120 }, twist = -15, lean = 3 },
+		I = { R = { pitch = 92, abduct = 3, swing = 8, elbow = 0 }, twist = 25, lean = 10, lunge = 0.45 },
+		F = { R = { pitch = 88, abduct = 3, swing = 8, elbow = 12 }, twist = 20, lean = 8, lunge = 0.35 },
+	},
+	cross = {
+		W = { R = { pitch = 35, abduct = 20, swing = -10, elbow = 130 }, twist = -32, lean = 2, drop = 0.1 },
+		I = { R = { pitch = 93, abduct = 2, swing = 12, elbow = 0 }, twist = 42, lean = 14, lunge = 0.75 },
+		F = { R = { pitch = 89, abduct = 2, swing = 12, elbow = 10 }, twist = 36, lean = 11, lunge = 0.6 },
+	},
+	hook = {
+		W = { R = { pitch = 70, abduct = 60, swing = -25, elbow = 95 }, twist = -22, lean = 5 },
+		I = { R = { pitch = 82, abduct = 70, swing = 70, elbow = 75 }, twist = 32, lean = 10, lunge = 0.4 },
+		F = { R = { pitch = 78, abduct = 60, swing = 85, elbow = 85 }, twist = 36, lean = 8, lunge = 0.3 },
+	},
+	uppercut = {
+		W = { R = { pitch = -15, abduct = 12, elbow = 115 }, twist = -15, lean = 14, drop = 0.3 },
+		I = { R = { pitch = 150, abduct = 10, swing = 15, elbow = 35 }, twist = 25, lean = -12, drop = -0.15, headPitch = 10 },
+		F = { R = { pitch = 140, abduct = 10, swing = 10, elbow = 45 }, twist = 20, lean = -8 },
+	},
+	chop = {
+		W = { R = { pitch = 165, abduct = 15, elbow = 20 }, twist = -20, lean = -6 },
+		I = { R = { pitch = 55, abduct = 8, swing = 20, elbow = 10 }, twist = 20, lean = 16, lunge = 0.5 },
+		F = { R = { pitch = 40, abduct = 8, swing = 25, elbow = 15 }, twist = 18, lean = 14, lunge = 0.4 },
+	},
+	palm = {
+		W = { R = { pitch = 45, abduct = 15, elbow = 110, wrist = 20 }, twist = -15, lean = 3 },
+		I = { R = { pitch = 95, abduct = 5, swing = 10, elbow = 5, wrist = 65 }, twist = 20, lean = 10, lunge = 0.5 },
+		F = { R = { pitch = 92, abduct = 5, swing = 10, elbow = 10, wrist = 55 }, twist = 18, lean = 8, lunge = 0.45 },
+	},
+	backfist = {
+		W = { R = { pitch = 85, swing = 70, elbow = 100 }, twist = 30, lean = 4 },
+		I = { R = { pitch = 85, abduct = 60, swing = -20, elbow = 10 }, twist = -25, lean = 8, lunge = 0.3 },
+		F = { R = { pitch = 80, abduct = 65, swing = -30, elbow = 15 }, twist = -30, lean = 6 },
+	},
+	thrust = {
+		W = { R = { pitch = 60, abduct = 5, swing = -5, elbow = 110, wrist = -10 }, twist = -30, lunge = -0.2,
+			legR = { hip = 10, knee = 15 }, legL = { hip = -10, knee = 10 } },
+		I = { R = { pitch = 90, swing = 5, elbow = 0 }, twist = 25, lean = 10, lunge = 0.95,
+			legR = { hip = 45, knee = 35 }, legL = { hip = -30, knee = 8 } },
+		F = { R = { pitch = 88, swing = 5, elbow = 8 }, twist = 22, lean = 8, lunge = 0.75,
+			legR = { hip = 40, knee = 30 }, legL = { hip = -25, knee = 8 } },
+	},
+	elbow = {
+		W = { R = { pitch = 20, abduct = 40, elbow = 140 }, twist = -25, lean = 4 },
+		I = { R = { pitch = 80, abduct = 20, swing = 60, elbow = 150 }, twist = 40, lean = 12, lunge = 0.4 },
+		F = { R = { pitch = 75, abduct = 20, swing = 65, elbow = 145 }, twist = 38, lean = 10 },
+	},
+	kickFront = {
+		W = { lean = -6, legR = { hip = 60, knee = 100 } },
+		I = { R = { pitch = 30, abduct = 35, elbow = 90 }, L = { pitch = 30, abduct = 35, elbow = 90 }, lean = -14, lunge = 0.4, legR = { hip = 100, knee = 5 } },
+		F = { lean = -10, legR = { hip = 85, knee = 25 } },
+	},
+	kickRound = {
+		W = { twist = 35, lean = -6, legR = { hip = 60, knee = 100 } },
+		I = { R = { pitch = 25, abduct = 50, elbow = 70 }, L = { pitch = 30, abduct = 50, elbow = 80 }, twist = -50, lean = -18, lunge = 0.4, legR = { hip = 95, knee = 10 } },
+		F = { twist = -40, lean = -12, legR = { hip = 80, knee = 30 } },
+	},
+	knee = {
+		W = { R = { pitch = 90, elbow = 40 }, L = { pitch = 90, elbow = 40 }, lean = 4, legR = { hip = 10, knee = 30 } },
+		I = { R = { pitch = 60, elbow = 80 }, L = { pitch = 60, elbow = 80 }, lean = 12, lunge = 0.35, legR = { hip = 110, knee = 120 } },
+		F = { R = { pitch = 55, elbow = 85 }, L = { pitch = 55, elbow = 85 }, lean = 8, legR = { hip = 70, knee = 100 } },
+	},
+	hammer = {
+		W = { R = { pitch = 170, abduct = 15, elbow = 30 }, L = { pitch = 170, abduct = 15, elbow = 30 }, lean = -14, drop = -0.3, headPitch = 15 },
+		I = { R = { pitch = 50, abduct = 8, swing = 10, elbow = 10 }, L = { pitch = 50, abduct = 8, swing = 10, elbow = 10 }, lean = 26, drop = 0.35, lunge = 0.6 },
+		F = { R = { pitch = 40, abduct = 8, swing = 10, elbow = 15 }, L = { pitch = 40, abduct = 8, swing = 10, elbow = 15 }, lean = 22, drop = 0.3, lunge = 0.5 },
+	},
+	doublePalm = {
+		W = { R = { pitch = 25, abduct = 30, swing = -10, elbow = 120, wrist = -20 }, L = { pitch = 25, abduct = 30, swing = -10, elbow = 120, wrist = -20 }, lean = -8, drop = 0.1 },
+		I = { R = { pitch = 92, abduct = 12, swing = 20, elbow = 5, wrist = 60 }, L = { pitch = 92, abduct = 12, swing = 20, elbow = 5, wrist = 60 }, lean = 12, lunge = 0.6 },
+		F = { R = { pitch = 90, abduct = 12, swing = 20, elbow = 10, wrist = 55 }, L = { pitch = 90, abduct = 12, swing = 20, elbow = 10, wrist = 55 }, lean = 10, lunge = 0.5 },
+	},
+	spinBackfist = {
+		W = { R = { pitch = 60, swing = 60, elbow = 90 }, twist = 60, lean = 4, drop = 0.1 },
+		I = { R = { pitch = 85, abduct = 85, swing = -10, elbow = 5 }, twist = -60, lean = 8, lunge = 0.4 },
+		F = { R = { pitch = 80, abduct = 80, swing = -20, elbow = 10 }, twist = -50, lean = 6 },
+	},
+	flick = {
+		W = { R = { pitch = 30, abduct = 10, swing = 20, elbow = 125, wrist = -30 }, twist = -10 },
+		I = { R = { pitch = 95, abduct = 4, swing = 8, elbow = 10, wrist = 35 }, twist = 18, lean = 6, lunge = 0.3 },
+		F = { R = { pitch = 90, abduct = 4, swing = 8, elbow = 15, wrist = 30 }, twist = 15, lean = 5 },
+	},
+	overhand = {
+		W = { R = { pitch = 160, abduct = 30, swing = -10, elbow = 90 }, L = { pitch = 60, abduct = 20, elbow = 60 }, twist = -30, lean = -8 },
+		I = { R = { pitch = 70, abduct = 10, swing = 25, elbow = 15, wrist = 20 }, L = { pitch = 20, abduct = 25, elbow = 80 }, twist = 32, lean = 14, lunge = 0.5 },
+		F = { R = { pitch = 55, abduct = 10, swing = 30, elbow = 20 }, L = { pitch = 20, abduct = 25, elbow = 80 }, twist = 30, lean = 12, lunge = 0.4 },
+	},
+	sidearm = {
+		W = { R = { pitch = 40, abduct = 80, swing = -40, elbow = 40 }, twist = -30, lean = 2 },
+		I = { R = { pitch = 80, abduct = 20, swing = 60, elbow = 10, wrist = 15 }, twist = 35, lean = 8, lunge = 0.3 },
+		F = { R = { pitch = 75, abduct = 15, swing = 75, elbow = 15 }, twist = 38, lean = 6 },
+	},
+	fan = {
+		W = { R = { pitch = 70, swing = 50, elbow = 100 }, L = { pitch = 70, swing = 50, elbow = 100 }, lean = 6, drop = 0.1 },
+		I = { R = { pitch = 80, abduct = 70, elbow = 10, wrist = 20 }, L = { pitch = 80, abduct = 70, elbow = 10, wrist = 20 }, lean = -4, lunge = 0.2 },
+		F = { R = { pitch = 75, abduct = 75, elbow = 15 }, L = { pitch = 75, abduct = 75, elbow = 15 }, lean = -4 },
+	},
+	point = {
+		W = { R = { pitch = 40, abduct = 20, elbow = 120 }, twist = -20 },
+		I = { R = { pitch = 92, abduct = 2, swing = 6, elbow = 0 }, L = { pitch = 25, abduct = 25, elbow = 95 }, twist = 25, lean = 8, lunge = 0.4 },
+		F = { R = { pitch = 90, abduct = 2, swing = 6, elbow = 3 }, L = { pitch = 25, abduct = 25, elbow = 95 }, twist = 22, lean = 7, lunge = 0.35 },
+	},
+	sky = {
+		W = { R = { pitch = 60, abduct = 20, elbow = 90 }, L = { pitch = 10, abduct = 25, elbow = 30 }, drop = 0.15 },
+		I = { R = { pitch = 168, abduct = 8, elbow = 5, wrist = 10 }, L = { pitch = -10, abduct = 30, elbow = 10 }, lean = -10, headPitch = 22, drop = -0.2 },
+		F = { R = { pitch = 165, abduct = 8, elbow = 10 }, L = { pitch = -10, abduct = 30, elbow = 10 }, lean = -8, headPitch = 20, drop = -0.15 },
+	},
+	openArms = {
+		W = { R = { pitch = 60, abduct = 30, elbow = 80 }, L = { pitch = 60, abduct = 30, elbow = 80 }, lean = 6, drop = 0.15 },
+		I = { R = { pitch = 140, abduct = 40, elbow = 20, wrist = 15 }, L = { pitch = 140, abduct = 40, elbow = 20, wrist = 15 }, lean = -12, headPitch = 22, drop = -0.25 },
+		F = { R = { pitch = 135, abduct = 42, elbow = 25 }, L = { pitch = 135, abduct = 42, elbow = 25 }, lean = -10, headPitch = 20, drop = -0.2 },
+	},
+	plant = {
+		W = { R = { pitch = 70, abduct = 15, elbow = 60 }, lean = 15, drop = 0.3 },
+		I = { R = { pitch = 45, abduct = 10, swing = 10, elbow = 10, wrist = -30 }, L = { pitch = 20, abduct = 30, elbow = 80 }, lean = 40, drop = 0.9, lunge = 0.4,
+			legR = { hip = 70, knee = 100 }, legL = { hip = 20, knee = 110 } },
+		F = { R = { pitch = 45, abduct = 10, swing = 10, elbow = 12, wrist = -25 }, L = { pitch = 20, abduct = 30, elbow = 80 }, lean = 36, drop = 0.85, lunge = 0.4,
+			legR = { hip = 65, knee = 95 }, legL = { hip = 20, knee = 105 } },
+	},
+	yank = {
+		W = { R = { pitch = 95, abduct = 3, swing = 6, elbow = 0 }, twist = 25, lean = 10, lunge = 0.6 },
+		I = { R = { pitch = 92, abduct = 3, swing = 6, elbow = 5 }, twist = 25, lean = 10, lunge = 0.6 },
+		F = { R = { pitch = 40, abduct = 20, swing = -10, elbow = 120 }, twist = -25, lean = -8, lunge = -0.2 },
+	},
+	dashLunge = {
+		W = { R = { pitch = 50, abduct = 15, elbow = 120 }, L = { pitch = -20, abduct = 20, elbow = 60 }, twist = -15, lean = 15, drop = 0.15 },
+		I = { R = { pitch = 95, abduct = 4, swing = 8, elbow = 0 }, L = { pitch = -35, abduct = 25, elbow = 40 }, twist = 20, lean = 30, lunge = 1.0,
+			legR = { hip = -25, knee = 20 }, legL = { hip = -40, knee = 30 } },
+		F = { R = { pitch = 92, abduct = 4, swing = 8, elbow = 5 }, L = { pitch = -30, abduct = 25, elbow = 45 }, twist = 18, lean = 26, lunge = 0.9,
+			legR = { hip = -20, knee = 20 }, legL = { hip = -35, knee = 30 } },
+	},
+	-- Postures tenues
+	parry = { hold = { R = { pitch = 80, abduct = 5, swing = 30, elbow = 30, wrist = 20 }, L = { pitch = 110, abduct = 30, elbow = 90 }, twist = -20, lean = 4,
+		legR = { hip = 35, knee = 30 }, legL = { hip = -20, knee = 10 } } },
+	crossArms = { hold = { R = { pitch = 85, swing = 70, elbow = 100 }, L = { pitch = 80, swing = 70, elbow = 105 }, lean = -10, headPitch = 15 } },
+	openPalm = { hold = { R = { pitch = 35, abduct = 25, elbow = 125 }, L = { pitch = 80, abduct = 5, swing = 25, elbow = 35, wrist = 50 },
+		twist = -20, lean = 6, drop = 0.2, legR = { hip = -15, knee = 25 }, legL = { hip = 20, knee = 30 } } },
+	meditate = { hold = { R = { pitch = 70, swing = 80, elbow = 120 }, L = { pitch = 70, swing = 80, elbow = 120 }, lean = -4, headPitch = -8, drop = -0.2 } },
+	channel = { hold = { R = { pitch = 88, abduct = 20, swing = 20, elbow = 25, wrist = 45 }, L = { pitch = 88, abduct = 20, swing = 20, elbow = 25, wrist = 45 }, lean = 6 } },
+	spin = { hold = { R = { pitch = 20, abduct = 85, elbow = 15 }, L = { pitch = 20, abduct = 85, elbow = 15 }, twist = 60, drop = 0.1 } },
+}
+
+-- Style de combat de chaque Stand : ajouté à tous ses gestes
+local STYLES = {
+	StarPlatinum = { lean = 2, twist = 1.0 },
+	TheWorld = { lean = -4, twist = 1.2, headPitch = 6 },
+	TheWorldAU = { lean = 8, twist = 1.3, drop = 0.2 },
+	CrazyDiamond = { lean = 4, twist = 1.1, legs = { R = { hip = -10, knee = 20 }, L = { hip = 20, knee = 25 } } },
+	SilverChariot = { lean = 4, twist = 0.9, legs = { R = { hip = 30, knee = 25 }, L = { hip = -15, knee = 10 } } },
+	KillerQueen = { lean = -2, twist = 0.8, headYaw = 6 },
+	GoldExperience = { lean = 0, twist = 1.0 },
+	GoldExperienceRequiem = { lean = -4, twist = 0.9, drop = -0.15, headPitch = 6 },
+	KingCrimson = { lean = 8, twist = 1.1, headPitch = -6 },
+	HierophantGreen = { lean = -6, twist = 0.8 },
+	MagiciansRed = { lean = 2, twist = 1.2 },
+	StickyFingers = { lean = 4, twist = 1.1 },
+	MadeInHeaven = { lean = 10, twist = 1.3, drop = 0.1 },
+}
+
+-- Kit : Light1 (droite), Light2 (gauche), Light3 (droite), Finisher, et
+-- une animation par sort. "geste" ou "geste:L" (main gauche).
+local KITS = {
+	StarPlatinum = { Light1 = "jab", Light2 = "cross:L", Light3 = "uppercut", Finisher = "cross",
+		Moves = { Starbreaker = "uppercut", CometPebble = "flick", StellarFinger = "point" } },
+	TheWorld = { Light1 = "backfist", Light2 = "hook:L", Light3 = "kickRound", Finisher = "hammer",
+		Moves = { CrownHammer = "hammer", DaggerRain = "fan", EmperorsStep = "chop" } },
+	TheWorldAU = { Light1 = "hook", Light2 = "uppercut:L", Light3 = "knee", Finisher = "hammer",
+		Moves = { SkullCrusher = "hammer", ShrapnelFan = "sidearm", PredatorLunge = "dashLunge" } },
+	CrazyDiamond = { Light1 = "jab", Light2 = "cross:L", Light3 = "elbow", Finisher = "cross",
+		Moves = { RebuildSmash = "cross", Mend = "sky", ShardRecall = "yank", FusionLock = "palm" } },
+	SilverChariot = { Light1 = "thrust", Light2 = "sidearm", Light3 = "backfist", Finisher = "thrust",
+		Moves = { PiercingArc = "thrust", AfterimageFeint = "spin", BladeVolley = "sidearm", Riposte = "parry" } },
+	KillerQueen = { Light1 = "jab", Light2 = "palm:L", Light3 = "backfist", Finisher = "palm",
+		Moves = { PrimedPalm = "palm", ProximityCharge = "plant", FuseCoin = "flick", RewindHour = "meditate" } },
+	GoldExperience = { Light1 = "jab", Light2 = "kickFront:L", Light3 = "hook", Finisher = "doublePalm",
+		Moves = { VitalOverload = "palm", Thornseed = "plant", Swarm = "doublePalm", Lifespring = "openArms" } },
+	GoldExperienceRequiem = { Light1 = "palm", Light2 = "kickRound:L", Light3 = "palm:L", Finisher = "doublePalm",
+		Moves = { FinalVerdict = "chop", UndoStep = "meditate", GoldenTide = "openArms", AscendantDash = "dashLunge" } },
+	KingCrimson = { Light1 = "thrust", Light2 = "chop:L", Light3 = "elbow", Finisher = "thrust",
+		Moves = { HeartPiercer = "thrust", BlindSpot = "chop", Foreseen = "crossArms", ErasedTime = "meditate" } },
+	HierophantGreen = { Light1 = "flick", Light2 = "flick:L", Light3 = "sidearm", Finisher = "doublePalm",
+		Moves = { GemStream = "doublePalm", CoilLash = "sidearm", Tether = "yank", WebSnare = "plant", PrismField = "channel" } },
+	MagiciansRed = { Light1 = "hook", Light2 = "hook:L", Light3 = "kickFront", Finisher = "doublePalm",
+		Moves = { PhoenixKick = "kickRound", FlameLasso = "yank", AshField = "channel", FireBird = "overhand" } },
+	StickyFingers = { Light1 = "jab", Light2 = "hook:L", Light3 = "uppercut", Finisher = "cross",
+		Moves = { UnzipSmash = "uppercut", SeamHop = "dashLunge", ZipLine = "yank", SplitTrap = "plant" } },
+	MadeInHeaven = { Light1 = "chop", Light2 = "chop:L", Light3 = "backfist", Finisher = "spinBackfist",
+		Moves = { MachChop = "dashLunge", Accelerate = "sky", OrbitStrike = "chop", EventHorizon = "openArms" } },
+}
+
+local function copyArm(a)
+	if not a then return nil end
+	local c = {}
+	for k, v in pairs(a) do c[k] = v end
+	return c
+end
+
+-- Applique le style du Stand à une pose de geste
+local function styled(pose, style, power)
+	local o = {}
+	for k, v in pairs(pose) do o[k] = v end
+	o.R, o.L = copyArm(pose.R) or GUARD_ARM, copyArm(pose.L) or GUARD_ARM
+	power = power or 1
+	o.lean = (pose.lean or 0) * power + (style.lean or 0)
+	o.twist = (pose.twist or 0) * (style.twist or 1) * power
+	o.lunge = (pose.lunge or 0) * power
+	o.drop = (pose.drop or 0) + (style.drop or 0)
+	o.headPitch = (pose.headPitch or 0) + (style.headPitch or 0)
+	o.headYaw = (pose.headYaw or 0) + (style.headYaw or 0)
+	if style.legs then
+		o.legR = pose.legR or style.legs.R
+		o.legL = pose.legL or style.legs.L
+	end
+	return o
+end
+
+-- "geste:L" -> geste, côté gauche ?
+local function parseGesture(spec)
+	local name, side = string.match(spec, "^(%w+):?(%a?)$")
+	return GESTURES[name], side == "L"
+end
+
+local function buildGesture(standId, spec, timing, power)
+	local gesture, left = parseGesture(spec)
+	if not gesture then return nil end
+	local style = STYLES[standId] or {}
+	local strike
+	if gesture.hold then
+		strike = hold(styled(gesture.hold, style), timing == "light" and 0.2 or 0.3)
+	elseif timing == "light" then
+		strike = light(styled(gesture.W, style), styled(gesture.I, style, power), styled(gesture.F, style))
+	elseif timing == "finisher" then
+		strike = finisher(styled(gesture.W, style, 1.15), styled(gesture.I, style, 1.3), styled(gesture.F, style, 1.15))
+	else
+		-- timing = attaque de StandSpells : calé sur son impact et sa durée
+		local hit = timing.HitDelay or 0.25
+		local duration = timing.Duration or 0.6
+		strike = spell(styled(gesture.W, style), styled(gesture.I, style, power), styled(gesture.F, style),
+			math.max(0.06, hit * 0.55), hit, math.max(hit + 0.15, duration * 0.85))
+	end
+	return left and mirrorStrike(strike) or strike
+end
+
 -- Renvoie la frappe décrite (ou nil si le Stand n'en a pas pour ce coup).
-function StandStrikes.Get(standId, kind)
+function StandStrikes.Get(standId, kind, move)
+	local kit = KITS[standId]
+	if kit then
+		if kind == "Light1" or kind == "Light2" or kind == "Light3" then
+			return buildGesture(standId, kit[kind], "light", 1)
+		elseif kind == "Finisher" then
+			return buildGesture(standId, kit.Finisher, "finisher", 1)
+		end
+		local moveName = string.match(kind, "^Move:(.+)$")
+		if moveName then
+			local spec = kit.Moves and kit.Moves[moveName]
+			if spec then
+				local heavy = move and (move.Key == "R" or (move.Damage or 0) >= 15)
+				return buildGesture(standId, spec, move or {}, heavy and 1.15 or 1)
+			end
+			-- pas de geste dédié : animation générique du type d'attaque
+			kind = move and move.Anim and ("Anim:" .. move.Anim) or kind
+		end
+	end
 	local animName = string.match(kind, "^Anim:(.+)$")
 	if animName then
 		local own = StandStrikes.Stands[standId]
@@ -811,12 +1081,12 @@ local BLOCK = hold({
 }, 0.15)
 
 local getBase = StandStrikes.Get
-function StandStrikes.Get(standId, kind)
+function StandStrikes.Get(standId, kind, move)
 	if kind == "Block" then
 		local def = StandStrikes.Stands[standId]
 		return (def and def.Block) or BLOCK
 	end
-	return getBase(standId, kind)
+	return getBase(standId, kind, move)
 end
 
 -- ─── Conversion pose → articulations ────────────────────────────────────────
@@ -871,8 +1141,8 @@ end
 -- Renvoie { Settings, Timestamps, Elbows } prêt pour StandController, ou nil.
 --   Elbows = { { temps, coudeDroit, coudeGauche } } en radians, pour les
 --   Stands R6 qui ont des coudes ajoutés (Star Platinum).
-function StandStrikes.Compile(standId, kind, joints)
-	local strike = StandStrikes.Get(standId, kind)
+function StandStrikes.Compile(standId, kind, joints, move)
+	local strike = StandStrikes.Get(standId, kind, move)
 	if not strike then return nil end
 	local isR15 = joints.UpperTorso ~= nil
 	local timestamps, elbows, easings = {}, {}, {}
