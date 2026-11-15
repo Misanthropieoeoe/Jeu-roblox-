@@ -24,6 +24,7 @@ local MUTED = Color3.fromRGB(190, 190, 200)
 local RED = Color3.fromRGB(198, 42, 42)
 local RED_DARK = Color3.fromRGB(126, 20, 20)
 local GOLD = Color3.fromRGB(255, 200, 80)
+local LEGEND = Color3.fromRGB(255, 176, 40)
 -----------------------------------------------------------------------------
 
 -- Une seule copie de l'interface (si le script est en double dans Studio)
@@ -212,6 +213,7 @@ gridPadding.Parent = grid
 local selected = nil
 local tabButtons = {} -- [standId] = { button, stroke, sub }
 local skinCards = {} -- [skinId] = { stroke, badge }
+local legendCards = {} -- [skinId] = true pour les légendaires
 local pending = nil -- { standId, skinId }
 
 local function skinName(standId, skinId)
@@ -233,7 +235,7 @@ local function refreshCards()
 	local current = equippedSkin(selected)
 	for skinId, card in pairs(skinCards) do
 		local on = skinId == current
-		card.stroke.Color = on and GOLD or RED_DARK
+		card.stroke.Color = on and GOLD or (legendCards[skinId] and LEGEND or RED_DARK)
 		card.stroke.Thickness = on and 3 or 2
 		card.badge.Visible = on
 	end
@@ -241,6 +243,11 @@ end
 
 -- Couleurs d'aperçu : les couleurs du Stand passées dans le skin
 local function previewColors(standId, skin)
+	if skin.Preview then
+		local colors = table.clone(skin.Preview)
+		table.insert(colors, skin.Aura or GOLD)
+		return colors
+	end
 	local theme = StandData.Stands[standId].Theme or {}
 	local colors = {}
 	for _, role in { "Primary", "Secondary", "Trim", "Body" } do
@@ -274,6 +281,7 @@ local function showStand(standId)
 		if child:IsA("GuiObject") then child:Destroy() end
 	end
 	table.clear(skinCards)
+	table.clear(legendCards)
 	for order, skin in ipairs(StandSkins.List(standId)) do
 		local button = Instance.new("TextButton")
 		button.Name = skin.Id
@@ -306,11 +314,25 @@ local function showStand(standId)
 			corner(sw, 6)
 		end
 
-		local name = label(button, skin.Name, 17, TEXT)
+		local legendary = skin.Rarity == "Legendaire"
+		local name = label(button, skin.Name, legendary and 16 or 17, legendary and LEGEND or TEXT)
 		name.Position = UDim2.fromOffset(10, 62)
 		name.Size = UDim2.new(1, -20, 0, 22)
 		name.TextXAlignment = Enum.TextXAlignment.Left
 		name.TextTruncate = Enum.TextTruncate.AtEnd
+		if legendary then
+			-- fond dégradé doré et mention LÉGENDAIRE
+			local gradient = Instance.new("UIGradient")
+			gradient.Color = ColorSequence.new(Color3.fromRGB(96, 70, 28), CARD)
+			gradient.Rotation = 90
+			gradient.Parent = button
+			local tag = label(button, "LÉGENDAIRE", 12, LEGEND)
+			tag.AnchorPoint = Vector2.new(1, 0)
+			tag.Position = UDim2.new(1, -8, 0, 86)
+			tag.Size = UDim2.fromOffset(80, 16)
+			tag.TextXAlignment = Enum.TextXAlignment.Right
+			legendCards[skin.Id] = true
+		end
 
 		local badge = label(button, "ÉQUIPÉ", 13, GOLD)
 		badge.Position = UDim2.fromOffset(10, 86)

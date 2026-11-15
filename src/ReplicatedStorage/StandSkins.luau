@@ -9,6 +9,9 @@
 --   Val      multiplicateur de luminosité   ValAdd  ajout de luminosité
 --   Aura     couleur de l'aura, de la lueur et du contour
 --   Material matière forcée sur toutes les pièces (facultatif)
+--   Rarity   "Legendaire" pour les skins légendaires
+--   Model    recette de StandSkinModels : ajoute des pièces au modèle
+--            (couronne, ailes, halo, cape…) ; Preview = couleurs d'aperçu
 -- Le premier skin de chaque Stand est "Classique" : le Stand tel quel.
 --
 -- Ajouter un skin : une ligne dans SIGNATURE[<Stand>] (ou dans COMMON pour
@@ -26,6 +29,52 @@ local COMMON = {
 	{ Id = "Glace", Name = "Glace", Hue = 0.55, Sat = 0.55, SatAdd = 0.08, Val = 0.9, ValAdd = 0.12,
 		Aura = rgb(150, 225, 255), Material = Enum.Material.Ice },
 }
+
+-- Skins LÉGENDAIRES : un par Stand, ils changent le modèle (StandSkinModels)
+local LEGENDARY = {
+	StarPlatinum = { Id = "EtoileSouveraine", Name = "Étoile Souveraine", Model = "EtoileSouveraine",
+		Hue = 0.64, Val = 0.85, Aura = rgb(120, 150, 255),
+		Preview = { rgb(28, 40, 96), rgb(205, 214, 235), rgb(255, 222, 120), rgb(70, 60, 150) } },
+	TheWorld = { Id = "MonarqueZenith", Name = "Monarque du Zénith", Model = "MonarqueZenith",
+		Hue = 0.12, Sat = 1.1, ValAdd = 0.05, Aura = rgb(255, 205, 90),
+		Preview = { rgb(232, 182, 64), rgb(250, 242, 220), rgb(60, 170, 110), rgb(150, 108, 26) } },
+	TheWorldAU = { Id = "BeteAbysses", Name = "Bête des Abysses", Model = "BeteAbysses",
+		Sat = 0.3, Val = 0.35, Aura = rgb(210, 30, 45),
+		Preview = { rgb(24, 20, 24), rgb(222, 210, 190), rgb(200, 30, 40), rgb(70, 10, 20) } },
+	CrazyDiamond = { Id = "CoeurCristal", Name = "Cœur de Cristal", Model = "CoeurCristal",
+		Hue = 0.9, Sat = 0.8, ValAdd = 0.1, Aura = rgb(255, 160, 215),
+		Preview = { rgb(255, 150, 210), rgb(140, 230, 255), rgb(245, 250, 255), rgb(200, 120, 190) } },
+	SilverChariot = { Id = "PaladinCeleste", Name = "Paladin Céleste", Model = "PaladinCeleste",
+		Sat = 0.4, ValAdd = 0.15, Aura = rgb(180, 210, 255),
+		Preview = { rgb(215, 222, 235), rgb(40, 70, 160), rgb(240, 200, 90), rgb(240, 244, 255) } },
+	KillerQueen = { Id = "ReineDetonante", Name = "Reine Détonante", Model = "ReineDetonante",
+		Hue = 0.93, Aura = rgb(255, 120, 190),
+		Preview = { rgb(240, 120, 180), rgb(30, 26, 34), rgb(240, 200, 100), rgb(255, 190, 220) } },
+	GoldExperience = { Id = "ArbreVie", Name = "Arbre de Vie", Model = "ArbreVie",
+		Hue = 0.1, Sat = 1.1, Aura = rgb(150, 230, 120),
+		Preview = { rgb(70, 170, 80), rgb(140, 210, 90), rgb(250, 210, 90), rgb(110, 80, 40) } },
+	GoldExperienceRequiem = { Id = "ArbitreEternel", Name = "Arbitre Éternel", Model = "ArbitreEternel",
+		Sat = 0.15, ValAdd = 0.35, Aura = rgb(255, 215, 110),
+		Preview = { rgb(250, 250, 245), rgb(245, 200, 80), rgb(200, 220, 255), rgb(230, 230, 220) } },
+	KingCrimson = { Id = "EmpereurEcarlate", Name = "Empereur Écarlate", Model = "EmpereurEcarlate",
+		Hue = 0.98, Sat = 1.15, Val = 0.8, Aura = rgb(220, 30, 60),
+		Preview = { rgb(170, 20, 40), rgb(30, 18, 22), rgb(240, 190, 80), rgb(60, 220, 120) } },
+	HierophantGreen = { Id = "GardienEmeraude", Name = "Gardien d'Émeraude", Model = "GardienEmeraude",
+		Hue = 0.4, Aura = rgb(110, 240, 160),
+		Preview = { rgb(40, 160, 90), rgb(120, 240, 170), rgb(240, 210, 110), rgb(20, 90, 50) } },
+	MagiciansRed = { Id = "PhenixInfernal", Name = "Phénix Infernal", Model = "PhenixInfernal",
+		Hue = 0.04, Sat = 1.2, Aura = rgb(255, 130, 40),
+		Preview = { rgb(255, 110, 30), rgb(255, 200, 70), rgb(150, 30, 20), rgb(90, 20, 10) } },
+	StickyFingers = { Id = "FermetureCeleste", Name = "Fermeture Céleste", Model = "FermetureCeleste",
+		Hue = 0.62, Sat = 0.5, ValAdd = 0.15, Aura = rgb(245, 210, 100),
+		Preview = { rgb(240, 242, 250), rgb(50, 90, 200), rgb(245, 205, 90), rgb(160, 180, 230) } },
+	MadeInHeaven = { Id = "HorizonInfini", Name = "Horizon Infini", Model = "HorizonInfini",
+		Sat = 0.2, ValAdd = 0.3, Aura = rgb(150, 185, 255),
+		Preview = { rgb(245, 245, 255), rgb(130, 170, 255), rgb(245, 210, 110), rgb(200, 210, 240) } },
+}
+for _, skin in LEGENDARY do
+	skin.Rarity = "Legendaire"
+end
 
 -- Skins propres à chaque Stand
 local SIGNATURE = {
@@ -89,6 +138,9 @@ local CLASSIC = { Id = "Classique", Name = "Classique" }
 -- Liste des skins d'un Stand, dans l'ordre d'affichage
 function StandSkins.List(standId)
 	local list = { CLASSIC }
+	if LEGENDARY[standId] then
+		table.insert(list, LEGENDARY[standId])
+	end
 	for _, skin in SIGNATURE[standId] or {} do
 		table.insert(list, skin)
 	end
@@ -154,6 +206,13 @@ function StandSkins.Apply(model, skin)
 			obj.Color = skin.Aura
 		elseif obj:IsA("Highlight") and obj.Name == "StandHighlight" and skin.Aura then
 			obj.OutlineColor = skin.Aura
+		end
+	end
+	-- Skin légendaire : nouvelles pièces de modèle (après la recoloration)
+	if skin.Model then
+		local models = script.Parent:FindFirstChild("StandSkinModels")
+		if models then
+			require(models).Build(model, skin.Model)
 		end
 	end
 end
