@@ -98,7 +98,20 @@ task.spawn(function()
 end)
 
 -- "+30" qui jaillit de la pastille d'argent
+local SFX = require(ReplicatedStorage:WaitForChild("SFX"))
+local function playSfx(name, volume)
+	local id = SFX.Get(name)
+	if id == "" then return end
+	local sound = Instance.new("Sound")
+	sound.SoundId = id
+	sound.Volume = volume or 0.6
+	sound.Parent = game:GetService("SoundService")
+	sound:Play()
+	sound.Ended:Once(function() sound:Destroy() end)
+end
+
 local function popGain(amount)
+	playSfx("Coin", 0.55)
 	local pop = UITheme.Label(cashPill, "+" .. tostring(amount), 28, C.Money, UITheme.Title)
 	pop.AnchorPoint = Vector2.new(0.5, 0)
 	pop.Position = UDim2.new(0.5, 0, 1, 2)

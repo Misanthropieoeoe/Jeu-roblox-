@@ -253,6 +253,24 @@ local function removeProjectile(id, endPos)
 	Debris:AddItem(part, 0.5)
 end
 
+local SFX = require(game:GetService("ReplicatedStorage"):WaitForChild("SFX"))
+
+-- Son 3D court à une position (seulement si son ID est rempli dans SFX)
+local function playSfxAt(name, position, volume)
+	local id = SFX.Get(name)
+	if id == "" or typeof(position) ~= "Vector3" then return end
+	local anchor = Instance.new("Attachment")
+	anchor.WorldPosition = position
+	anchor.Parent = workspace.Terrain
+	local sound = Instance.new("Sound")
+	sound.SoundId = id
+	sound.Volume = volume or 0.8
+	sound.RollOffMaxDistance = 120
+	sound.Parent = anchor
+	sound:Play()
+	game:GetService("Debris"):AddItem(anchor, 3)
+end
+
 standFX.OnClientEvent:Connect(function(kind, id, a, b, c, d, e)
 	if kind == "Projectile" then
 		local origin, dir, speed, range, style = a, b, c, d, e
@@ -269,6 +287,7 @@ standFX.OnClientEvent:Connect(function(kind, id, a, b, c, d, e)
 		end
 		part.CFrame = CFrame.lookAt(origin, origin + dir)
 		part.Parent = folder
+		playSfxAt("Projectile", origin, 0.6)
 		local maxRange = typeof(range) == "number" and range or 60
 		active[id] = {
 			part = part, look = look, color = color,
