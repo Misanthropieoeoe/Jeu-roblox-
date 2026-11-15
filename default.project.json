@@ -30,6 +30,9 @@
           }
         }
       },
+      "StandMovement": {
+        "$path": "src/ReplicatedStorage/StandMovement.luau"
+      },
       "StandSpells": {
         "$path": "src/ReplicatedStorage/StandSpells.luau"
       },
@@ -332,6 +335,9 @@
         },
         "StandMenu": {
           "$path": "src/StarterPlayerScripts/StandMenu.client.luau"
+        },
+        "StandMovement": {
+          "$path": "src/StarterPlayerScripts/StandMovement.client.luau"
         },
         "StandPickupToast": {
           "$path": "src/StarterPlayerScripts/StandPickupToast.client.luau",

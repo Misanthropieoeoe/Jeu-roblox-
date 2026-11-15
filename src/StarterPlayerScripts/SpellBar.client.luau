@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
+local StandMovement = require(ReplicatedStorage:WaitForChild("StandMovement"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local standAction = remotes:WaitForChild("StandAction")
 local standFX = remotes:WaitForChild("StandFX")
@@ -219,6 +220,11 @@ local function makeSlot(order, action, keyText, name)
 		cooldown = 0, -- durée totale de la dernière recharge
 	}
 	button.Activated:Connect(function()
+		-- Déplacement : géré par StandMovement.client.luau
+		if action == "Mobility" and _G.StandMobility then
+			_G.StandMobility()
+			return
+		end
 		-- StandController ajoute le point visé pour les projectiles
 		local fire = _G.StandFireAction
 		if fire then
@@ -274,6 +280,13 @@ local function rebuild()
 				KEY_FOR[action] = Enum.KeyCode[key]
 			end
 		end
+	end
+	-- Déplacement du Stand (touche Z, StandMovement.client.luau)
+	local movement = StandMovement.Get(standId or StandData.DefaultStand)
+	if movement.Type then
+		local slot = makeSlot(nextOrder(), "Mobility", "Z", movement.Label or "Déplacement")
+		slot.cooldown = movement.Cooldown or 0
+		slot.maxCharges = movement.Charges or 1
 	end
 	-- Parade (touche X, Guard.client.luau) : la case montre la jauge de garde
 	makeSlot(nextOrder(), "Block", "X", "Parade")
@@ -384,6 +397,11 @@ RunService.RenderStepped:Connect(function()
 			if ends then cooldownEnds[action] = nil end
 			slot.veil.Size = UDim2.fromScale(0, 1)
 			slot.timer.Text = ""
+			if action == "Mobility" and (slot.maxCharges or 1) > 1 then
+				-- charges restantes (ex. x2 pour Silver Chariot)
+				local charges = player:GetAttribute("MobilityCharges") or slot.maxCharges
+				slot.timer.Text = "x" .. tostring(charges)
+			end
 			if player:GetAttribute("Hitstun") and action ~= "Toggle" then
 				-- vient de prendre un coup : impossible d'attaquer un instant
 				slot.status.Text = "ÉTOURDI"

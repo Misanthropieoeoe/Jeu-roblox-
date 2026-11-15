@@ -2361,6 +2361,82 @@ Players.PlayerRemoving:Connect(function(player)
 	blockFxAt[player] = nil
 end)
 
+-- ==================== DÉPLACEMENT (capacité Z de chaque Stand) ===============
+-- Profils dans ReplicatedStorage.StandMovement. Le serveur gère recharges et
+-- charges, puis demande au client de faire le déplacement (il possède la
+-- physique de son personnage). L'attribut "MobilityCharges" sert à l'affichage.
+local StandMovement = require(ReplicatedStorage:WaitForChild("StandMovement"))
+local mobilityState = {} -- [Player] = { standId, charges, nextAt }
+
+local function useMobility(player)
+	if player:GetAttribute("Standless") then return end
+	local standId = player:GetAttribute("StandId") or StandData.DefaultStand
+	local profile = StandMovement.Get(standId)
+	if not profile.Type then return end
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not hrp or not humanoid or humanoid.Health <= 0 then return end
+
+	local maxCharges = profile.Charges or 1
+	local cooldown = profile.Cooldown or 6
+	local now = os.clock()
+	local state = mobilityState[player]
+	if not state or state.standId ~= standId then
+		state = { standId = standId, charges = maxCharges, nextAt = 0 }
+		mobilityState[player] = state
+	end
+	-- recharge des charges écoulées
+	while state.charges < maxCharges and now >= state.nextAt do
+		state.charges += 1
+		state.nextAt += cooldown
+	end
+	if state.charges <= 0 then
+		standFX:FireClient(player, "MoveDenied", "Mobility", state.nextAt - now)
+		return
+	end
+	if state.charges == maxCharges then
+		state.nextAt = now + cooldown
+	end
+	state.charges -= 1
+	player:SetAttribute("MobilityCharges", state.charges)
+	if state.charges <= 0 then
+		standFX:FireClient(player, "MoveStarted", "Mobility", state.nextAt - now)
+	end
+	-- recharge visible : remet l'attribut à jour quand une charge revient
+	task.delay(math.max(state.nextAt - now, 0) + 0.05, function()
+		local current = mobilityState[player]
+		if current == state and player.Parent then
+			local t = os.clock()
+			while current.charges < maxCharges and t >= current.nextAt do
+				current.charges += 1
+				current.nextAt += cooldown
+			end
+			player:SetAttribute("MobilityCharges", current.charges)
+		end
+	end)
+
+	standFX:FireClient(player, "Mobility", standId)
+	local def = StandData.GetStand(standId)
+	local color = profile.Color or (def and def.Theme and def.Theme.Aura1) or PURPLE
+	impactFX(hrp.Position, color, 5, 1.6)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	mobilityState[player] = nil
+end)
+-- Nouveau Stand = charges pleines
+local function watchMobilityStand(player)
+	player:GetAttributeChangedSignal("StandId"):Connect(function()
+		mobilityState[player] = nil
+		player:SetAttribute("MobilityCharges", nil)
+	end)
+end
+Players.PlayerAdded:Connect(watchMobilityStand)
+for _, player in Players:GetPlayers() do
+	watchMobilityStand(player)
+end
+
 local toggleAt = {}
 
 -- Random stand pick for Stand Arrow pickups. Time-reality stands (The World,
@@ -2530,6 +2606,11 @@ standAction.OnServerEvent:Connect(function(player, actionName, ...)
 	local myHumanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	if myHumanoid and spellStuns[myHumanoid] then return end
 	if frozen[player] then return end
+
+	if actionName == "Mobility" then
+		useMobility(player)
+		return
+	end
 
 	if actionName == "Toggle" then
 		local now = os.clock()

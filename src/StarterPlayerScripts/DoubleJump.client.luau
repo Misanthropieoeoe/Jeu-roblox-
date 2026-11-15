@@ -10,9 +10,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local AnimationController = require(ReplicatedStorage:WaitForChild("AnimationController"))
+local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
+local StandMovement = require(ReplicatedStorage:WaitForChild("StandMovement"))
 
 -- Réglages -------------------------------------------------------------------
 local ANIMATION = "DoubleJump"
+-- Valeurs par défaut ; chaque Stand peut avoir les siennes (AirJumps,
+-- JumpPower dans ReplicatedStorage.StandMovement).
 local AIR_JUMPS = 1 -- nombre de sauts en l'air (1 = double saut, 2 = triple…)
 local POWER = 1.25 -- force du double saut par rapport au saut normal
 local MIN_AIR_TIME = 0.12 -- délai minimum après avoir quitté le sol
@@ -60,10 +64,11 @@ local function tryDoubleJump()
 	if not h or not root or not root.Parent then return end
 	if h.Health <= 0 or h.Sit or root.Anchored then return end
 	if not AIR_STATES[h:GetState()] then return end
-	if jumpsUsed >= AIR_JUMPS then return end
+	local standProfile = StandMovement.Get(Players.LocalPlayer:GetAttribute("StandId") or StandData.DefaultStand)
+	if jumpsUsed >= (standProfile.AirJumps or AIR_JUMPS) then return end
 	if os.clock() - airborneSince < MIN_AIR_TIME then return end
 
-	local velocity = normalJumpVelocity(h) * POWER
+	local velocity = normalJumpVelocity(h) * (standProfile.JumpPower or POWER)
 	if velocity <= 0 then return end -- étourdi / arrêt du temps
 
 	jumpsUsed += 1
