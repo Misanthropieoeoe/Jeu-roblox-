@@ -109,6 +109,10 @@ end
 -- Star Platinum garde toutes ses animations d'origine ; les autres Time Stop
 -- gardent la pose "ZA WARUDO" codée plus bas.
 local KEEP_ORIGINAL_STRIKES = { StarPlatinum = true }
+
+-- Prédiction du M1 (voir la section M1 plus bas) : le coup est joué tout de
+-- suite sur notre écran, sans attendre la réponse du serveur.
+local m1Prediction = nil -- { state, started (heure serveur), expires (os.clock) }
 local STATE_TO_STRIKE = {
 	LightPunchR = "LightR",
 	LightPunchL = "LightL",
@@ -1484,6 +1488,17 @@ local function updateStand(stand, standDef, character, now)
 
 	local state = stand:GetAttribute("State") or "Idle"
 	local started = stand:GetAttribute("StateStarted") or 0
+	-- Notre propre Stand : on joue le M1 prédit en attendant le serveur, puis
+	-- on garde l'heure de départ prédite quand il confirme (pas de saut en
+	-- arrière dans l'animation).
+	if m1Prediction and os.clock() < m1Prediction.expires
+		and stand:GetAttribute("Owner") == localPlayer.UserId then
+		if state == m1Prediction.state then
+			started = math.min(started, m1Prediction.started)
+		elseif started < m1Prediction.started - 0.02 then
+			state, started = m1Prediction.state, m1Prediction.started
+		end
+	end
 	local t = now - started
 	local summonDuration = standDef.SummonDuration or 1.25
 	-- V9: hard visual cutoff from BOTH the absolute server deadline and
@@ -1730,13 +1745,22 @@ local lastM1 = 0
 local m1Held = false
 local m1BufferedAt = nil
 
-local function m1Gate()
+local function lightMove()
 	local standId = localPlayer:GetAttribute("StandId")
 	local standDef = (standId and StandData.GetStand(standId)) or StandData.GetStand(StandData.DefaultStand)
-	local move = standDef and standDef.Moves and standDef.Moves.LightPunchR
-	-- un peu sous le cooldown serveur pour absorber la latence
-	return math.max((move and move.Cooldown or 0.6) - 0.03, 0.1)
+	return standDef and standDef.Moves and standDef.Moves.LightPunchR
 end
+
+local function m1Gate()
+	local move = lightMove()
+	-- juste AU-DESSUS du cooldown serveur : les variations du réseau ne font
+	-- plus refuser un clic de temps en temps
+	return math.max((move and move.Cooldown or 0.6) + 0.03, 0.1)
+end
+
+-- Combo prédit : mêmes règles que le serveur (StandService, M1)
+local predictedCombo = 0
+local predictedEndlagUntil = 0
 
 local function canM1()
 	return localPlayer.Character ~= nil and not localPlayer:GetAttribute("Standless")
@@ -1745,7 +1769,27 @@ local function canM1()
 end
 
 local function fireM1()
-	lastM1 = os.clock()
+	local now = os.clock()
+	if now < predictedEndlagUntil then return end -- pause après le coup final
+	-- Comme le serveur : il faut un Stand au repos ou déjà en train de frapper
+	local stand = workspace:FindFirstChild(localPlayer.Name .. "Stand")
+	local current = stand and stand:GetAttribute("State")
+	if current ~= "Idle" and current ~= "LightPunchR" and current ~= "LightPunchL" then return end
+	local move = lightMove()
+	if now - lastM1 > 1.0 then -- M1_COMBO_RESET côté serveur
+		predictedCombo = 0
+	end
+	predictedCombo += 1
+	local state
+	if predictedCombo >= ((move and move.ComboLength) or 4) then
+		predictedCombo = 0
+		predictedEndlagUntil = now + ((move and move.FinisherEndLag) or 1)
+		state = "HeavyPunch" -- coup final du combo
+	else
+		state = (predictedCombo % 2 == 1) and "LightPunchR" or "LightPunchL"
+	end
+	m1Prediction = { state = state, started = workspace:GetServerTimeNow(), expires = now + 0.6 }
+	lastM1 = now
 	m1BufferedAt = nil
 	standAction:FireServer("LightPunch")
 end
