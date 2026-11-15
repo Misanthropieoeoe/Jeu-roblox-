@@ -50,7 +50,7 @@ local function makePart(style)
 	trail.Attachment0 = a0
 	trail.Attachment1 = a1
 	trail.Color = ColorSequence.new(part.Color)
-	trail.LightEmission = 1
+	trail.LightEmission = 0.25
 	trail.Lifetime = 0.15
 	trail.Transparency = NumberSequence.new(0.2, 1)
 	trail.FaceCamera = true
@@ -58,8 +58,8 @@ local function makePart(style)
 
 	local light = Instance.new("PointLight")
 	light.Color = part.Color
-	light.Range = 8
-	light.Brightness = 2
+	light.Range = 6
+	light.Brightness = 0.5
 	light.Parent = part
 	return part
 end

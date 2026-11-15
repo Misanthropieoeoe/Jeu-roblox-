@@ -45,6 +45,9 @@ local function hasTex(name)
 end
 
 -- Réglages -----------------------------------------------------------------
+-- Intensité lumineuse globale des effets (1 = d'origine, 0.2 = 5x moins de
+-- lumière). Agit sur les particules, les traînées, les flashs et le néon.
+local LIGHT = 0.2
 local MAX_DISTANCE = 220 -- pas d'effets pour les Stands trop loin de la caméra
 local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
 local SMOKE = tex("Smoke", "rbxasset://textures/particles/smoke_main.dds")
@@ -83,7 +86,7 @@ local function makeEmitter(parent, color, opts)
 	local e = Instance.new("ParticleEmitter")
 	e.Texture = opts.texture or SPARKLE
 	e.Color = ColorSequence.new(lighter(color, 0.35), color)
-	e.LightEmission = opts.light or 1
+	e.LightEmission = (opts.light or 1) * LIGHT
 	e.LightInfluence = 0
 	e.Lifetime = NumberRange.new(opts.life or 0.5, (opts.life or 0.5) * 1.5)
 	local speed = opts.speed or 8 -- négatif = particules aspirées vers le centre
@@ -94,7 +97,7 @@ local function makeEmitter(parent, color, opts)
 		NumberSequenceKeypoint.new(1, 0),
 	})
 	e.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.1),
+		NumberSequenceKeypoint.new(0, 1 - 0.9 * math.min(1, LIGHT * 3.5)),
 		NumberSequenceKeypoint.new(1, 1),
 	})
 	e.Acceleration = opts.accel or Vector3.zero
@@ -172,7 +175,7 @@ local function ring(position, color, size, time)
 	part.Material = Enum.Material.Neon
 	part.Color = color
 	part.Shape = Enum.PartType.Cylinder
-	part.Transparency = 0.3
+	part.Transparency = 0.7
 	part.Size = Vector3.new(0.2, 1, 1)
 	part.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
 	part.Parent = folder
@@ -194,7 +197,7 @@ local function trail(part, color, duration)
 	t.Attachment0, t.Attachment1 = a0, a1
 	t.Color = ColorSequence.new(lighter(color, 0.3), color)
 	t.Transparency = NumberSequence.new(0.3, 1)
-	t.LightEmission = 1
+	t.LightEmission = LIGHT
 	t.Lifetime = 0.25
 	t.FaceCamera = true
 	t.Parent = part
@@ -212,8 +215,8 @@ local function flash(position, color, brightness, range, time)
 	local anchor = anchorAt(position, time + 0.1)
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Brightness = brightness or 6
-	light.Range = range or 16
+	light.Brightness = (brightness or 6) * LIGHT
+	light.Range = (range or 16) * 0.7
 	light.Parent = anchor
 	TweenService:Create(light, TweenInfo.new(time or 0.25), { Brightness = 0 }):Play()
 end
@@ -249,7 +252,7 @@ local function pillar(position, color, radius, height)
 	part.Material = Enum.Material.Neon
 	part.Color = color
 	part.Shape = Enum.PartType.Cylinder
-	part.Transparency = 0.25
+	part.Transparency = 0.75
 	part.Size = Vector3.new(height, radius * 2, radius * 2)
 	part.CFrame = CFrame.new(position + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	part.Parent = folder
@@ -536,6 +539,7 @@ local function shape(color, size, cframe, shapeKind)
 	part.Color = color
 	part.Size = size
 	if shapeKind == "Ball" then part.Shape = Enum.PartType.Ball end
+	part.Transparency = 0.5 -- néon atténué
 	part.CFrame = cframe
 	part.Parent = folder
 	return part
@@ -857,8 +861,8 @@ local function playFor(stand)
 	end
 	highlight.FillColor = color
 	highlight.OutlineColor = lighter(color, 0.4)
-	highlight.FillTransparency = 0.7
-	highlight.OutlineTransparency = 0
+	highlight.FillTransparency = 0.92
+	highlight.OutlineTransparency = 0.6
 	highlight.Enabled = true
 	task.spawn(function()
 		local endsAt = os.clock() + (move.Duration or 0.6)
@@ -940,8 +944,8 @@ local function hitFlash(position)
 				h.Parent = model
 			end
 			h.Enabled = true
-			h.FillTransparency = 0.15
-			h.OutlineTransparency = 0
+			h.FillTransparency = 0.6
+			h.OutlineTransparency = 0.7
 			TweenService:Create(h, TweenInfo.new(0.15), { FillTransparency = 1, OutlineTransparency = 1 }):Play()
 			return
 		end

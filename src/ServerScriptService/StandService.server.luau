@@ -701,7 +701,7 @@ local function setupTemplate(template)
 			trail.SpreadAngle = Vector2.new(60, 60)
 			trail.Size = NumberSequence.new(0.3)
 			trail.Transparency = NumberSequence.new(0.1, 1)
-			trail.LightEmission = 1
+			trail.LightEmission = 0.3
 			trail.Parent = arm
 		end
 	end
@@ -1033,7 +1033,7 @@ local function impactFX(position, color, maxSize, soundSpeed)
 	ball.Shape = Enum.PartType.Ball
 	ball.Material = Enum.Material.Neon
 	ball.Color = color
-	ball.Transparency = 0.25
+	ball.Transparency = 0.7
 	ball.Anchored = true
 	ball.CanCollide = false
 	ball.CanQuery = false
@@ -1044,8 +1044,8 @@ local function impactFX(position, color, maxSize, soundSpeed)
 
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Brightness = 4
-	light.Range = 16
+	light.Brightness = 0.8
+	light.Range = 10
 	light.Parent = ball
 
 	local sound = Instance.new("Sound")
@@ -1626,8 +1626,8 @@ local function makeProjectilePart(move, color, size)
 	end
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Range = 8
-	light.Brightness = 2
+	light.Range = 6
+	light.Brightness = 0.5
 	light.Parent = part
 	return part
 end
@@ -2022,7 +2022,7 @@ local function spellZone(player, standDef, move)
 	local radius = move.Radius or 8
 	local ground = groundAt(player, hrp.Position + flatLook(hrp) * (move.Offset or 0))
 	local disc = fxPart({
-		Shape = Enum.PartType.Cylinder, Color = color, Transparency = 0.55,
+		Shape = Enum.PartType.Cylinder, Color = color, Transparency = 0.8,
 		Size = Vector3.new(0.3, radius * 2, radius * 2),
 		CFrame = CFrame.new(ground + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 	})

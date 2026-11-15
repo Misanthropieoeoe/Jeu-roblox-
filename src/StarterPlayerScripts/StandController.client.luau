@@ -1052,7 +1052,7 @@ local function animateStand(stand, state, t, now)
 		rig.aura.Size = NumberSequence.new(rage and 0.58 or 0.4)
 	end
 	if rig.glow and state ~= "Deploying" then
-		rig.glow.Brightness = rage and 2.8 or 1.2
+		rig.glow.Brightness = rage and 1.0 or 0.6
 	end
 	applyEyeFX(rig, visual)
 	stand:SetAttribute("VisualState", state)
