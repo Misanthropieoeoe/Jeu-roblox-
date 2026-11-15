@@ -21,19 +21,19 @@ local StandData = require(ReplicatedStorage:WaitForChild("StandData"))
 -- Importer), mettre leur ID ici, ex. "rbxassetid://123456789".
 -- Tant qu'un ID est vide, la texture intégrée de Roblox est utilisée.
 local TEXTURES = {
-	Glow = "",
-	Spark = "",
-	Impact = "",
-	Ring = "",
-	Slash = "",
-	Lightning = "",
-	Smoke = "",
-	Star = "",
-	Shard = "",
-	Flame = "",
-	Petal = "",
-	Gem = "",
-	Zipper = "",
+	Glow = "rbxassetid://138403917480165",
+	Spark = "rbxassetid://74912473102145",
+	Impact = "rbxassetid://87537987778207",
+	Ring = "rbxassetid://115337750392303",
+	Slash = "rbxassetid://73831602916103",
+	Lightning = "rbxassetid://75208682471722",
+	Smoke = "rbxassetid://137211278777046",
+	Star = "rbxassetid://133511855155150",
+	Shard = "rbxassetid://88905406839516",
+	Flame = "rbxassetid://114860784322228",
+	Petal = "rbxassetid://95473304233140",
+	Gem = "rbxassetid://126447150623322",
+	Zipper = "rbxassetid://113054516565882",
 }
 local function tex(name, fallback)
 	local id = TEXTURES[name]
