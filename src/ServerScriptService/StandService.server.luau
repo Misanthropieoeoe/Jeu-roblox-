@@ -402,9 +402,14 @@ local function installStarPlatinumElbows(template)
 end
 
 
-local remotes = Instance.new("Folder")
-remotes.Name = "Remotes"
-remotes.Parent = ReplicatedStorage
+-- Un seul dossier Remotes pour tout le jeu : Inventory (chargé plus haut)
+-- peut l'avoir déjà créé. En créer un second cachait StandAction aux clients.
+local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+if not remotes then
+	remotes = Instance.new("Folder")
+	remotes.Name = "Remotes"
+	remotes.Parent = ReplicatedStorage
+end
 local standAction = Instance.new("RemoteEvent")
 standAction.Name = "StandAction"
 standAction.Parent = remotes
