@@ -74,7 +74,7 @@ return {
 	-- ─── Star Platinum : précision et force brute ────────────────────────────
 	StarPlatinum = {
 		MeteorFlurry = {
-			Label = "Meteor Flurry", Key = "E", Cooldown = 14, Type = "Flurry",
+			Label = "Meteor Flurry", Key = "E", Cooldown = 15, Type = "Flurry",
 			Duration = 2.2, Anim = "Flurry", PlayerAnim = "CmdBrace", Color = VIOLET,
 			TickRate = 0.1, Damage = 0.8, Range = 9, BoxSize = Vector3.new(7, 7, 10),
 			FinalDamage = 5, FinalKnockback = 45,
@@ -85,7 +85,7 @@ return {
 			Damage = 17, Knockback = 60, Range = 10, BoxSize = Vector3.new(8, 8, 11),
 		},
 		CometPebble = {
-			Label = "Comet Pebble", Key = "T", Cooldown = 10, Type = "Projectile",
+			Label = "Comet Pebble", Key = "T", Cooldown = 12, Type = "Projectile",
 			Duration = 0.5, HitDelay = 0.2, Anim = "Flick", PlayerAnim = "CmdPoint", Color = SILVER,
 			Count = 1, Speed = 180, Range = 100, Damage = 11, Knockback = 15, Size = 0.6,
 		},
@@ -97,8 +97,8 @@ return {
 		},
 		-- Arrêt du temps : fige tous les autres joueurs (pose ZA WARUDO, voix)
 		TimeStop = {
-			Label = "Frozen Instant", Key = "G", Cooldown = 95, Type = "TimeStop",
-			Duration = 4, PlayerAnim = "CmdSummon", Color = VIOLET,
+			Label = "Frozen Instant", Key = "G", Cooldown = 100, Type = "TimeStop",
+			Duration = 3.5, PlayerAnim = "CmdSummon", Color = VIOLET,
 			Range = 80, TimeStopOffset = Vector3.new(0, 2, -3.2), TimeStopSmoothness = 0.25,
 		},
 	},
@@ -361,7 +361,7 @@ return {
 			Count = 6, Spread = 20, Speed = 110, Range = 90, Damage = 2.5, Size = 0.5,
 		},
 		CoilLash = {
-			Label = "Coil Lash", Key = "R", Cooldown = 6, Type = "Strike",
+			Label = "Coil Lash", Key = "R", Cooldown = 12, Type = "Strike",
 			Duration = 0.6, HitDelay = 0.25, Anim = "Point", PlayerAnim = "CmdPoint", Color = EMERALD,
 			Damage = 13, Knockback = 35, Range = 20, BoxSize = Vector3.new(4, 5, 22),
 		},
@@ -392,12 +392,12 @@ return {
 			FinalDamage = 6, FinalKnockback = 45,
 		},
 		PhoenixKick = {
-			Label = "Phoenix Kick", Key = "R", Cooldown = 7, Type = "Strike",
+			Label = "Phoenix Kick", Key = "R", Cooldown = 14, Type = "Strike",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Kick", PlayerAnim = "CmdPoint", Color = FIRE,
 			Damage = 16, Knockback = 55, Range = 9, BoxSize = Vector3.new(8, 8, 10),
 		},
 		FlameLasso = {
-			Label = "Flame Lasso", Key = "T", Cooldown = 11, Type = "Pull",
+			Label = "Flame Lasso", Key = "T", Cooldown = 15, Type = "Pull",
 			Duration = 0.7, HitDelay = 0.2, Anim = "Pull", PlayerAnim = "CmdPoint", Color = FIRE,
 			Range = 22, Damage = 7, Stun = 1.2,
 		},
@@ -459,7 +459,7 @@ return {
 			DashSpeed = 140, DashTime = 0.3, Damage = 17, BoxSize = Vector3.new(8, 7, 10),
 		},
 		Accelerate = {
-			Label = "Accelerate", Key = "T", Cooldown = 25, Type = "Buff",
+			Label = "Accelerate", Key = "T", Cooldown = 40, Type = "Buff",
 			Duration = 0.7, HitDelay = 0.3, Anim = "Raise", PlayerAnim = "CmdSummon", Color = CYAN,
 			SpeedBoost = 2, BuffTime = 6,
 		},
