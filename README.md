@@ -4,16 +4,24 @@ Projet Roblox synchronisé avec Roblox Studio grâce à [Rojo](https://rojo.spac
 
 ## Structure
 
-| Dossier        | Dans Roblox Studio                          | Type de script                 |
-|----------------|---------------------------------------------|--------------------------------|
-| `src/server/`  | `ServerScriptService.Server`                | Scripts serveur                |
-| `src/client/`  | `StarterPlayer.StarterPlayerScripts.Client` | LocalScripts                   |
-| `src/shared/`  | `ReplicatedStorage.Shared`                  | ModuleScripts partagés         |
+| Dossier                       | Dans Roblox Studio                      |
+|-------------------------------|-----------------------------------------|
+| `src/ServerScriptService/`    | `ServerScriptService` (scripts serveur) |
+| `src/StarterPlayerScripts/`   | `StarterPlayer.StarterPlayerScripts` (LocalScripts) |
+| `src/ReplicatedStorage/`      | `ReplicatedStorage` (ModuleScripts partagés) |
+| `src/ReplicatedStorage/Animations/` | `ReplicatedStorage.Animations`    |
 
 Convention des noms de fichiers :
 - `Nom.server.luau` → **Script**
 - `Nom.client.luau` → **LocalScript**
 - `Nom.luau` → **ModuleScript**
+
+Chaque script est déclaré **un par un** dans `default.project.json` : Rojo ne touche
+qu'à ces scripts. La map, les modèles (StarPlatinumTemplate…) et tout le reste
+restent gérés dans Studio. **Un nouveau script doit être ajouté dans
+`default.project.json`**, sauf dans `Animations/` qui est synchronisé en entier.
+
+Branches : `dev` = en test (endroit de test), `main` = validé (vrai jeu).
 
 ## Installation (une seule fois)
 

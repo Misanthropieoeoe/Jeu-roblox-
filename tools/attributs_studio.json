@@ -1,0 +1,197 @@
+{
+  "ReplicatedStorage/AnimationController": {
+    "_lemonadeUniqueId": {
+      "String": "obiUjPM6obiU"
+    }
+  },
+  "ReplicatedStorage/Animations/ArrowStab": {
+    "_lemonadeUniqueId": {
+      "String": "BiRwgHpfBiRw"
+    }
+  },
+  "ReplicatedStorage/Animations/Cool Run Sprint": {
+    "_lemonadeUniqueId": {
+      "String": "BHj9LpIyBHj9"
+    }
+  },
+  "ReplicatedStorage/Animations/RequiemArrowStab": {
+    "_lemonadeUniqueId": {
+      "String": "zErPfVSqzErP"
+    }
+  },
+  "ReplicatedStorage/Animations/Sprint Jump": {
+    "_lemonadeUniqueId": {
+      "String": "Cs8IAarrCs8I"
+    }
+  },
+  "ReplicatedStorage/Animations/Sprint Land": {
+    "_lemonadeUniqueId": {
+      "String": "osmWLm40osmW"
+    }
+  },
+  "ReplicatedStorage/Animations/Stand Flight Pose": {
+    "_lemonadeUniqueId": {
+      "String": "ksS0DvegksS0"
+    }
+  },
+  "ReplicatedStorage/Animations/Stand Jump Pose": {
+    "_lemonadeUniqueId": {
+      "String": "QfoVW3bdQfoV"
+    }
+  },
+  "ReplicatedStorage/Animations/Stand Left Punch": {
+    "_lemonadeUniqueId": {
+      "String": "VcbUY0IQVcbU"
+    }
+  },
+  "ReplicatedStorage/Animations/Stand Right Punch": {
+    "_lemonadeUniqueId": {
+      "String": "6bPEOZrV6bPE"
+    }
+  },
+  "ReplicatedStorage/Animations/StandBarrage": {
+    "_lemonadeUniqueId": {
+      "String": "LdSbtSFlLdSb"
+    }
+  },
+  "ReplicatedStorage/Animations/StandHeal": {
+    "_lemonadeUniqueId": {
+      "String": "06w9WAxl06w9"
+    }
+  },
+  "ReplicatedStorage/Animations/StandHeavyPunch": {
+    "_lemonadeUniqueId": {
+      "String": "edBdQ1GCedBd"
+    }
+  },
+  "ReplicatedStorage/Animations/StandSummon": {
+    "_lemonadeUniqueId": {
+      "String": "BdWIICuoBdWI"
+    }
+  },
+  "ReplicatedStorage/Animations/StandSummon Blade": {
+    "_lemonadeUniqueId": {
+      "String": "RD41rbXRRD41"
+    }
+  },
+  "ReplicatedStorage/Animations/StandSummon Feral": {
+    "_lemonadeUniqueId": {
+      "String": "TbdUQfMOTbdU"
+    }
+  },
+  "ReplicatedStorage/Animations/StandSummon Grace": {
+    "_lemonadeUniqueId": {
+      "String": "mvGkfSkgmvGk"
+    }
+  },
+  "ReplicatedStorage/Animations/StandSummon Time": {
+    "_lemonadeUniqueId": {
+      "String": "3x2abfkK3x2a"
+    }
+  },
+  "ReplicatedStorage/Animations/StandSummonPose": {
+    "_lemonadeUniqueId": {
+      "String": "uj1dQaMcuj1d"
+    }
+  },
+  "ReplicatedStorage/GripUtil": {
+    "_lemonadeUniqueId": {
+      "String": "LRkiGLO2LRki"
+    }
+  },
+  "ReplicatedStorage/StandData": {
+    "_lemonadeUniqueId": {
+      "String": "FNRGuQM8FNRG"
+    }
+  },
+  "ServerScriptService/DummyManager": {
+    "_lemonadeUniqueId": {
+      "String": "lwJnI5ZJlwJn"
+    }
+  },
+  "ServerScriptService/MapBuilder": {
+    "_lemonadeUniqueId": {
+      "String": "2fGsWz6o2fGs"
+    }
+  },
+  "ServerScriptService/MoneyService": {
+    "_lemonadeUniqueId": {
+      "String": "a0sWsdvBa0sW"
+    }
+  },
+  "ServerScriptService/StandService": {
+    "_lemonadeUniqueId": {
+      "String": "5hSy1zbF5hSy"
+    }
+  },
+  "ServerScriptService/TradeService": {
+    "_lemonadeUniqueId": {
+      "String": "BHISCS7tBHIS"
+    }
+  },
+  "ServerStorage/Backup_Barrage_1794542441/StandController": {
+    "_lemonadeUniqueId": {
+      "String": "5cJ0CUtB5cJ0"
+    }
+  },
+  "ServerStorage/Backup_Barrage_1794542441/StandService": {
+    "_lemonadeUniqueId": {
+      "String": "untzacSEuntz"
+    }
+  },
+  "ServerStorage/StandController_BeforeVisualFix": {
+    "_lemonadeUniqueId": {
+      "String": "r9MAgDBtr9MA"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/ArrowStabAnimationHook": {
+    "_lemonadeUniqueId": {
+      "String": "8jiuwogc8jiu"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/CombatFX": {
+    "_lemonadeUniqueId": {
+      "String": "XMUqVa4gXMUq"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/CoolRunSprintAnimationHook": {
+    "_lemonadeUniqueId": {
+      "String": "EXF5LnB9EXF5"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/JoJoLoadingScreen": {
+    "_lemonadeUniqueId": {
+      "String": "AMrI4DbrAMrI"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/MoneyToasts": {
+    "_lemonadeUniqueId": {
+      "String": "szt37SuMszt3"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/RequiemArrowStabAnimationHook": {
+    "_lemonadeUniqueId": {
+      "String": "eqKtWHdLeqKt"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/StandController": {
+    "_lemonadeUniqueId": {
+      "String": "RHDuutQ2RHDu"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/StandPickupToast": {
+    "_lemonadeUniqueId": {
+      "String": "n5odiQvJn5od"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/StandStatHUD": {
+    "_lemonadeUniqueId": {
+      "String": "u5fJALj9u5fJ"
+    }
+  },
+  "StarterPlayer/StarterPlayerScripts/TradeUI": {
+    "_lemonadeUniqueId": {
+      "String": "x1L2vM88x1L2"
+    }
+  }
+}

@@ -5,3 +5,7 @@
 *.rbxm
 sourcemap.json
 .DS_Store
+*.rbxlx
+# Exception : fichiers de place déposés pour import / fusion
+!import/*.rbxlx
+__pycache__/

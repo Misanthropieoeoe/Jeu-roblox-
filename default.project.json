@@ -2,23 +2,432 @@
   "name": "Jeu-roblox",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedStorage": {
-      "Shared": {
-        "$path": "src/shared"
+      "AnimationController": {
+        "$path": "src/ReplicatedStorage/AnimationController.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "obiUjPM6obiU"
+          }
+        }
+      },
+      "GripUtil": {
+        "$path": "src/ReplicatedStorage/GripUtil.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "LRkiGLO2LRki"
+          }
+        }
+      },
+      "ItemCatalog": {
+        "$path": "src/ReplicatedStorage/ItemCatalog.luau"
+      },
+      "PlayerPoses": {
+        "$path": "src/ReplicatedStorage/PlayerPoses.luau"
+      },
+      "StandData": {
+        "$path": "src/ReplicatedStorage/StandData.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "FNRGuQM8FNRG"
+          }
+        }
+      },
+      "StandMovement": {
+        "$path": "src/ReplicatedStorage/StandMovement.luau"
+      },
+      "StandSkinModels": {
+        "$path": "src/ReplicatedStorage/StandSkinModels.luau"
+      },
+      "StandSkins": {
+        "$path": "src/ReplicatedStorage/StandSkins.luau"
+      },
+      "StandSpells": {
+        "$path": "src/ReplicatedStorage/StandSpells.luau"
+      },
+      "StandStrikes": {
+        "$path": "src/ReplicatedStorage/StandStrikes.luau"
+      },
+      "UITheme": {
+        "$path": "src/ReplicatedStorage/UITheme.luau"
+      },
+      "VFXTextures": {
+        "$path": "src/ReplicatedStorage/VFXTextures.luau"
+      },
+      "Animations": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "ArrowStab": {
+          "$path": "src/ReplicatedStorage/Animations/ArrowStab.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "BiRwgHpfBiRw"
+            }
+          }
+        },
+        "Block": {
+          "$path": "src/ReplicatedStorage/Animations/Block.luau"
+        },
+        "CmdBrace": {
+          "$path": "src/ReplicatedStorage/Animations/CmdBrace.luau"
+        },
+        "CmdCast": {
+          "$path": "src/ReplicatedStorage/Animations/CmdCast.luau"
+        },
+        "CmdDash": {
+          "$path": "src/ReplicatedStorage/Animations/CmdDash.luau"
+        },
+        "CmdPlant": {
+          "$path": "src/ReplicatedStorage/Animations/CmdPlant.luau"
+        },
+        "CmdPoint": {
+          "$path": "src/ReplicatedStorage/Animations/CmdPoint.luau"
+        },
+        "CmdSummon": {
+          "$path": "src/ReplicatedStorage/Animations/CmdSummon.luau"
+        },
+        "Cool Run Sprint": {
+          "$path": "src/ReplicatedStorage/Animations/Cool Run Sprint.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "BHj9LpIyBHj9"
+            }
+          }
+        },
+        "DoubleJump": {
+          "$path": "src/ReplicatedStorage/Animations/DoubleJump.luau"
+        },
+        "PlayerHitHeavy": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerHitHeavy.luau"
+        },
+        "PlayerHitLight": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerHitLight.luau"
+        },
+        "PlayerIdle": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerIdle.luau"
+        },
+        "PlayerJump": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerJump.luau"
+        },
+        "PlayerKnockdown": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerKnockdown.luau"
+        },
+        "PlayerLand": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerLand.luau"
+        },
+        "PlayerStabArrow": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerStabArrow.luau"
+        },
+        "PlayerStabRequiem": {
+          "$path": "src/ReplicatedStorage/Animations/PlayerStabRequiem.luau"
+        },
+        "RequiemArrowStab": {
+          "$path": "src/ReplicatedStorage/Animations/RequiemArrowStab.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "zErPfVSqzErP"
+            }
+          }
+        },
+        "Run": {
+          "$path": "src/ReplicatedStorage/Animations/Run.luau"
+        },
+        "Sprint Jump": {
+          "$path": "src/ReplicatedStorage/Animations/Sprint Jump.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "Cs8IAarrCs8I"
+            }
+          }
+        },
+        "Sprint Land": {
+          "$path": "src/ReplicatedStorage/Animations/Sprint Land.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "osmWLm40osmW"
+            }
+          }
+        },
+        "Stand Flight Pose": {
+          "$path": "src/ReplicatedStorage/Animations/Stand Flight Pose.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "ksS0DvegksS0"
+            }
+          }
+        },
+        "Stand Jump Pose": {
+          "$path": "src/ReplicatedStorage/Animations/Stand Jump Pose.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "QfoVW3bdQfoV"
+            }
+          }
+        },
+        "Stand Left Punch": {
+          "$path": "src/ReplicatedStorage/Animations/Stand Left Punch.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "VcbUY0IQVcbU"
+            }
+          }
+        },
+        "Stand Right Punch": {
+          "$path": "src/ReplicatedStorage/Animations/Stand Right Punch.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "6bPEOZrV6bPE"
+            }
+          }
+        },
+        "StandBarrage": {
+          "$path": "src/ReplicatedStorage/Animations/StandBarrage.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "LdSbtSFlLdSb"
+            }
+          }
+        },
+        "StandHeal": {
+          "$path": "src/ReplicatedStorage/Animations/StandHeal.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "06w9WAxl06w9"
+            }
+          }
+        },
+        "StandHeavyPunch": {
+          "$path": "src/ReplicatedStorage/Animations/StandHeavyPunch.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "edBdQ1GCedBd"
+            }
+          }
+        },
+        "StandSummon Blade": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummon Blade.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "RD41rbXRRD41"
+            }
+          }
+        },
+        "StandSummon Feral": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummon Feral.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "TbdUQfMOTbdU"
+            }
+          }
+        },
+        "StandSummon Grace": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummon Grace.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "mvGkfSkgmvGk"
+            }
+          }
+        },
+        "StandSummon Time": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummon Time.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "3x2abfkK3x2a"
+            }
+          }
+        },
+        "StandSummon": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummon.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "BdWIICuoBdWI"
+            }
+          }
+        },
+        "StandSummonPose": {
+          "$path": "src/ReplicatedStorage/Animations/StandSummonPose.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "uj1dQaMcuj1d"
+            }
+          }
+        },
+        "Walk": {
+          "$path": "src/ReplicatedStorage/Animations/Walk.luau"
+        }
       }
     },
-
     "ServerScriptService": {
-      "Server": {
-        "$path": "src/server"
+      "DummyManager": {
+        "$path": "src/ServerScriptService/DummyManager.server.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "lwJnI5ZJlwJn"
+          }
+        }
+      },
+      "Inventory": {
+        "$path": "src/ServerScriptService/Inventory.luau"
+      },
+      "MapBuilder": {
+        "$path": "src/ServerScriptService/MapBuilder.server.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "2fGsWz6o2fGs"
+          }
+        }
+      },
+      "MoneyService": {
+        "$path": "src/ServerScriptService/MoneyService.server.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "a0sWsdvBa0sW"
+          }
+        }
+      },
+      "StandService": {
+        "$path": "src/ServerScriptService/StandService.server.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "5hSy1zbF5hSy"
+          }
+        }
+      },
+      "TradeService": {
+        "$path": "src/ServerScriptService/TradeService.server.luau",
+        "$attributes": {
+          "_lemonadeUniqueId": {
+            "String": "BHISCS7tBHIS"
+          }
+        }
       }
     },
-
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "Client": {
-          "$path": "src/client"
+        "AnimReplicator": {
+          "$path": "src/StarterPlayerScripts/AnimReplicator.client.luau"
+        },
+        "ArrowStabAnimationHook": {
+          "$path": "src/StarterPlayerScripts/ArrowStabAnimationHook.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "8jiuwogc8jiu"
+            }
+          }
+        },
+        "CombatFX": {
+          "$path": "src/StarterPlayerScripts/CombatFX.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "XMUqVa4gXMUq"
+            }
+          }
+        },
+        "CoolRunSprintAnimationHook": {
+          "$path": "src/StarterPlayerScripts/CoolRunSprintAnimationHook.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "EXF5LnB9EXF5"
+            }
+          }
+        },
+        "DoubleJump": {
+          "$path": "src/StarterPlayerScripts/DoubleJump.client.luau"
+        },
+        "Guard": {
+          "$path": "src/StarterPlayerScripts/Guard.client.luau"
+        },
+        "HUD": {
+          "$path": "src/StarterPlayerScripts/HUD.client.luau"
+        },
+        "HitReactions": {
+          "$path": "src/StarterPlayerScripts/HitReactions.client.luau"
+        },
+        "InventoryMenu": {
+          "$path": "src/StarterPlayerScripts/InventoryMenu.client.luau"
+        },
+        "JoJoLoadingScreen": {
+          "$path": "src/StarterPlayerScripts/JoJoLoadingScreen.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "AMrI4DbrAMrI"
+            }
+          }
+        },
+        "Leaderboard": {
+          "$path": "src/StarterPlayerScripts/Leaderboard.client.luau"
+        },
+        "MoneyToasts": {
+          "$path": "src/StarterPlayerScripts/MoneyToasts.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "szt37SuMszt3"
+            }
+          }
+        },
+        "ProjectileFX": {
+          "$path": "src/StarterPlayerScripts/ProjectileFX.client.luau"
+        },
+        "RequiemArrowStabAnimationHook": {
+          "$path": "src/StarterPlayerScripts/RequiemArrowStabAnimationHook.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "eqKtWHdLeqKt"
+            }
+          }
+        },
+        "ShopMenu": {
+          "$path": "src/StarterPlayerScripts/ShopMenu.client.luau"
+        },
+        "SkinMenu": {
+          "$path": "src/StarterPlayerScripts/SkinMenu.client.luau"
+        },
+        "SpellBar": {
+          "$path": "src/StarterPlayerScripts/SpellBar.client.luau"
+        },
+        "SpellFX": {
+          "$path": "src/StarterPlayerScripts/SpellFX.client.luau"
+        },
+        "SpellGestures": {
+          "$path": "src/StarterPlayerScripts/SpellGestures.client.luau"
+        },
+        "StandController": {
+          "$path": "src/StarterPlayerScripts/StandController.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "RHDuutQ2RHDu"
+            }
+          }
+        },
+        "StandMenu": {
+          "$path": "src/StarterPlayerScripts/StandMenu.client.luau"
+        },
+        "StandMovement": {
+          "$path": "src/StarterPlayerScripts/StandMovement.client.luau"
+        },
+        "StandPickupToast": {
+          "$path": "src/StarterPlayerScripts/StandPickupToast.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "n5odiQvJn5od"
+            }
+          }
+        },
+        "StandStatHUD": {
+          "$path": "src/StarterPlayerScripts/StandStatHUD.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "u5fJALj9u5fJ"
+            }
+          }
+        },
+        "TradeUI": {
+          "$path": "src/StarterPlayerScripts/TradeUI.client.luau",
+          "$attributes": {
+            "_lemonadeUniqueId": {
+              "String": "x1L2vM88x1L2"
+            }
+          }
         }
       }
     }
