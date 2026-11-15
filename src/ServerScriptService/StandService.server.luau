@@ -1419,6 +1419,25 @@ local lockMovement -- défini plus bas (section SORTS)
 -- Un joueur (ou mannequin) figé par un arrêt du temps encaisse 25 % de
 -- dégâts en moins (appliqué dans guardHook, section PARADE).
 local TIMESTOP_RESISTANCE = 0.25
+-- Pendant l'arrêt du temps, les coups sur un figé ne font rien sur le moment :
+-- leurs dégâts (déjà réduits) s'accumulent et tombent TOUS D'UN COUP quand le
+-- temps reprend. [Player ou mannequin] = { total, hits, humanoid, root }
+local timeStopDamage = {}
+
+local function releaseTimeStopDamage(key)
+	local pending = timeStopDamage[key]
+	timeStopDamage[key] = nil
+	if not pending or pending.total <= 0 then return end
+	local humanoid, root = pending.humanoid, pending.root
+	if not humanoid or not humanoid.Parent or humanoid.Health <= 0 then return end
+	humanoid:TakeDamage(pending.total)
+	local position = root and root.Parent and root.Position or humanoid.Parent:GetPivot().Position
+	-- un seul gros chiffre de dégâts + réaction de coup lourd
+	standFX:FireAllClients("Hit", "final", position, pending.total)
+	if typeof(key) == "Instance" and key:IsA("Player") then
+		applyHitstun(key, "final")
+	end
+end
 
 local function runTimeStop(player, stand, move)
 	standFX:FireAllClients("TimeStop", move.Duration, player.Name)
@@ -1446,7 +1465,11 @@ local function runTimeStop(player, stand, move)
 	task.delay(move.Duration + 0.05, function()
 		local now = os.clock()
 		for key, endsAt in frozen do
-			if now >= endsAt then frozen[key] = nil end
+			if now >= endsAt then
+				frozen[key] = nil
+				-- le temps reprend : tous les coups encaissés tombent d'un coup
+				releaseTimeStopDamage(key)
+			end
 		end
 	end)
 end
@@ -2320,10 +2343,22 @@ guardHook = function(target, caster, amount, kind)
 		return 0
 	end
 
-	-- FIGÉ PAR UN ARRÊT DU TEMPS : encaisse moins de dégâts (résistance)
-	local frozenUntil = frozen[defender or target.model]
+	-- FIGÉ PAR UN ARRÊT DU TEMPS : les dégâts (moins la résistance) sont mis
+	-- de côté et tombent tous à la fin de l'arrêt du temps
+	local frozenKey = defender or target.model
+	local frozenUntil = frozen[frozenKey]
 	if frozenUntil and frozenUntil > os.clock() then
-		amount = amount * (1 - TIMESTOP_RESISTANCE)
+		local pending = timeStopDamage[frozenKey]
+		if not pending then
+			pending = { total = 0, hits = 0, humanoid = target.humanoid, root = target.root }
+			timeStopDamage[frozenKey] = pending
+		end
+		pending.total += amount * (1 - TIMESTOP_RESISTANCE)
+		pending.hits += 1
+		-- petit éclat pour voir que le coup est "stocké"
+		if target.root then impactFX(target.root.Position, Color3.fromRGB(200, 200, 210), 3, 1.8) end
+		target.guarded = "frozen" -- pas de recul ni d'étourdissement pendant que le temps est arrêté
+		return 0
 	end
 
 	-- CONTRE (attaques de type Counter) : le coup est annulé et renvoyé
