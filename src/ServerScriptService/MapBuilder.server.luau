@@ -75,24 +75,20 @@ local function spawnPad(name, displayName, x, z, color)
 	pad.CFrame = CFrame.new(x, baseY + 0.4, z)
 	pad.Color = color
 	pad.Material = Enum.Material.SmoothPlastic
+	-- point d'apparition invisible : on apparaît dessus sans le voir
+	pad.Transparency = 1
+	pad.CanCollide = false
+	pad.CanQuery = false
 	pad.Anchored = true
 	pad.Neutral = true
 	pad.Duration = 5
 	pad.TopSurface = Enum.SurfaceType.Smooth
 	pad.BottomSurface = Enum.SurfaceType.Smooth
 	pad.Parent = spawnsFolder
-
-	local ring = Instance.new("Part")
-	ring.Name = name .. "_Ring"
-	ring.Shape = Enum.PartType.Cylinder
-	ring.Size = Vector3.new(0.4, 15, 15)
-	ring.CFrame = CFrame.new(x, baseY + 0.05, z) * CFrame.Angles(0, 0, math.pi / 2)
-	ring.Color = color
-	ring.Material = Enum.Material.Neon
-	ring.Anchored = true
-	ring.Transparency = 0.35
-	ring.CanCollide = false
-	ring.Parent = spawnsFolder
+	-- le logo blanc qu'un SpawnLocation affiche par défaut
+	for _, child in pad:GetChildren() do
+		if child:IsA("Decal") then child:Destroy() end
+	end
 end
 
 local fx, fz = landmarkXZ("MapObjects", "fountain")
