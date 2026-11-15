@@ -72,6 +72,13 @@ local function makeEmitter(parent, color, opts)
 	e.Drag = opts.drag or 2
 	e.Rotation = NumberRange.new(0, 360)
 	e.RotSpeed = NumberRange.new(-180, 180)
+	if opts.streak then
+		-- étincelles étirées dans le sens de leur vitesse
+		e.Orientation = Enum.ParticleOrientation.VelocityParallel
+		e.Squash = NumberSequence.new(opts.streak)
+		e.Rotation = NumberRange.new(0)
+		e.RotSpeed = NumberRange.new(0)
+	end
 	e.Rate = opts.rate or 0
 	e.Enabled = (opts.rate or 0) > 0
 	e.Parent = attachment
@@ -142,6 +149,87 @@ local function trail(part, color, duration)
 	end)
 end
 
+-- ─── Impacts en couches ─────────────────────────────────────────────────────
+-- Flash de lumière
+local function flash(position, color, brightness, range, time)
+	local anchor = anchorAt(position, time + 0.1)
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Brightness = brightness or 6
+	light.Range = range or 16
+	light.Parent = anchor
+	TweenService:Create(light, TweenInfo.new(time or 0.25), { Brightness = 0 }):Play()
+end
+
+-- Impact complet. power = 1 normal, 2 gros coup
+local function impact(position, color, power)
+	power = power or 1
+	flash(position, color, 5 * power, 14 * power, 0.25)
+	-- éclair central (une grosse particule très courte)
+	burst(position, lighter(color, 0.5), { count = 2, speed = 0, life = 0.08, size = 3.5 * power, spread = 0 })
+	-- étincelles étirées
+	burst(position, color, { count = math.floor(28 * power), speed = 38 * power, life = 0.22, size = 0.35, streak = 3, drag = 4 })
+	-- éclats plus lents
+	burst(position, lighter(color, 0.2), { count = math.floor(16 * power), speed = 14, life = 0.45, size = 0.5 })
+	-- fumée
+	burst(position, Color3.fromRGB(70, 65, 75), { count = math.floor(5 * power), texture = SMOKE, speed = 5, life = 0.8, size = 2.5 * power, light = 0 })
+	-- double onde : rapide et fine, puis lente et large
+	ring(position, lighter(color, 0.4), 7 * power, 0.18)
+	ring(position, color, 12 * power, 0.45)
+end
+
+-- Colonne de lumière verticale (grosses attaques de zone)
+local function pillar(position, color, radius, height)
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Shape = Enum.PartType.Cylinder
+	part.Transparency = 0.25
+	part.Size = Vector3.new(height, radius * 2, radius * 2)
+	part.CFrame = CFrame.new(position + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	part.Parent = folder
+	TweenService:Create(part, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ Size = Vector3.new(height * 1.2, 0.2, 0.2), Transparency = 1 }):Play()
+	Debris:AddItem(part, 0.5)
+end
+
+-- Débris de roche projetés puis qui retombent
+local function rockDebris(position, count)
+	local rng2 = Random.new()
+	for _ = 1, count or 8 do
+		local rock = Instance.new("Part")
+		rock.Anchored = true
+		rock.CanCollide = false
+		rock.CanQuery = false
+		rock.CanTouch = false
+		rock.Material = Enum.Material.Slate
+		rock.Color = Color3.fromRGB(95, 90, 85)
+		local size = rng2:NextNumber(0.5, 1.2)
+		rock.Size = Vector3.new(size, size * 0.8, size)
+		rock.CFrame = CFrame.new(position) * CFrame.Angles(rng2:NextNumber(0, 6), rng2:NextNumber(0, 6), 0)
+		rock.Parent = folder
+		local dir = Vector3.new(rng2:NextNumber(-1, 1), 0, rng2:NextNumber(-1, 1))
+		dir = dir.Magnitude > 0.01 and dir.Unit or Vector3.xAxis
+		local far = position + dir * rng2:NextNumber(3, 7)
+		local top = (position + far) / 2 + Vector3.new(0, rng2:NextNumber(2, 4), 0)
+		TweenService:Create(rock, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ CFrame = CFrame.new(top) * CFrame.Angles(rng2:NextNumber(0, 6), rng2:NextNumber(0, 6), 0) }):Play()
+		task.delay(0.25, function()
+			TweenService:Create(rock, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ CFrame = CFrame.new(far - Vector3.new(0, 0.3, 0)) }):Play()
+			task.delay(0.9, function()
+				TweenService:Create(rock, TweenInfo.new(0.4), { Transparency = 1 }):Play()
+			end)
+		end)
+		Debris:AddItem(rock, 1.7)
+	end
+end
+
 -- ─── Arrêt du temps : bulle qui s'étend + monde désaturé ───────────────────
 local function timeStopFX(position, color, duration)
 	local shell = Instance.new("Part")
@@ -197,9 +285,9 @@ end
 function EFFECTS.Strike(ctx)
 	task.delay(ctx.move.HitDelay or 0.25, function()
 		local pos = ctx.front(ctx.move.Range and math.min(ctx.move.Range * 0.5, 6) or 4)
-		burst(pos, ctx.color, { count = 35, speed = 22, life = 0.4, size = 0.6 })
-		burst(pos, ctx.color, { count = 6, texture = SMOKE, speed = 6, life = 0.6, size = 2.2, light = 0.3 })
-		ring(pos, ctx.color, 8, 0.35)
+		-- les attaques lourdes (R, gros dégâts) frappent plus fort visuellement
+		local heavy = ctx.move.Key == "R" or (ctx.move.Damage or 0) >= 15
+		impact(pos, ctx.color, heavy and 1.6 or 1)
 	end)
 	trail(ctx.handR, ctx.color, (ctx.move.HitDelay or 0.25) + 0.25)
 end
@@ -226,9 +314,11 @@ function EFFECTS.Burst(ctx)
 	task.delay(ctx.move.HitDelay or 0.5, function()
 		local center = ctx.ground(ctx.move.Offset or 0)
 		local size = (ctx.move.Radius or 8) * 2
+		impact(center + Vector3.new(0, 1, 0), ctx.color, 1.5 + size / 30)
 		ring(center + Vector3.new(0, 0.3, 0), ctx.color, size, 0.5)
-		burst(center + Vector3.new(0, 1, 0), ctx.color, { count = 70, speed = 30, life = 0.6, size = 0.8 })
-		burst(center + Vector3.new(0, 1, 0), ctx.color, { count = 12, texture = SMOKE, speed = 14, life = 0.9, size = 4, light = 0.2 })
+		pillar(center, ctx.color, math.min(size / 4, 4), 14)
+		rockDebris(center + Vector3.new(0, 0.5, 0), math.floor(6 + size / 4))
+		burst(center + Vector3.new(0, 1, 0), Color3.fromRGB(90, 80, 70), { count = 14, texture = SMOKE, speed = 16, life = 1, size = 4, light = 0 })
 	end)
 end
 
@@ -619,6 +709,33 @@ local function playFor(stand)
 	ctx.dir = flat()
 	EFFECTS[move.Type](ctx)
 
+	-- Le Stand s'illumine (contour à sa couleur) pendant l'attaque
+	local highlight = stand:FindFirstChild("SpellGlow")
+	if not highlight then
+		highlight = Instance.new("Highlight")
+		highlight.Name = "SpellGlow"
+		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+		highlight.Parent = stand
+	end
+	highlight.FillColor = color
+	highlight.OutlineColor = lighter(color, 0.4)
+	highlight.FillTransparency = 0.7
+	highlight.OutlineTransparency = 0
+	highlight.Enabled = true
+	task.spawn(function()
+		local endsAt = os.clock() + (move.Duration or 0.6)
+		while os.clock() < endsAt and stand.Parent and stand:GetAttribute("State") == state do
+			task.wait(0.05)
+		end
+		if highlight.Parent then
+			local fade = TweenService:Create(highlight, TweenInfo.new(0.25), { FillTransparency = 1, OutlineTransparency = 1 })
+			fade:Play()
+			fade.Completed:Once(function()
+				if stand:GetAttribute("State") ~= state or not stand.Parent then highlight.Enabled = false end
+			end)
+		end
+	end)
+
 	-- Signature du Stand : au lancement…
 	signature(ctx, "start", ctx.torso and ctx.torso.Position)
 	-- …et à l'impact (plusieurs fois pendant une rafale)
@@ -663,6 +780,54 @@ local function watch(stand)
 		playFor(stand)
 	end)
 end
+
+-- ─── Cible touchée : flash blanc ────────────────────────────────────────────
+local hitParams = OverlapParams.new()
+hitParams.FilterType = Enum.RaycastFilterType.Exclude
+hitParams.FilterDescendantsInstances = { folder }
+
+local function hitFlash(position)
+	local camera = workspace.CurrentCamera
+	if camera and (camera.CFrame.Position - position).Magnitude > MAX_DISTANCE then return end
+	for _, part in workspace:GetPartBoundsInRadius(position, 2.5, hitParams) do
+		local model = part:FindFirstAncestorOfClass("Model")
+		if model and model:FindFirstChildOfClass("Humanoid") and not model.Name:match("Stand$") then
+			local h = model:FindFirstChild("HitFlash")
+			if not h then
+				h = Instance.new("Highlight")
+				h.Name = "HitFlash"
+				h.DepthMode = Enum.HighlightDepthMode.Occluded
+				h.FillColor = Color3.new(1, 1, 1)
+				h.OutlineColor = Color3.new(1, 1, 1)
+				h.Parent = model
+			end
+			h.Enabled = true
+			h.FillTransparency = 0.15
+			h.OutlineTransparency = 0
+			TweenService:Create(h, TweenInfo.new(0.15), { FillTransparency = 1, OutlineTransparency = 1 }):Play()
+			return
+		end
+	end
+end
+
+-- ─── Effet de vitesse sur la caméra (ruées, déplacements) ───────────────────
+local baseFov = nil
+local function fovKick(amount, time)
+	local camera = workspace.CurrentCamera
+	if not camera then return end
+	baseFov = baseFov or camera.FieldOfView
+	camera.FieldOfView = baseFov + amount
+	TweenService:Create(camera, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ FieldOfView = baseFov }):Play()
+end
+
+ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("StandFX").OnClientEvent:Connect(function(kind, a, b)
+	if kind == "Hit" and typeof(b) == "Vector3" then
+		hitFlash(b)
+	elseif kind == "SpellDash" or kind == "Mobility" then
+		fovKick(12, 0.45)
+	end
+end)
 
 workspace.ChildAdded:Connect(function(child)
 	task.spawn(watch, child)
