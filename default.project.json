@@ -334,6 +334,9 @@
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
+        "AdminMenu": {
+          "$path": "src/StarterPlayerScripts/AdminMenu.client.luau"
+        },
         "AnimReplicator": {
           "$path": "src/StarterPlayerScripts/AnimReplicator.client.luau"
         },
